@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Tasks{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks</nav>{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="tasks-hero">
+    <div>
+      <h2>Тренировочный трек Git</h2>
+      <p class="muted">Переходи от базовых операций к продвинутым сценариям. Статус каждого задания виден сразу.</p>
+    </div>
+    <div class="tasks-metrics">
+      <div class="metric-chip"><strong>{{ completed_tasks }}</strong><span>выполнено</span></div>
+      <div class="metric-chip"><strong>{{ total_tasks }}</strong><span>всего задач</span></div>
+      <div class="metric-chip"><strong>{{ overall_pct }}%</strong><span>общий прогресс</span></div>
+    </div>
+  </div>
+  {% for row in level_rows %}
+    {% if not selected_level or selected_level.number == row.level.number %}
+      <details {% if row.level.number == expanded_level_number %}open{% endif %} class="accordion task-level-accordion">
+        <summary>
+          <span>Уровень {{ row.level.number }} — {{ row.level.title }}</span>
+          <span class="level-meta">{{ row.completed }}/{{ row.total }} · {{ row.progress_pct }}%</span>
+        </summary>
+        <div class="level-progress-bar"><span style="width: {{ row.progress_pct }}%;"></span></div>
+        <div class="level-actions">
+          <a class="btn btn-secondary" href="{% url 'theory-detail' row.level.number %}">Теория уровня</a>
+        </div>
+        <div class="task-grid">
+          {% for item in row.tasks %}
+            <article class="task-card {{ item.status }}">
+              <div class="task-card-head">
+                <h4>{{ item.task.external_id }} · {{ item.task.title }}</h4>
+                <span class="status-badge status-{{ item.status }}">
+                  {% if item.status == "completed" %}Готово{% elif item.status == "active" %}Текущая{% else %}Locked{% endif %}
+                </span>
+              </div>
+              <p class="muted">{{ item.task.get_platform_display }}</p>
+              <p class="muted">{{ item.task.points }} баллов</p>
+              <details class="task-description">
+                <summary>Показать условие</summary>
+                <p class="muted">{{ item.task.description }}</p>
+              </details>
+              {% if item.status == "locked" %}
+                <p class="muted">🔒 Сначала выполните предыдущие задачи</p>
+              {% else %}
+                <a class="btn btn-secondary" href="{% url 'playground' item.task_route_id %}">Открыть</a>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </details>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endblock %}

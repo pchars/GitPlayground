@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Лидерборд{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Лидерборд</nav>{% endblock %}
+
+{% block content %}
+<section class="leaderboard-hero card">
+  <div class="leaderboard-hero-text">
+    <h1 class="leaderboard-title">Лидерборд</h1>
+    {% if snapshot_mode %}
+      <p class="leaderboard-sub muted">Снимок на {{ captured_at }}</p>
+    {% else %}
+      <p class="leaderboard-sub muted">Актуальный рейтинг по баллам профиля</p>
+    {% endif %}
+  </div>
+</section>
+
+{% if top_users %}
+  {% with rows=top_users %}
+  <div class="leaderboard-podium">
+    {% if rows|length >= 2 %}
+      <article class="podium-card podium-second {% if request.user.id == rows.1.user_id %}podium-self{% endif %}">
+        <div class="podium-rank">2</div>
+        <div class="podium-medal" aria-hidden="true">🥈</div>
+        <div class="podium-name">{{ rows.1.public_nickname }}</div>
+        <div class="podium-points">{{ rows.1.total_points }} <span class="podium-pts-label">баллов</span></div>
+      </article>
+    {% endif %}
+    {% if rows|length >= 1 %}
+      <article class="podium-card podium-first {% if request.user.id == rows.0.user_id %}podium-self{% endif %}">
+        <div class="podium-rank">1</div>
+        <div class="podium-medal" aria-hidden="true">🥇</div>
+        <div class="podium-name">{{ rows.0.public_nickname }}</div>
+        <div class="podium-points">{{ rows.0.total_points }} <span class="podium-pts-label">баллов</span></div>
+      </article>
+    {% endif %}
+    {% if rows|length >= 3 %}
+      <article class="podium-card podium-third {% if request.user.id == rows.2.user_id %}podium-self{% endif %}">
+        <div class="podium-rank">3</div>
+        <div class="podium-medal" aria-hidden="true">🥉</div>
+        <div class="podium-name">{{ rows.2.public_nickname }}</div>
+        <div class="podium-points">{{ rows.2.total_points }} <span class="podium-pts-label">баллов</span></div>
+      </article>
+    {% endif %}
+  </div>
+
+  <section class="card leaderboard-table-card">
+    <h2 class="leaderboard-table-title">Полный топ</h2>
+    <div class="leaderboard-table-wrap">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th scope="col" class="lb-col-rank">#</th>
+            <th scope="col">Участник</th>
+            <th scope="col" class="lb-col-points">Баллы</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="{% if request.user.id == row.user_id %}lb-row-self{% endif %}">
+              <td class="lb-col-rank">
+                <span class="lb-rank-badge">{{ row.rank }}</span>
+              </td>
+              <td class="lb-col-name">{{ row.public_nickname }}</td>
+              <td class="lb-col-points"><span class="lb-points">{{ row.total_points }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endwith %}
+{% else %}
+  <section class="card">
+    <p class="muted">Пока нет данных для рейтинга.</p>
+  </section>
+{% endif %}
+{% endblock %}

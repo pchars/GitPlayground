@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Profile{% endblock %}
+
+{% block content %}
+<section class="grid two">
+  <article class="card">
+    <h3>Информация о пользователе</h3>
+    <p><strong>Login:</strong> {{ profile_user.username }}</p>
+    <p><strong>E-mail:</strong> {{ profile_user.email|default:"—" }}</p>
+    <p><strong>Имя:</strong> {{ profile.public_nickname }}</p>
+    <p><strong>Среднее число попыток на задачу:</strong> {{ avg_attempts|floatformat:1 }}</p>
+    <p><strong>Количество доступных баллов:</strong> {{ profile.total_points }} баллов</p>
+  </article>
+
+  <article class="card">
+    <h3>Прогресс по обучению</h3>
+    <div class="ring" style="--progress: {{ progress_pct }};">
+      <span>{{ progress_pct }}%</span>
+    </div>
+    <h3>Прогресс по уровням</h3>
+    {% for row in level_progress %}
+      <p>{{ row.level.number }}. {{ row.level.title }} ({{ row.completed }}/{{ row.total }})</p>
+      <div class="progress">
+        {% if row.total %}
+          <span style="width:{% widthratio row.completed row.total 100 %}%"></span>
+        {% else %}
+          <span style="width:0%"></span>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <hr class="profile-divider">
+    <p>Осталось задач до полного прохождения: {{ theory_dropoff }}</p>
+  </article>
+</section>
+
+<section class="card">
+  <h3>Достижения</h3>
+  <div class="achievement-gallery">
+    {% for row in available_achievements %}
+      <article class="achievement-image-card {% if not row.unlocked %}achievement-locked{% endif %}">
+        {% if row.achievement.icon_path %}
+          <img src="{% static row.achievement.icon_path %}" alt="{{ row.achievement.title }}" class="achievement-image" loading="lazy">
+        {% endif %}
+        <h4>{{ row.achievement.title }}</h4>
+        <p class="muted">{{ row.achievement.description }}</p>
+        <p class="muted">{{ row.progress_text }}</p>
+        <p class="muted">+{{ row.achievement.points_bonus }} очков</p>
+        {% if row.unlocked %}
+          <p class="muted">Открыто</p>
+        {% else %}
+          <p class="muted">Чтобы открыть: {{ row.achievement.description }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" name="action" value="preview" class="default">Preview (dry-run)</button>
+    <button type="submit" name="action" value="import">Import task</button>
+  </form>
+  {% if preview %}
+    <hr>
+    <h2>Preview result</h2>
+    {% if is_dry_run %}<p><strong>Dry-run mode:</strong> data not saved.</p>{% endif %}
+    <p><strong>ID:</strong> {{ preview.manifest.id }}</p>
+    <p><strong>Title:</strong> {{ preview.manifest.title }}</p>
+    <p><strong>Level:</strong> {{ preview.manifest.level }}</p>
+    <p><strong>Order:</strong> {{ preview.manifest.order }}</p>
+    <p><strong>Points:</strong> {{ preview.manifest.points }}</p>
+    <p><strong>Files:</strong> {{ preview.files|length }}</p>
+    <p><strong>Hints:</strong> {{ preview.hints_count }}</p>
+    <p><strong>Validator present:</strong> {{ preview.has_validator }}</p>
+  {% endif %}
+{% endblock %}

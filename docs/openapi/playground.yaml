@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: GitPlayground — API плейграунда
+  version: "1.0"
+  description: |
+    JSON-эндпоинты под префиксом приложения (см. `apps/core/urls.py`).
+    Все запросы требуют аутентифицированной сессии (cookie); для POST нужен CSRF-токен Django.
+servers:
+  - url: /
+paths:
+  "/playground/{task_id}/start/":
+    post:
+      summary: Создать или получить активную сессию песочницы
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Внешний id задачи с подчёркиванием вместо точки (например `1_1` для `1.1`)
+      responses:
+        "200":
+          description: Сессия готова
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  session_id: { type: integer }
+                  status: { type: string }
+        "403": { description: Задача заблокирована }
+        "503": { description: Песочница недоступна }
+  "/playground/{task_id}/run/":
+    post:
+      summary: Выполнить команду в песочнице
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                command: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  command: { type: string }
+                  return_code: { type: integer }
+                  output: { type: string }
+                  duration_ms: { type: integer }
+        "400": { description: Пустая команда }
+        "403": { description: Задача заблокирована }
+        "429": { description: Превышен лимит запросов }
+        "503": { description: Ошибка песочницы }
+  "/playground/{task_id}/file/read/":
+    get:
+      summary: Прочитать текстовый файл из репозитория
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: path
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  content: { type: string }
+        "403": { description: Задача заблокирована }
+        "429": { description: Rate limit }
+  "/playground/{task_id}/file/write/":
+    post:
+      summary: Записать текстовый файл
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Успех }
+        "429": { description: Rate limit }
+  "/playground/{task_id}/validate/":
+    post:
+      summary: Запустить валидатор задачи
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                description: См. ответ `playground_validate` в коде (вердикт, диагностика)
+  "/playground/{task_id}/hint/":
+    post:
+      summary: Открыть подсказку
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Подсказка выдана или уже открыта }
+        "403": { description: Нет доступа к задаче }
+        "429": { description: Rate limit }

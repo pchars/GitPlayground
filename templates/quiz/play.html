@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Квиз{% endblock %}
+{% block content %}
+<section class="card quiz-card">
+  <header class="quiz-card-head">
+    <h2 class="quiz-q-title">Вопрос · {{ difficulty_label }}</h2>
+    <a class="btn btn-secondary btn-sm" href="{% url 'quiz-home' %}?difficulty={{ selected_difficulty }}">К стартовой странице квиза</a>
+  </header>
+  <p class="quiz-prompt">{{ question.prompt }}</p>
+  <form method="post" action="{% url 'quiz-play' %}?difficulty={{ selected_difficulty }}" class="quiz-form{% if submitted %} quiz-form-submitted{% endif %}">
+    {% csrf_token %}
+    <input type="hidden" name="question_id" value="{{ question.id }}">
+    <div class="quiz-options" role="group" aria-label="Варианты ответа">
+      {% for idx, label in choices %}
+        <label class="quiz-option {% if submitted and idx == question.correct_index %}quiz-option-correct{% elif submitted and idx == selected_choice and not is_correct %}quiz-option-wrong{% endif %}">
+          <input type="radio" name="choice" value="{{ idx }}" {% if submitted %}disabled{% endif %} {% if selected_choice == idx %}checked{% endif %} required>
+          <span class="quiz-option-body">
+            <span class="quiz-option-key">{{ forloop.counter }}</span>
+            <span class="quiz-option-text">{{ label }}</span>
+          </span>
+        </label>
+      {% endfor %}
+    </div>
+    {% if submitted %}
+      <div class="quiz-inline-feedback {% if is_correct %}quiz-feedback-ok{% else %}quiz-feedback-bad{% endif %}">
+        {{ feedback_text }}
+      </div>
+      <a class="btn btn-primary full quiz-submit" href="{% url 'quiz-play' %}?difficulty={{ selected_difficulty }}">Следующий вопрос</a>
+    {% else %}
+      <button type="submit" class="btn btn-primary full quiz-submit">Ответить</button>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

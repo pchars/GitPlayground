@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Signup{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <form method="post" class="card auth-card">
+    {% csrf_token %}
+    <h2>Регистрация</h2>
+    {{ form.non_field_errors }}
+    <label>Имя пользователя {{ form.username }}</label>
+    {{ form.username.errors }}
+    <label>Email {{ form.email }}</label>
+    {{ form.email.errors }}
+    <label>Пароль {{ form.password1 }}</label>
+    {{ form.password1.errors }}
+    {% if form.password1.help_text %}<p class="muted small-help">{{ form.password1.help_text|safe }}</p>{% endif %}
+    <label>Подтверждение пароля {{ form.password2 }}</label>
+    {{ form.password2.errors }}
+    <button class="btn btn-primary full" type="submit">Создать аккаунт</button>
+    <p class="muted">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
+  </form>
+</section>
+{% endblock %}

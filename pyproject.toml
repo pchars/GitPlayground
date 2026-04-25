@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitplayground"
+version = "0.1.0"
+description = "Web trainer for practicing Git workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=5.0",
+    "celery>=5.4",
+    "redis>=5.0",
+    "markdown>=3.6",
+    "PyYAML>=6.0",
+]
+
+[tool.setuptools]
+packages = ["gitplayground", "apps"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.coverage.run]
+branch = true
+source = ["apps", "gitplayground"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+fail_under = 52
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

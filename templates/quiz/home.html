@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Квиз{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Квиз</nav>{% endblock %}
+
+{% block content %}
+<section class="quiz-hero card">
+  <h1>Квиз по Git</h1>
+  <p class="quiz-lead">Выбирайте сложность и тренируйтесь по уровню: легкий, средний или тяжелый.</p>
+  {% if total_questions %}
+    <p class="muted">В базе сейчас <strong>{{ total_questions }}</strong> вопросов.</p>
+    <p class="muted">Для вас осталось нерешённых: <strong>{{ unresolved_total }}</strong>.</p>
+    <form method="get" class="quiz-difficulty-form">
+      <label for="difficulty-select">Сложность</label>
+      <select id="difficulty-select" name="difficulty" onchange="this.form.submit()">
+        {% for value, label, count in difficulty_with_counts %}
+          <option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>
+            {{ label }} ({{ count }})
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+    {% if unresolved_by_difficulty %}
+      <div class="quiz-stats-row">
+        {% for value, label, count in unresolved_by_difficulty %}
+          <div class="quiz-stat-pill"><span>{{ label }}</span><strong>{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if stats %}
+      <div class="quiz-stats-row">
+        <div class="quiz-stat-pill"><span>Ответов</span><strong>{{ stats.answered_total }}</strong></div>
+        <div class="quiz-stat-pill"><span>Верно</span><strong>{{ stats.correct_total }}</strong></div>
+        <div class="quiz-stat-pill"><span>Серия</span><strong>{{ stats.current_streak }}</strong></div>
+        <div class="quiz-stat-pill"><span>Рекорд серии</span><strong>{{ stats.best_streak }}</strong></div>
+      </div>
+    {% endif %}
+    <div class="actions">
+      <a class="btn btn-primary quiz-cta" href="{% url 'quiz-play' %}?difficulty={{ selected_difficulty }}">Играть</a>
+      <form method="post" action="{% url 'quiz-reset-progress' %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary quiz-cta">Сбросить прогресс квиза</button>
+      </form>
+    </div>
+  {% else %}
+    <p class="muted">Для этого раздела пока нет доступных вопросов.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block title %}GitPlayground | Theory{% endblock %}
+
+{% block content %}
+<section class="theory-hero card">
+  <h2>Уровень {{ level.number }}: {{ level.title }}</h2>
+  <p class="muted">Углубленная теория перед практикой: ключевые идеи, команды и проверочные сценарии.</p>
+</section>
+
+<section class="card">
+  <div class="theory-pager">
+    {% if prev_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' prev_level.number %}" aria-label="Предыдущий уровень">←</a>
+    {% endif %}
+    {% for nav_level in all_levels %}
+      <a class="theory-pager-level {% if nav_level.number == level.number %}is-current{% endif %}" href="{% url 'theory-detail' nav_level.number %}">{{ nav_level.number }}</a>
+    {% endfor %}
+    {% if next_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' next_level.number %}" aria-label="Следующий уровень">→</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <article>
+    {% if rendered_md %}
+      <article class="theory-text">{{ rendered_md|safe }}</article>
+    {% else %}
+      <p class="muted">Теория пока не добавлена.</p>
+    {% endif %}
+  </article>
+  <div class="theory-visualization">
+    <h3>Визуализация</h3>
+    <pre class="diagram mermaid">{% if diagram_mermaid %}{{ diagram_mermaid }}{% else %}graph LR; A-->B;{% endif %}</pre>
+  </div>
+</section>
+<section class="card">
+  <div class="theory-pager">
+    {% if prev_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' prev_level.number %}" aria-label="Предыдущий уровень">←</a>
+    {% endif %}
+    {% for nav_level in all_levels %}
+      <a class="theory-pager-level {% if nav_level.number == level.number %}is-current{% endif %}" href="{% url 'theory-detail' nav_level.number %}">{{ nav_level.number }}</a>
+    {% endfor %}
+    {% if next_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' next_level.number %}" aria-label="Следующий уровень">→</a>
+    {% endif %}
+  </div>
+</section>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, securityLevel: "loose", theme: "default" });
+</script>
+{% endblock %}

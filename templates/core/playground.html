@@ -1,0 +1,121 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Playground{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks / {{ task.external_id }}</nav>{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.5.0/css/xterm.min.css">
+<section class="card">
+  <div class="playground-header">
+    <h2>{{ task.title }}</h2>
+    <p class="muted">{{ task_subtitle }}</p>
+    <p>Уровень {{ task.level.number }} · {{ task.points }} баллов</p>
+    <div id="validate-output" class="hint-box validate-banner muted">Пока нет результатов проверки.</div>
+    <div class="actions">
+      <a class="btn btn-secondary" href="{% url 'theory-detail' task.level.number %}">Теория уровня</a>
+      <button class="btn btn-secondary" id="hint-btn" type="button">Подсказка</button>
+      <button class="btn btn-danger" id="reset-btn" type="button">Сбросить репозиторий</button>
+      <button class="btn btn-success" id="validate-btn" type="button">Проверить</button>
+    </div>
+  </div>
+</section>
+
+<section class="playground-grid">
+  <div class="mobile-tabs" role="tablist" aria-label="Разделы плейграунда">
+    <button class="btn btn-secondary tab-btn active" type="button" data-tab="condition" role="tab" aria-selected="true">Условие</button>
+    <button class="btn btn-secondary tab-btn" type="button" data-tab="terminal" role="tab" aria-selected="false">Терминал</button>
+  </div>
+  <article class="card tab-panel active" data-panel="condition" role="tabpanel">
+    <h3>Условие</h3>
+    {% if learning_content.version %}
+      <p class="muted">Версия задания: v{{ learning_content.version }}</p>
+    {% endif %}
+    <p>{{ learning_content.objective|default:task.description }}</p>
+    {% if learning_content.validator_notes %}
+      <p class="muted">Проверка: {{ learning_content.validator_notes }}</p>
+    {% endif %}
+    <p class="muted">Подсказок доступно: <span id="hint-total">{{ hints|length }}</span></p>
+    <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
+  </article>
+  <article class="card terminal tab-panel active" data-panel="terminal" role="tabpanel">
+    <h3>Терминал</h3>
+    <div class="terminal-shell">
+      <div class="terminal-topbar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="terminal-title">gitplayground-session</span>
+      </div>
+      <div id="terminal-body" class="terminal-body" tabindex="0">
+        <div id="xterm-host" class="xterm-host"></div>
+      </div>
+    </div>
+    <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
+    <div class="shell-learning-panel">
+      <div class="shell-learning-block">
+        <h4>Синтаксис команд</h4>
+        <p id="syntax-live-tip" class="muted">Подсказка по синтаксису появится, когда вы начнете ввод команды.</p>
+      </div>
+      <div class="shell-learning-block">
+        <h4>Рекомендации к задаче</h4>
+        <ul id="task-recommendations" class="list"></ul>
+      </div>
+    </div>
+    <details class="task-details-expand">
+      <summary>Подробные шаги и критерии</summary>
+      {% if learning_content.steps %}
+        <h4>Шаги</h4>
+        <ol>
+          {% for step in learning_content.steps %}
+            <li>{{ step }}</li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+      {% if learning_content.expected_state %}
+        <h4>Ожидаемое состояние</h4>
+        <p class="muted">{{ learning_content.expected_state }}</p>
+      {% endif %}
+      {% if learning_content.validator_notes %}
+        <p class="muted">Проверка: {{ learning_content.validator_notes }}</p>
+      {% endif %}
+    </details>
+    <details class="file-editor-panel">
+      <summary>Редактор файла в репозитории</summary>
+      <p class="muted">
+        Полноэкранные vim/nano в этом терминале недоступны (нет постоянной сессии shell).
+        Для многострочного текста используйте форму ниже: запись идёт в файл песочницы напрямую, без вызова внешних программ.
+        Просмотр одной строкой: <code>cat имя_файла</code> в терминале.
+      </p>
+      <label for="file-editor-path">Путь от корня репозитория</label>
+      <input id="file-editor-path" class="file-editor-path" type="text" placeholder="notes/idea.txt" autocomplete="off" />
+      <label for="file-editor-body">Содержимое (UTF-8)</label>
+      <textarea id="file-editor-body" class="file-editor-body" spellcheck="false"></textarea>
+      <div class="file-editor-actions">
+        <button class="btn btn-secondary" id="file-editor-load" type="button">Загрузить</button>
+        <button class="btn btn-secondary" id="file-editor-save" type="button">Сохранить</button>
+      </div>
+      <p id="file-editor-status" class="muted" aria-live="polite"></p>
+    </details>
+  </article>
+</section>
+
+{{ hints|json_script:"task-hints-data" }}
+{{ hint_ui_state|json_script:"hint-ui-state-data" }}
+{{ syntax_hints|json_script:"syntax-hints-data" }}
+{{ task_recommendations|json_script:"task-recommendations-data" }}
+{{ terminal_log|json_script:"terminal-log-data" }}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script>
+  window.__GP_PLAYGROUND__ = {
+    urls: {
+      run: "{% url 'playground-run-command' task_route_id %}",
+      validate: "{% url 'playground-validate' task_route_id %}",
+      reset: "{% url 'playground-reset' task_route_id %}",
+      hint: "{% url 'playground-hint' task_route_id %}",
+      readFile: "{% url 'playground-read-file' task_route_id %}",
+      writeFile: "{% url 'playground-write-file' task_route_id %}",
+    },
+  };
+</script>
+<script src="{% static 'js/playground.js' %}"></script>
+{% endblock %}

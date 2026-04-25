@@ -1,0 +1,11 @@
+{% extends "core/base.html" %}
+{% block title %}GitPlayground | Ошибка активации{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <article class="card auth-card">
+    <h2>Ссылка активации недействительна</h2>
+    <p class="muted">Запросите новое письмо, зарегистрировавшись снова с актуальной почтой.</p>
+    <a class="btn btn-secondary" href="{% url 'signup' %}">К регистрации</a>
+  </article>
+</section>
+{% endblock %}

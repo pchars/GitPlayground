@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  sandbox-base:
+    image: gitplayground-sandbox:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    command: sh -c "echo sandbox image built && sleep infinity"
+    profiles: ["build-only"]
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "true"
+      SANDBOX_ENGINE: docker
+      SANDBOX_DOCKER_IMAGE: gitplayground-sandbox:latest
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - sandbox-base
+
+  worker:
+    build: .
+    command: celery -A gitplayground worker -l info
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_DEBUG: "true"
+      SANDBOX_ENGINE: docker
+      SANDBOX_DOCKER_IMAGE: gitplayground-sandbox:latest
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - sandbox-base
+
+  beat:
+    build: .
+    command: celery -A gitplayground beat -l info
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_DEBUG: "true"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
