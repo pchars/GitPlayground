@@ -31,7 +31,7 @@
           {% for item in row.tasks %}
             <article class="task-card {{ item.status }}">
               <div class="task-card-head">
-                <h4>{{ item.task.external_id }} · {{ item.task.title }}</h4>
+                <h4>Задача {{ forloop.counter }} · {{ item.task.title }}</h4>
                 <span class="status-badge status-{{ item.status }}">
                   {% if item.status == "completed" %}Готово{% elif item.status == "active" %}Текущая{% else %}Locked{% endif %}
                 </span>

@@ -1,5 +1,7 @@
 """Регистрация и активация аккаунта."""
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -14,6 +16,8 @@ from django.shortcuts import redirect, render
 
 from apps.core.forms import SignUpForm
 from apps.users.models import UserProfile
+
+logger = logging.getLogger(__name__)
 
 
 def _send_activation_email(request: HttpRequest, user: User) -> None:
@@ -36,9 +40,10 @@ def signup_view(request):
 
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        require_confirmation = getattr(settings, "SIGNUP_REQUIRE_EMAIL_CONFIRMATION", True)
         with transaction.atomic():
             user = form.save(commit=False)
-            user.is_active = False
+            user.is_active = not require_confirmation
             user.save()
         # public_nickname глобально уникален; чужой профиль мог занять строку, совпадающую с username.
         nickname = (user.username or "user")[:64]
@@ -49,8 +54,15 @@ def signup_view(request):
             base = (user.username or "user")[: max(1, 64 - len(suffix))]
             nickname = (base + suffix)[:64]
         UserProfile.objects.create(user=user, public_nickname=nickname)
-        _send_activation_email(request, user)
-        return render(request, "core/signup_done.html", {"email": user.email})
+        if require_confirmation:
+            try:
+                _send_activation_email(request, user)
+            except Exception:  # noqa: BLE001
+                logger.exception("Failed to send activation email for user_id=%s", user.pk)
+            return render(request, "core/signup_done.html", {"email": user.email})
+        backend = settings.AUTHENTICATION_BACKENDS[0]
+        login(request, user, backend=backend)
+        return redirect("profile-self")
     return render(request, "core/signup.html", {"form": form})
 
 

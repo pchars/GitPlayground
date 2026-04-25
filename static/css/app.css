@@ -17,6 +17,8 @@ body {
   font-family: Inter, Arial, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 a { color: var(--accent); text-decoration: none; }
 .header {
@@ -548,12 +550,27 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
+.quiz-card-head > * {
+  min-width: 0;
+}
+.quiz-card-head .btn-sm {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  justify-content: center;
+}
+.quiz-card,
+.quiz-form {
+  min-width: 0;
+}
 .quiz-q-title { margin: 0; font-size: 1.1rem; color: var(--text-secondary); }
 .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
 .quiz-prompt {
   font-size: 1.12rem;
   line-height: 1.55;
   margin: 0 0 20px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .quiz-options {
   display: grid;
@@ -612,7 +629,10 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
 }
 .quiz-option-text {
   flex: 1;
+  min-width: 0;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .quiz-submit { margin-top: 4px; }
 .quiz-inline-feedback {
@@ -623,6 +643,8 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
   background: var(--bg-primary);
   line-height: 1.5;
   animation: quizFeedbackPop 0.22s ease-out;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .quiz-feedback-ok {
   border-color: var(--success);
@@ -929,7 +951,8 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
   display: grid;
   gap: 10px;
   z-index: 50;
-  width: min(360px, calc(100vw - 24px));
+  width: min(360px, calc(100% - 40px));
+  max-width: calc(100% - 40px);
 }
 .toast {
   padding: 12px 14px;
@@ -964,7 +987,8 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
 .toast.achievement {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
-  width: min(420px, calc(100vw - 24px));
+  width: 100%;
+  max-width: 100%;
 }
 .toast-achievement-layout {
   display: grid;
@@ -1118,5 +1142,294 @@ input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
     right: 12px;
     left: 12px;
     width: auto;
+  }
+}
+
+/* ---- Airy visual refresh (inspired by spacious event landing layouts) ---- */
+:root {
+  --bg-primary: #f7f8fb;
+  --bg-secondary: #ffffff;
+  --bg-terminal: #f4f6fa;
+  --accent: #2f6bff;
+  --success: #1f9d63;
+  --danger: #d9414f;
+  --warning: #b78011;
+  --text-primary: #1d2433;
+  --text-secondary: #677189;
+  --border: #e3e8f2;
+}
+
+body {
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  overflow-x: hidden;
+}
+
+.header {
+  height: auto;
+  min-height: 76px;
+  padding: 0 28px;
+  background: color-mix(in srgb, var(--bg-secondary) 92%, #ffffff);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 82%, #ffffff);
+  backdrop-filter: blur(10px);
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.brand-link {
+  gap: 12px;
+  font-size: 1.02rem;
+}
+
+.header-nav,
+.header-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header-left,
+.header-actions {
+  min-width: 0;
+}
+
+.header-left {
+  flex: 1 1 420px;
+}
+
+.header-actions {
+  justify-content: flex-end;
+}
+
+.layout {
+  min-height: calc(100vh - 128px);
+}
+
+.main {
+  max-width: 1320px;
+  padding: 34px 28px 42px;
+  overflow-x: clip;
+}
+
+.footer {
+  height: 52px;
+  font-size: 0.92rem;
+}
+
+.card {
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 22px;
+  border-color: color-mix(in srgb, var(--border) 88%, #ffffff);
+  box-shadow: 0 10px 28px rgba(16, 24, 40, 0.06);
+  max-width: 100%;
+}
+
+.grid.two,
+.theory-layout,
+.playground-grid {
+  gap: 22px;
+}
+
+.btn {
+  min-height: 42px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background: color-mix(in srgb, var(--accent) 6%, #ffffff);
+}
+
+input,
+textarea,
+select {
+  border-radius: 10px;
+  padding: 12px 13px;
+  margin-bottom: 14px;
+}
+
+.auth-wrap {
+  margin: 56px auto;
+}
+
+.metric {
+  font-size: 42px;
+  letter-spacing: -0.02em;
+}
+
+.tasks-hero {
+  margin-bottom: 14px;
+  gap: 18px;
+}
+
+.task-level-accordion {
+  margin-top: 18px;
+  padding: 14px 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-secondary) 94%, #ffffff) 0%,
+    color-mix(in srgb, var(--bg-primary) 70%, #ffffff) 100%
+  );
+}
+
+.task-level-accordion summary {
+  padding: 10px 10px 8px;
+  border-radius: 12px;
+}
+
+.task-level-accordion[open] summary {
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, #ffffff);
+}
+
+.tasks-metrics {
+  gap: 12px;
+}
+
+.metric-chip {
+  border-radius: 12px;
+  padding: 11px 13px;
+}
+
+.task-grid {
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.task-card {
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff);
+  background: color-mix(in srgb, var(--bg-secondary) 94%, #ffffff);
+}
+
+.task-card-head h4 {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.task-level-accordion .level-actions {
+  margin-top: 6px;
+  margin-bottom: 14px;
+}
+
+.task-description {
+  margin: 10px 0 12px;
+}
+
+.leaderboard-hero {
+  margin-bottom: 24px;
+  padding: 28px 30px;
+  border-radius: 18px;
+}
+
+.leaderboard-title {
+  font-size: 2rem;
+}
+
+.leaderboard-table-title {
+  padding: 18px 24px 12px;
+}
+
+.leaderboard-table thead th {
+  padding: 12px 24px;
+}
+
+.leaderboard-table td {
+  padding: 15px 24px;
+}
+
+.landing-shell {
+  gap: 34px;
+}
+
+.landing-hero {
+  border-radius: 28px;
+  padding: 34px 36px;
+}
+
+.landing-lead,
+.landing-section p,
+.theory-text {
+  line-height: 1.78;
+}
+
+.landing-cta-strip {
+  padding: 30px 32px;
+  border-radius: 24px;
+}
+
+.terminal-shell {
+  border-radius: 14px;
+}
+
+.terminal-shell .terminal-body {
+  min-height: 460px;
+  max-height: 64vh;
+  padding: 14px;
+}
+
+.shell-learning-panel {
+  margin-top: 14px;
+  gap: 14px;
+}
+
+.shell-learning-block {
+  border-radius: 12px;
+  padding: 13px;
+}
+
+.hint-box {
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.task-details-expand {
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.toast-stack {
+  bottom: 24px;
+  right: 24px;
+  gap: 12px;
+}
+
+.toast {
+  border-radius: 12px;
+  padding: 14px 15px;
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 16px 14px 26px;
+  }
+
+  .header {
+    min-height: 72px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-left,
+  .header-actions,
+  .header-nav {
+    flex-wrap: wrap;
+  }
+
+  .card {
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .playground-grid,
+  .theory-layout,
+  .grid.two {
+    gap: 14px;
   }
 }

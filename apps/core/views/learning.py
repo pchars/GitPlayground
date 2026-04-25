@@ -19,7 +19,11 @@ def tasks_list(request, level_number=None):
         TaskCompletion.objects.filter(user=request.user).values_list("task_id", flat=True)
     )
 
-    task_qs = Task.objects.select_related("level").order_by("level__number", "platform", "order")
+    task_qs = (
+        Task.objects.select_related("level")
+        .filter(platform=Task.Platform.GITHUB)
+        .order_by("level__number", "order")
+    )
     all_tasks = list(task_qs)
     next_unlocked_id = None
     for task in all_tasks:
@@ -115,7 +119,7 @@ def theory_detail(request, level_id):
     levels = list(Level.objects.order_by("number"))
     prev_level = next((candidate for candidate in levels if candidate.number == level.number - 1), None)
     next_level = next((candidate for candidate in levels if candidate.number == level.number + 1), None)
-    first_task = level.tasks.order_by("platform", "order").first()
+    first_task = level.tasks.filter(platform=Task.Platform.GITHUB).order_by("order").first()
     return render(
         request,
         "core/theory_detail.html",

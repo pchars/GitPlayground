@@ -28,9 +28,6 @@
   </div>
   <article class="card tab-panel active" data-panel="condition" role="tabpanel">
     <h3>Условие</h3>
-    {% if learning_content.version %}
-      <p class="muted">Версия задания: v{{ learning_content.version }}</p>
-    {% endif %}
     <p>{{ learning_content.objective|default:task.description }}</p>
     {% if learning_content.validator_notes %}
       <p class="muted">Проверка: {{ learning_content.validator_notes }}</p>
@@ -50,34 +47,6 @@
       </div>
     </div>
     <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
-    <div class="shell-learning-panel">
-      <div class="shell-learning-block">
-        <h4>Синтаксис команд</h4>
-        <p id="syntax-live-tip" class="muted">Подсказка по синтаксису появится, когда вы начнете ввод команды.</p>
-      </div>
-      <div class="shell-learning-block">
-        <h4>Рекомендации к задаче</h4>
-        <ul id="task-recommendations" class="list"></ul>
-      </div>
-    </div>
-    <details class="task-details-expand">
-      <summary>Подробные шаги и критерии</summary>
-      {% if learning_content.steps %}
-        <h4>Шаги</h4>
-        <ol>
-          {% for step in learning_content.steps %}
-            <li>{{ step }}</li>
-          {% endfor %}
-        </ol>
-      {% endif %}
-      {% if learning_content.expected_state %}
-        <h4>Ожидаемое состояние</h4>
-        <p class="muted">{{ learning_content.expected_state }}</p>
-      {% endif %}
-      {% if learning_content.validator_notes %}
-        <p class="muted">Проверка: {{ learning_content.validator_notes }}</p>
-      {% endif %}
-    </details>
     <details class="file-editor-panel">
       <summary>Редактор файла в репозитории</summary>
       <p class="muted">
@@ -100,8 +69,6 @@
 
 {{ hints|json_script:"task-hints-data" }}
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
-{{ syntax_hints|json_script:"syntax-hints-data" }}
-{{ task_recommendations|json_script:"task-recommendations-data" }}
 {{ terminal_log|json_script:"terminal-log-data" }}
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>

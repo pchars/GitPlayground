@@ -138,7 +138,21 @@ def _start_docker_container(container_id: str, workspace: Path) -> bool:
 
 
 def _session_log_path(session: SandboxSession) -> Path:
+    _ensure_sandbox_root()
+    logs_dir = SANDBOX_ROOT / "_logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    session_key = session.id or session.container_id or "unknown"
+    return logs_dir / f"session_{session_key}.terminal.log"
+
+
+def _legacy_repo_log_path(session: SandboxSession) -> Path:
     return Path(session.repo_path) / ".gp_terminal.log"
+
+
+def _cleanup_legacy_repo_log(session: SandboxSession) -> None:
+    legacy = _legacy_repo_log_path(session)
+    if legacy.exists():
+        legacy.unlink(missing_ok=True)
 
 
 def _sanitize_terminal_output(repo_root: str, command: str, text: str) -> str:
@@ -166,7 +180,9 @@ def _sanitize_terminal_output(repo_root: str, command: str, text: str) -> str:
             return "Репозиторий Git в этой песочнице уже инициализирован."
         if "initialized empty git repository" in out_l:
             return "Пустой репозиторий Git создан в ~/repo/."
-    return out.strip()
+    if command:
+        return out.strip()
+    return out
 
 
 def _write_log(
@@ -230,10 +246,15 @@ def audit_playground_repo_file(
 def _read_log_tail(session: SandboxSession, max_chars: int = 8000) -> str:
     path = _session_log_path(session)
     if not path.exists():
-        return "Песочница готова. Можно вводить команды Git."
+        return "Песочница готова. Можно вводить команды Git.\n"
     content = path.read_text(encoding="utf-8")
     tail = content[-max_chars:]
-    return _sanitize_terminal_output(session.repo_path, "", tail)
+    sanitized = _sanitize_terminal_output(session.repo_path, "", tail)
+    normalized = sanitized.replace(f"{TERMINAL_PROMPT_PREFIX}{TERMINAL_PROMPT_PREFIX}", TERMINAL_PROMPT_PREFIX)
+    normalized = normalized.replace(f"{TERMINAL_PROMPT_PREFIX} {TERMINAL_PROMPT_PREFIX}", TERMINAL_PROMPT_PREFIX)
+    normalized = normalized.replace(f"{TERMINAL_PROMPT_PREFIX}", f"\n{TERMINAL_PROMPT_PREFIX}")
+    normalized = normalized.lstrip("\n")
+    return normalized.rstrip()
 
 
 def _seed_workspace_from_assets(task: Task, workspace: Path) -> None:
@@ -467,6 +488,7 @@ def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
         .first()
     )
     if session:
+        _cleanup_legacy_repo_log(session)
         return session
 
     _ensure_sandbox_root()
@@ -497,6 +519,7 @@ def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
         f"Sandbox ready in {workspace} (engine={'docker' if _is_docker_session(session) else 'local'})",
         include_in_user_log=False,
     )
+    _cleanup_legacy_repo_log(session)
     return session
 
 
@@ -508,6 +531,7 @@ def run_command(
     include_in_user_log: bool = True,
 ) -> CommandResult:
     started = time.perf_counter()
+    _cleanup_legacy_repo_log(session)
     if not command.strip():
         return CommandResult(command=command, return_code=1, output="Empty command", duration_ms=0)
 

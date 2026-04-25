@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.core.services import validate_task
 from apps.progress.models import TaskAttempt
 from apps.sandbox.models import SandboxSession
-from apps.tasks.models import Level, Task
+from apps.tasks.models import Level, Task, TaskAsset
 
 
 class ValidatorContractTests(TestCase):
@@ -52,3 +52,18 @@ class ValidatorContractTests(TestCase):
             session = self._session(repo)
             attempt = validate_task(self.user, self.task, session)
             self.assertEqual(attempt.verdict, TaskAttempt.Verdict.FAILED)
+
+    def test_asset_validator_is_deleted_after_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            TaskAsset.objects.create(
+                task=self.task,
+                asset_type=TaskAsset.AssetType.VALIDATOR,
+                path="validator.py",
+                content="raise SystemExit(0)\n",
+                sort_order=1,
+            )
+            session = self._session(repo)
+            attempt = validate_task(self.user, self.task, session)
+            self.assertEqual(attempt.verdict, TaskAttempt.Verdict.PASSED)
+            self.assertFalse((repo / "validator.py").exists())

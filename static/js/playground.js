@@ -9,8 +9,6 @@
     const hintBtn = document.getElementById("hint-btn");
     const validateOutput = document.getElementById("validate-output");
     const hintOutput = document.getElementById("hint-output");
-    const syntaxLiveTip = document.getElementById("syntax-live-tip");
-    const recommendationsList = document.getElementById("task-recommendations");
     const terminalLogNode = document.getElementById("terminal-log-data");
     const initialTerminalLog = terminalLogNode ? JSON.parse(terminalLogNode.textContent || "\"\"") : "";
     const hintsDataNode = document.getElementById("task-hints-data");
@@ -19,12 +17,6 @@
     const hintUiState = hintUiStateNode
       ? JSON.parse(hintUiStateNode.textContent || "{}")
       : { revealed: [], next_hint_index: 1, exhausted: false, total: 0 };
-    const syntaxHintsDataNode = document.getElementById("syntax-hints-data");
-    const syntaxHints = syntaxHintsDataNode ? JSON.parse(syntaxHintsDataNode.textContent || "[]") : [];
-    const recommendationsDataNode = document.getElementById("task-recommendations-data");
-    const taskRecommendations = recommendationsDataNode
-      ? JSON.parse(recommendationsDataNode.textContent || "[]")
-      : [];
     const maxHints = hintsData.length;
     const commandHistory = [];
     let historyCursor = 0;
@@ -144,16 +136,28 @@
     }
 
     function writePrompt() {
+      if (typeof term._setLiveCommand === "function") {
+        term._setLiveCommand("");
+        return;
+      }
       term.write(`\r\n${promptLabel}`);
     }
 
     if (initialTerminalLog) {
-      term.write(initialTerminalLog.replace(/\n/g, "\r\n"));
+      const normalizedInitialLog = initialTerminalLog
+        .replace(/([^\n])(user@gitplayground:~\/repo\$ )/g, "$1\n$2")
+        .replace(/\n/g, "\r\n");
+      term.write(normalizedInitialLog);
+      if (typeof term._setLiveCommand === "function" && !normalizedInitialLog.endsWith("\r\n")) {
+        term.write("\r\n");
+      }
     }
     if (typeof term._setLiveCommand === "function") {
       term._setLiveCommand("");
     } else {
-      term.write(`\r\n${promptLabel}`);
+      if (!initialTerminalLog || !initialTerminalLog.trim().endsWith(promptLabel.trim())) {
+        writePrompt();
+      }
     }
 
     function scrollTerminalDown() {
@@ -188,40 +192,6 @@
       revealed.forEach((row) => {
         renderHintBlock(row.index, row.content, row.points_spent);
       });
-    }
-
-    function renderRecommendations() {
-      if (!recommendationsList) {
-        return;
-      }
-      recommendationsList.innerHTML = "";
-      taskRecommendations.forEach((item) => {
-        const li = document.createElement("li");
-        li.textContent = item;
-        recommendationsList.appendChild(li);
-      });
-      if (!taskRecommendations.length) {
-        const li = document.createElement("li");
-        li.textContent = "Нет специальных рекомендаций для этой задачи.";
-        recommendationsList.appendChild(li);
-      }
-    }
-
-    function updateSyntaxHint(value) {
-      if (!syntaxLiveTip) {
-        return;
-      }
-      const input = (value || "").trim().toLowerCase();
-      if (!input) {
-        syntaxLiveTip.textContent = "Подсказка по синтаксису появится, когда вы начнете ввод команды.";
-        return;
-      }
-      const match = syntaxHints.find((hint) => input.startsWith(hint.command.toLowerCase()));
-      if (!match) {
-        syntaxLiveTip.textContent = "Совет: начните с git status, чтобы увидеть текущее состояние.";
-        return;
-      }
-      syntaxLiveTip.textContent = `${match.syntax} | Пример: ${match.example}`;
     }
 
     async function post(url, payload) {
@@ -377,7 +347,6 @@
       if (dataChunk === "\r") {
         const command = commandBuffer.trim();
         commandBuffer = "";
-        updateSyntaxHint("");
         await submitCommand(command);
         return;
       }
@@ -388,7 +357,6 @@
           if (typeof term._setLiveCommand === "function") {
             term._setLiveCommand(commandBuffer);
           }
-          updateSyntaxHint(commandBuffer);
         }
         return;
       }
@@ -402,7 +370,6 @@
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand(commandBuffer);
         }
-        updateSyntaxHint(commandBuffer);
         return;
       }
       if (dataChunk === "\u001b[B") {
@@ -415,7 +382,6 @@
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand(commandBuffer);
         }
-        updateSyntaxHint(commandBuffer);
         return;
       }
       if (dataChunk === "\u000c") {
@@ -425,7 +391,6 @@
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand("");
         }
-        updateSyntaxHint("");
         return;
       }
       if (dataChunk.length === 1 && dataChunk >= " ") {
@@ -434,7 +399,6 @@
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand(commandBuffer);
         }
-        updateSyntaxHint(commandBuffer);
       }
     });
 
@@ -515,8 +479,6 @@
       });
     }
 
-    renderRecommendations();
-    updateSyntaxHint("");
     hydrateHintsFromServer();
     if (maxHints === 0) {
       hintBtn.disabled = true;

@@ -27,8 +27,10 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
         .first()
     )
     validator_path = Path(session.repo_path) / "validator.py"
+    validator_written_from_asset = False
     if validator_asset and validator_asset.content.strip():
         validator_path.write_text(validator_asset.content, encoding="utf-8")
+        validator_written_from_asset = True
 
     verdict = TaskAttempt.Verdict.FAILED
     try:
@@ -74,6 +76,9 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
     except Exception as exc:  # noqa: BLE001
         diagnostics.append(f"Validation error: {exc}")
         verdict = TaskAttempt.Verdict.ERROR
+    finally:
+        if validator_written_from_asset:
+            validator_path.unlink(missing_ok=True)
 
     duration_ms = int((time.perf_counter() - started) * 1000)
     with transaction.atomic():
@@ -114,7 +119,9 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
 
 def get_next_unlockable_task_for_user(user: User) -> Task | None:
     completed = set(TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True))
-    for task in Task.objects.select_related("level").order_by("level__number", "order"):
+    for task in Task.objects.select_related("level").filter(platform=Task.Platform.GITHUB).order_by(
+        "level__number", "order"
+    ):
         if task.id not in completed:
             return task
     return None

@@ -13,86 +13,83 @@ from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock, TaskRevision
 
 
 LEVELS = [
-    (1, "Основы Git", 10),
-    (2, "Ветвление", 9),
-    (3, "Слияния и интеграция", 10),
-    (4, "История и переписывание", 8),
-    (5, "Удаленные репозитории и командная работа", 8),
-    (6, "Диагностика, внутренности и автоматизация", 7),
-    (7, "Гигиена репозитория: .gitignore и .gitkeep", 0),
-    (8, "Тегирование и фиксация версий", 0),
+    (1, "Основы Git", 8),
+    (2, "Ветвление", 7),
+    (3, "Слияния и интеграция", 7),
+    (4, "История и переписывание", 6),
+    (5, "Удаленные репозитории и командная работа", 6),
+    (6, "Диагностика, внутренности и автоматизация", 6),
+    (7, "Гигиена репозитория: .gitignore и .gitkeep", 5),
+    (8, "Тегирование и фиксация версий", 5),
 ]
 
 TASK_BLUEPRINTS = {
     1: [
-        ("init_repo", "Инициализируй репозиторий в текущей папке командой git init. После этого .git должен появиться в каталоге проекта.", 5),
-        ("first_commit", "Создай файл hello.txt с текстом Hello, Git!, добавь его в индекс и сделай коммит с точным сообщением Add hello.", 10),
-        ("check_status", "Измени hello.txt, но не добавляй файл в индекс. Проверка ожидает статус modified в блоке unstaged.", 5),
-        ("stage_unstage", "Добавь hello.txt в staging, затем верни его обратно в unstaged состояние (например через git restore --staged).", 10),
-        ("commit_second", "Сделай новое изменение в hello.txt и создай второй коммит с сообщением Update hello.", 10),
-        ("view_diff", "Добавь строку Another line в hello.txt и убедись, что она видна в выводе git diff до индексации.", 5),
-        ("amend_commit", "Создай config.txt и включи его в последний коммит через --amend, не меняя текст сообщения коммита.", 15),
-        ("view_history", "Открой историю через git log --oneline --graph и проверь, что в репозитории уже есть минимум два коммита.", 5),
-        ("setup_ignore", "Создай .gitignore и добавь правила для *.log и __pycache__/, чтобы эти файлы не отслеживались Git.", 10),
-        ("create_tag", "Создай аннотированный тег v1.0 на текущем коммите и проверь его наличие командой git tag -l или git show v1.0.", 10),
+        ("init_repo", "Инициализируй репозиторий в текущей папке (`git init`).", 6),
+        ("first_commit", "Создай `hello.txt` с текстом `Hello, Git!`, добавь в индекс и сделай коммит `Add hello`.", 10),
+        ("check_status", "Измени `hello.txt` и проверь, что изменение не в staging (`git status --short`).", 6),
+        ("stage_unstage", "Добавь `hello.txt` в staging, затем убери из staging (например `git restore --staged hello.txt`), сохранив изменение в файле.", 8),
+        ("view_diff", "Добавь строку `Another line` в `hello.txt` и выполни `git diff`, чтобы увидеть это изменение до коммита.", 6),
+        ("commit_second", "Сделай второй коммит с сообщением `Update hello`.", 10),
+        ("amend_commit", "Добавь `config.txt` в последний коммит через `--amend`.", 12),
+        ("view_history", "Покажи историю в компактном виде (`git log --oneline`).", 6),
     ],
     2: [
-        ("create_branch", "Создай новую ветку feature-x и сразу переключись на нее. Текущая ветка должна стать feature-x.", 10),
-        ("commit_on_branch", "На ветке feature-x создай feature.txt и зафиксируй файл отдельным коммитом.", 10),
-        ("switch_branch", "Переключись обратно на main и убедись, что feature.txt не отображается в рабочем каталоге.", 5),
-        ("list_branches", "Выведи список веток и проверь, что активная ветка отмечена символом *.", 5),
-        ("delete_branch", "Находясь не в feature-x, удали ветку feature-x безопасной командой удаления.", 5),
-        ("branch_from_commit", "Создай новую ветку не от HEAD, а от выбранного коммита из истории (по SHA).", 15),
-        ("rename_branch", "Переименуй текущую ветку в более понятное имя, например feature-auth.", 10),
-        ("track_remote_branch", "Создай локальную ветку, которая отслеживает удаленную ветку upstream (upstream tracking).", 15),
-        ("branch_compare", "Сравни две ветки по коммитам и изменениям через git log --left-right и git diff A...B.", 15),
+        ("create_branch", "Создай и открой ветку `feature-x`.", 8),
+        ("commit_on_branch", "На `feature-x` добавь `feature.txt` и закоммить.", 10),
+        ("switch_branch", "Вернись в `main` и убедись, что `feature.txt` исчез из рабочей копии.", 6),
+        ("list_branches", "Покажи список веток и текущую ветку (`git branch`).", 5),
+        ("rename_branch", "Переименуй рабочую ветку в более понятное имя.", 8),
+        ("branch_from_commit", "Создай ветку от выбранного SHA из истории.", 12),
+        ("delete_branch", "Удаляй ненужную ветку безопасной командой (не активную).", 7),
     ],
     3: [
-        ("fast_forward_merge", "Выполни слияние, которое завершится fast-forward без отдельного merge-коммита.", 10),
-        ("no_ff_merge", "Слей ветку с флагом --no-ff, чтобы в истории появился явный merge-коммит.", 15),
-        ("resolve_conflict", "Разреши конфликт слияния вручную, добавь исправленные файлы и корректно заверши merge.", 25),
-        ("abort_merge", "Запусти конфликтное слияние и откати процесс командой git merge --abort.", 10),
-        ("merge_tool", "Разреши конфликт с помощью git mergetool (или эквивалентного ручного подхода), затем заверши merge.", 15),
-        ("octopus_merge", "Выполни octopus merge: объедини сразу три совместимые ветки одной командой.", 20),
-        ("squash_merge", "Слей изменения ветки в один squashed commit, чтобы получить одну итоговую фиксацию.", 20),
-        ("merge_vs_rebase", "На одном и том же наборе изменений сравни результат merge и rebase в истории проекта.", 10),
-        ("cherry_pick_hotfix", "Перенеси отдельный hotfix-коммит из другой ветки через git cherry-pick.", 15),
-        ("revert_merge", "Откати merge-коммит через git revert -m и проверь, что история осталась корректной.", 20),
+        ("fast_forward_merge", "Слей ветку в fast-forward без merge-коммита.", 8),
+        ("no_ff_merge", "Сделай merge с `--no-ff`, чтобы получить явный merge-коммит.", 12),
+        ("resolve_conflict", "Разреши конфликт вручную и корректно заверши merge.", 18),
+        ("abort_merge", "Запусти конфликт и откати его через `git merge --abort`.", 10),
+        ("squash_merge", "Слей ветку в один squashed commit.", 14),
+        ("cherry_pick_hotfix", "Перенеси один нужный коммит через `git cherry-pick`.", 12),
+        ("revert_merge", "Откати merge-коммит через `git revert -m`.", 14),
     ],
     4: [
-        ("amend_message", "Исправь сообщение последнего коммита с помощью git commit --amend.", 10),
-        ("reorder_commits", "Через interactive rebase поменяй порядок нескольких последних коммитов.", 25),
-        ("squash_commits", "Объедини последние три коммита в один аккуратный коммит с понятной историей.", 20),
-        ("drop_commit", "Через interactive rebase убери из истории один лишний коммит.", 15),
-        ("edit_commit", "Во время rebase остановись на нужном коммите, измени его содержимое и продолжи rebase.", 25),
-        ("rebase_onto", "Перенеси диапазон коммитов на новую базу с помощью git rebase --onto.", 30),
-        ("stash_workflow", "Сохрани незавершенные изменения в stash, переключись на другую ветку и потом верни изменения обратно.", 15),
-        ("reset_modes", "Покажи на практике разницу между reset --soft, --mixed и --hard на короткой истории.", 20),
+        ("amend_message", "Исправь сообщение последнего коммита через `--amend`.", 8),
+        ("reorder_commits", "Через `rebase -i` поменяй порядок последних коммитов.", 14),
+        ("squash_commits", "Объедини несколько соседних коммитов в один.", 14),
+        ("edit_commit", "Остановись в `rebase -i`, измени коммит и продолжи.", 16),
+        ("stash_workflow", "Спрячь изменения в stash и верни их обратно.", 10),
+        ("reset_modes", "Покажи разницу `reset --soft`, `--mixed`, `--hard`.", 14),
     ],
     5: [
-        ("clone_local", "Склонируй подготовленный upstream-репозиторий в новую локальную папку.", 10),
-        ("add_remote", "Добавь второй remote с именем upstream к текущему репозиторию и проверь его в git remote -v.", 5),
-        ("push_first", "Опубликуй локальную ветку main в remote upstream первым push.", 10),
-        ("fetch_merge", "Забери новые изменения через git fetch и влей их вручную в текущую ветку.", 15),
-        ("pull_rebase", "Настрой git pull так, чтобы обновления подтягивались через rebase, а не merge.", 15),
-        ("push_conflict", "Разреши non-fast-forward конфликт (сначала обновись, потом снова push) и успешно опубликуй изменения.", 25),
-        ("remote_prune", "Очисти локальные ссылки на удаленные ветки, которых уже нет на сервере, через git fetch --prune.", 10),
-        ("push_tags", "Отправь аннотированный тег в удаленный репозиторий и убедись, что тег опубликован.", 10),
-        ("github_pages_publish", "Настрой публикацию проекта в GitHub Pages из ветки gh-pages или из /docs и проверь доступность страницы.", 18),
-        ("github_actions_ci", "Собери workflow GitHub Actions для lint/test и добейся зеленого статуса в CI.", 22),
-        ("github_hooks_guard", "Добавь локальный pre-commit hook, который блокирует коммиты без обязательной проверки.", 18),
+        ("clone_local", "Клонируй удалённый репозиторий в новую папку.", 8),
+        ("add_remote", "Добавь `upstream` и проверь remotes через `git remote -v`.", 6),
+        ("push_first", "Сделай первый push ветки в remote.", 9),
+        ("fetch_merge", "Сделай `git fetch`, затем влей изменения вручную.", 12),
+        ("pull_rebase", "Настрой `pull` через rebase и подтяни изменения.", 12),
+        ("push_conflict", "Разрули non-fast-forward и успешно повтори push.", 15),
     ],
     6: [
-        ("find_bisect", "Используй git bisect, чтобы найти конкретный коммит, после которого появилась поломка.", 30),
-        ("reflog_recovery", "Восстанови потерянный коммит, используя запись из git reflog.", 25),
-        ("filter_branch", "Перепиши историю так, чтобы чувствительный файл был удален из всех прошлых коммитов.", 35),
-        ("worktree", "Создай отдельный worktree для hotfix-задачи и сделай там отдельный коммит исправления.", 15),
-        ("submodule", "Подключи внешний репозиторий как submodule и зафиксируй это изменение в основном проекте.", 20),
-        ("inspect_objects", "Проверь внутренние объекты Git через git cat-file, git ls-tree и git rev-parse.", 25),
-        ("custom_aliases_hooks", "Добавь удобный alias в git config и включи локальный hook, который проверяет commit message.", 20),
+        ("find_bisect", "Найди «плохой» коммит через `git bisect`.", 16),
+        ("reflog_recovery", "Восстанови потерянный коммит с помощью `git reflog`.", 14),
+        ("worktree", "Создай отдельный worktree для hotfix-ветки.", 10),
+        ("inspect_objects", "Посмотри объекты через `git cat-file` и `git ls-tree`.", 14),
+        ("custom_aliases_hooks", "Добавь alias и локальный hook для commit-msg.", 12),
+        ("filter_branch", "Перепиши историю и удали чувствительный файл из прошлых коммитов.", 18),
     ],
-    7: [],
-    8: [],
+    7: [
+        ("setup_ignore", "Создай `.gitignore` и добавь `*.log`, `.env`, `__pycache__/`.", 8),
+        ("ignore_node_modules", "Добавь правило `node_modules/` и проверь `git status`.", 7),
+        ("untrack_cached", "Убери ранее отслеживаемый файл из индекса через `git rm --cached`.", 10),
+        ("keep_empty_dir", "Сохрани пустую папку в Git через файл `.gitkeep`.", 7),
+        ("ignore_exceptions", "Сделай исключение в `.gitignore` через `!` для одного файла.", 10),
+    ],
+    8: [
+        ("create_lightweight_tag", "Создай lightweight тег `v0.1-lw` на текущем коммите.", 8),
+        ("create_tag", "Создай аннотированный тег `v1.0` с сообщением.", 10),
+        ("show_tag", "Покажи детали тега через `git show`.", 7),
+        ("tag_old_commit", "Поставь тег на прошлый коммит по SHA.", 10),
+        ("push_tags", "Отправь теги в remote и проверь, что они опубликованы.", 10),
+    ],
 }
 
 GITLAB_BLUEPRINTS = {
@@ -693,7 +690,7 @@ import subprocess
 
 status = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, check=False).stdout
 if ' M hello.txt' not in status:
-    print('Expected unstaged modification after unstage step')
+    print('Expected modified but unstaged hello.txt. Use git add hello.txt then git restore --staged hello.txt (do not run git restore hello.txt).')
     sys.exit(1)
 print('OK')
 """,
@@ -847,6 +844,14 @@ def _validator_by_slug(slug: str, external_id: str) -> str:
         return "import subprocess, sys\nr=subprocess.run(['git','reflog','-n','5'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 and bool(r.stdout.strip()) else 1)"
     if slug in {"clone_local", "add_remote", "push_first", "fetch_merge", "pull_rebase", "push_conflict", "remote_prune"}:
         return "import subprocess, sys\nr=subprocess.run(['git','remote','-v'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
+    if slug in {"gitlab_repo_init"}:
+        return (
+            "import subprocess, sys\n"
+            "has_commit=subprocess.run(['git','rev-parse','--verify','HEAD'],capture_output=True,text=True,check=False).returncode==0\n"
+            "origin=subprocess.run(['git','remote','get-url','origin'],capture_output=True,text=True,check=False)\n"
+            "upstream=subprocess.run(['git','rev-parse','--abbrev-ref','--symbolic-full-name','@{u}'],capture_output=True,text=True,check=False)\n"
+            "sys.exit(0 if has_commit and origin.returncode==0 and bool(origin.stdout.strip()) and upstream.returncode==0 else 1)"
+        )
     if slug in {"find_bisect", "reflog_recovery", "filter_branch", "worktree", "submodule", "inspect_objects", "custom_aliases_hooks"}:
         return "import subprocess, sys\nr=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
     if slug in {"init_repo", "first_commit", "check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit"}:
@@ -877,6 +882,12 @@ def task_metadata(level_number: int, slug: str, description: str, platform: str 
         requires.append("hello_committed")
     if slug in {"commit_on_branch", "switch_branch", "list_branches", "delete_branch"}:
         requires.extend(["hello_committed", "feature_branch_exists"])
+    validator_hints = ["Проверка опирается на состояние репозитория и историю коммитов."]
+    if slug == "stage_unstage":
+        validator_hints = [
+            "Ожидается измененный `hello.txt` без staged-изменений.",
+            "Подходит `git add hello.txt`, затем `git restore --staged hello.txt`.",
+        ]
     return {
         "objective": description,
         "platform": platform,
@@ -891,7 +902,7 @@ def task_metadata(level_number: int, slug: str, description: str, platform: str 
         ],
         "expected_state": "Состояние репозитория соответствует формулировке задания.",
         "preconditions": requires,
-        "validatorHints": ["Проверка опирается на состояние репозитория и историю коммитов."],
+        "validatorHints": validator_hints,
         "start": {
             "mode": "guided",
             "requires": requires,
@@ -1002,11 +1013,20 @@ class Command(BaseCommand):
                 },
             )
 
+            # В учебном UI показываем единый github-трек; пересобираем задачи уровня детерминированно.
+            Task.objects.filter(level=level, platform__in=("github", "gitlab")).delete()
             for platform, blueprints in (
                 ("github", TASK_BLUEPRINTS.get(level_number, [])),
-                ("gitlab", GITLAB_BLUEPRINTS.get(level_number, [])),
             ):
+                platform_prefix = "gh" if platform == "github" else "gl"
                 for order, (slug, description, points) in enumerate(blueprints, start=1):
+                    level_hints = LEVEL_SECTION_HINTS.get(
+                        level_number,
+                        (
+                            "Проверь текущее состояние через git status и выполни шаги задачи последовательно.",
+                            "Сверь результат через git log --oneline и git status --short перед проверкой.",
+                        ),
+                    )
                     metadata = task_metadata(level_number, slug, description, platform=platform)
                     defaults = {
                         "slug": slug,
@@ -1020,19 +1040,10 @@ class Command(BaseCommand):
                         "success_message": "Отлично! Задача решена.",
                         "metadata": metadata,
                     }
-                    task = Task.objects.filter(external_id=f"{platform[:2]}-{level_number}.{order}").first()
-                    if task is None:
-                        task = Task.objects.filter(level=level, platform=platform, order=order).first()
-                    if task is None:
-                        task = Task.objects.create(
-                            external_id=f"{platform[:2]}-{level_number}.{order}",
-                            **defaults,
-                        )
-                    else:
-                        for key, value in defaults.items():
-                            setattr(task, key, value)
-                        task.external_id = f"{platform[:2]}-{level_number}.{order}"
-                        task.save()
+                    task = Task.objects.create(
+                        external_id=f"{platform_prefix}-{level_number}.{order}",
+                        **defaults,
+                    )
                     revision, _ = TaskRevision.objects.update_or_create(
                         task=task,
                         version=1,
@@ -1070,7 +1081,7 @@ class Command(BaseCommand):
                         path="hints/hint1.txt",
                         defaults={
                             "sort_order": 1,
-                            "content": LEVEL_SECTION_HINTS[level_number][0],
+                            "content": level_hints[0],
                         },
                     )
                     TaskAsset.objects.update_or_create(
@@ -1079,7 +1090,7 @@ class Command(BaseCommand):
                         path="hints/hint2.txt",
                         defaults={
                             "sort_order": 2,
-                            "content": LEVEL_SECTION_HINTS[level_number][1],
+                            "content": level_hints[1],
                         },
                     )
                     created_tasks += 1

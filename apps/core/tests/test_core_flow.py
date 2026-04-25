@@ -251,7 +251,7 @@ class CoreFlowTests(TestCase):
         self.assertFalse(res.json()["ok"])
         self.assertEqual(HintUsage.objects.filter(user=self.user, task=self.task1, hint_index=1).count(), 0)
 
-    def test_tasks_page_includes_github_and_gitlab_tasks(self):
+    def test_tasks_page_shows_only_github_track(self):
         self.client.force_login(self.user)
         self.task1.platform = "github"
         self.task1.save(update_fields=["platform"])
@@ -261,9 +261,8 @@ class CoreFlowTests(TestCase):
         self.assertEqual(tasks_page.status_code, 200)
         page_html = tasks_page.content.decode("utf-8")
         self.assertIn("Task 1", page_html)
-        self.assertIn("Task 2", page_html)
         self.assertIn("GitHub", page_html)
-        self.assertIn("GitLab", page_html)
+        self.assertNotIn("GitLab", page_html)
 
     def test_playground_hint_requires_previous_hint(self):
         self.client.force_login(self.user)

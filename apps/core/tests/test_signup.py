@@ -2,12 +2,16 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.core import mail
 from django.test.utils import override_settings
+from unittest.mock import patch
 
 from apps.users.models import UserProfile
 
 
 class SignupViewTests(TestCase):
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True,
+    )
     def test_signup_valid_sends_activation_email_and_creates_inactive_user(self):
         client = Client()
         password = "x3$QwertySignup9zUnique"
@@ -42,7 +46,10 @@ class SignupViewTests(TestCase):
         body = response.content.decode("utf-8")
         self.assertIn("errorlist", body)
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True,
+    )
     def test_signup_public_nickname_avoids_collision_with_existing_profile(self):
         existing = User.objects.create_user(username="u1", password="x3$Pw9zUnique1")
         UserProfile.objects.create(user=existing, public_nickname="wanted_name", total_points=0)
@@ -62,3 +69,42 @@ class SignupViewTests(TestCase):
         profile = UserProfile.objects.get(user=newbie)
         self.assertNotEqual(profile.public_nickname, "wanted_name")
         self.assertIn(str(newbie.pk), profile.public_nickname)
+
+    @override_settings(SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True)
+    @patch("apps.core.views.auth.send_mail", side_effect=RuntimeError("smtp down"))
+    def test_signup_does_not_crash_when_email_send_fails(self, _mock_send_mail):
+        client = Client()
+        password = "x3$QwertySignup9zUnique"
+        response = client.post(
+            "/signup/",
+            {
+                "username": "signup_mail_fail_user",
+                "email": "signup_mail_fail_user@example.com",
+                "password1": password,
+                "password2": password,
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.content.decode("utf-8")[:500])
+        user = User.objects.get(username="signup_mail_fail_user")
+        self.assertFalse(user.is_active)
+        self.assertTrue(UserProfile.objects.filter(user=user).exists())
+
+    @override_settings(SIGNUP_REQUIRE_EMAIL_CONFIRMATION=False)
+    def test_signup_without_confirmation_activates_and_logs_in_user(self):
+        client = Client()
+        password = "x3$QwertySignup9zUnique"
+        response = client.post(
+            "/signup/",
+            {
+                "username": "signup_no_confirm_user",
+                "email": "signup_no_confirm_user@example.com",
+                "password1": password,
+                "password2": password,
+            },
+            follow=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/profile/")
+        user = User.objects.get(username="signup_no_confirm_user")
+        self.assertTrue(user.is_active)
+        self.assertTrue(UserProfile.objects.filter(user=user).exists())
