@@ -95,7 +95,7 @@ def tasks_list(request, level_number=None):
 
 @login_required
 def theory_detail(request, level_id):
-    from apps.tasks.management.commands.seed_initial_data import LEVEL_DIAGRAMS, THEORY_CONTENT
+    from apps.tasks.theory_content import LEVEL_DIAGRAMS, THEORY_CONTENT
 
     level = get_object_or_404(Level.objects.prefetch_related("theory"), number=level_id)
     theory = getattr(level, "theory", None)

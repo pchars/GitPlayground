@@ -3,7 +3,8 @@ from django.db import transaction
 
 from apps.tasks.models import Level, TheoryBlock
 
-from apps.tasks.management.commands.seed_initial_data import LEVEL_DIAGRAMS, LEVELS, THEORY_CONTENT
+from apps.tasks.management.commands.seed_initial_data import LEVELS
+from apps.tasks.theory_content import LEVEL_DIAGRAMS, THEORY_CONTENT
 
 
 class Command(BaseCommand):
