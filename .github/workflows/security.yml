@@ -1,0 +1,66 @@
+name: Security
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-fs:
+    name: Trivy (deps + secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filesystem scan (vulnerabilities + secrets)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: table
+          skip-dirs: .sandboxes,.venv,htmlcov,node_modules,e2e/node_modules
+
+  trivy-image:
+    name: Trivy (Docker image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app image
+        run: docker build -t gitplayground:ci .
+
+      - name: Image vulnerability scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: gitplayground:ci
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: table
+          ignore-unfixed: true
+          vuln-type: os,library
+
+  semgrep:
+    name: Semgrep (SAST + secrets)
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Static analysis and secret detection
+        run: |
+          semgrep scan \
+            --config p/python \
+            --config p/secrets \
+            --error \
+            --exclude .sandboxes \
+            --exclude .venv \
+            --exclude node_modules \
+            --exclude htmlcov \
+            --exclude e2e/node_modules
