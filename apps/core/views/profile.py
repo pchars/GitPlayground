@@ -14,8 +14,6 @@ from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
 from apps.users.models import UserProfile
 
-from .helpers import _task_has_platform_column
-
 
 def _profile_learning_stats(user: User) -> dict:
     bootstrap_default_achievements()
@@ -31,10 +29,7 @@ def _profile_learning_stats(user: User) -> dict:
     completed_task_ids = set(
         TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True)
     )
-    if _task_has_platform_column():
-        levels = Level.objects.prefetch_related("tasks").order_by("number")
-    else:
-        levels = Level.objects.order_by("number")
+    levels = Level.objects.prefetch_related("tasks").order_by("number")
     level_progress = []
     total_tasks = 0
     total_completed = 0

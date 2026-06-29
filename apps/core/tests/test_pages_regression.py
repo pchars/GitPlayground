@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
@@ -108,24 +106,9 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("Последние действия", html)
         self.assertNotIn("Топ-10", html)
 
-    def test_fallback_without_platform_column_does_not_500(self):
-        self.client.force_login(self.user)
-        with patch("apps.core.views.helpers._task_has_platform_column", return_value=False):
-            for url in ("/tasks/", "/theory/1/"):
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, 200, url)
-            profile_self = self.client.get("/profile/")
-            self.assertEqual(profile_self.status_code, 302)
-
     def test_theory_page_prefers_database_content_over_builtin_fallback(self):
         self.client.force_login(self.user)
         response = self.client.get("/theory/1/")
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertIn("Раздел", html)
-
-    def test_fallback_without_quiz_difficulty_column_does_not_500(self):
-        self.client.force_login(self.user)
-        with patch("apps.quiz.views._quiz_has_difficulty_column", return_value=False):
-            response = self.client.get("/quiz/")
-            self.assertEqual(response.status_code, 200)

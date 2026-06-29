@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import json
 import random
-from functools import lru_cache
 from collections import deque
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import connection
 from django.db import transaction
-from django.db.utils import DatabaseError
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from django.shortcuts import redirect, render
@@ -21,16 +18,6 @@ from .models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 SESSION_RECENT = "quiz_recent_ids"
 SESSION_DIFFICULTY = "quiz_difficulty"
 RECENT_MAX = 30
-
-
-@lru_cache(maxsize=8)
-def _quiz_has_difficulty_column() -> bool:
-    try:
-        with connection.cursor() as cursor:
-            columns = connection.introspection.get_table_description(cursor, QuizQuestion._meta.db_table)
-        return any(col.name == "difficulty" for col in columns)
-    except DatabaseError:
-        return False
 
 
 def _recent_ids(request: HttpRequest) -> deque[int]:
@@ -47,8 +34,6 @@ def _store_recent(request: HttpRequest, qid: int) -> None:
 
 
 def _selected_difficulty(request: HttpRequest) -> str:
-    if not _quiz_has_difficulty_column():
-        return QuizQuestion.Difficulty.EASY
     difficulty = request.GET.get("difficulty") or request.session.get(
         SESSION_DIFFICULTY,
         QuizQuestion.Difficulty.EASY,
@@ -61,10 +46,7 @@ def _selected_difficulty(request: HttpRequest) -> str:
 
 
 def _pick_question(request: HttpRequest, difficulty: str) -> QuizQuestion | None:
-    if _quiz_has_difficulty_column():
-        qs = QuizQuestion.objects.filter(difficulty=difficulty)
-    else:
-        qs = QuizQuestion.objects.all()
+    qs = QuizQuestion.objects.filter(difficulty=difficulty)
     if not qs.exists():
         return None
     solved_ids = QuizQuestionProgress.objects.filter(user=request.user, solved=True).values_list(
@@ -115,14 +97,10 @@ def quiz_home(request: HttpRequest) -> HttpResponse:
         )
         unresolved_qs = QuizQuestion.objects.exclude(id__in=solved_ids)
         unresolved_total = unresolved_qs.count()
-        unresolved_by_difficulty = (
-            [
-                (value, label, unresolved_qs.filter(difficulty=value).count())
-                for value, label in QuizQuestion.Difficulty.choices
-            ]
-            if _quiz_has_difficulty_column()
-            else [(QuizQuestion.Difficulty.EASY, "Легкий", unresolved_total)]
-        )
+        unresolved_by_difficulty = [
+            (value, label, unresolved_qs.filter(difficulty=value).count())
+            for value, label in QuizQuestion.Difficulty.choices
+        ]
     return render(
         request,
         "quiz/home.html",
@@ -131,14 +109,10 @@ def quiz_home(request: HttpRequest) -> HttpResponse:
             "stats": stats,
             "selected_difficulty": selected_difficulty,
             "difficulty_choices": QuizQuestion.Difficulty.choices,
-            "difficulty_with_counts": (
-                [
-                    (value, label, QuizQuestion.objects.filter(difficulty=value).count())
-                    for value, label in QuizQuestion.Difficulty.choices
-                ]
-                if _quiz_has_difficulty_column()
-                else [(QuizQuestion.Difficulty.EASY, "Легкий", total_q)]
-            ),
+            "difficulty_with_counts": [
+                (value, label, QuizQuestion.objects.filter(difficulty=value).count())
+                for value, label in QuizQuestion.Difficulty.choices
+            ],
             "unresolved_total": unresolved_total,
             "unresolved_by_difficulty": unresolved_by_difficulty,
         },
@@ -164,11 +138,7 @@ def quiz_reset_progress(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def quiz_play(request: HttpRequest) -> HttpResponse:
     selected_difficulty = _selected_difficulty(request)
-    count_q = (
-        QuizQuestion.objects.filter(difficulty=selected_difficulty).count()
-        if _quiz_has_difficulty_column()
-        else QuizQuestion.objects.count()
-    )
+    count_q = QuizQuestion.objects.filter(difficulty=selected_difficulty).count()
     if count_q == 0:
         messages.warning(
             request,
@@ -188,7 +158,7 @@ def quiz_play(request: HttpRequest) -> HttpResponse:
             return redirect(f"{reverse('quiz-play')}?difficulty={selected_difficulty}")
         picked = int(choice)
         ok = picked == q.correct_index
-        selected_difficulty = q.difficulty if _quiz_has_difficulty_column() else selected_difficulty
+        selected_difficulty = q.difficulty
         with transaction.atomic():
             if not QuizUserStats.objects.filter(user=request.user).exists():
                 QuizUserStats.objects.create(user=request.user)

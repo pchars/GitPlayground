@@ -1,13 +1,10 @@
 """Общие вспомогательные функции для представлений core (playground, learning UI)."""
 
-from functools import lru_cache
 import json
 import logging
 import time
 
 from django.contrib.auth.models import User
-from django.db import connection
-from django.db.utils import DatabaseError
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
@@ -120,16 +117,6 @@ def _task_recommendations(task: Task) -> list[str]:
         "После ключевого шага подтверждай результат через git log/git status.",
     ]
     return by_slug.get(task.slug, fallback)
-
-
-@lru_cache(maxsize=8)
-def _task_has_platform_column() -> bool:
-    try:
-        with connection.cursor() as cursor:
-            columns = connection.introspection.get_table_description(cursor, Task._meta.db_table)
-        return any(col.name == "platform" for col in columns)
-    except DatabaseError:
-        return False
 
 
 def _ensure_revision_progress(user: User, task: Task) -> TaskRevisionProgress | None:
