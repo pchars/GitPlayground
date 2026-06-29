@@ -1,6 +1,7 @@
 """Страница песочницы и JSON API для терминала, файлов и валидации."""
 
 import time
+from typing import NamedTuple
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
@@ -39,6 +40,64 @@ from .helpers import (
     _task_learning_content,
     _task_recommendations,
 )
+
+
+_RATE_LIMIT_MESSAGES = {
+    "run": "Слишком много запросов к терминалу. Подождите немного.",
+    "file_read": "Слишком много запросов чтения файлов. Подождите немного.",
+    "file_write": "Слишком много запросов записи файлов. Подождите немного.",
+    "hint": "Слишком много запросов подсказок. Подождите немного.",
+}
+
+
+class _SessionGuard(NamedTuple):
+    task: Task
+    session: SandboxSession | None
+    error: JsonResponse | None
+
+
+def _acquire_session(
+    request: HttpRequest,
+    task_id: str,
+    *,
+    task: Task | None = None,
+    endpoint: str | None = None,
+    started_at: float | None = None,
+    check_lock: bool = True,
+    rate_action: str | None = None,
+) -> _SessionGuard:
+    """Resolve the task, enforce the lock/rate guards and acquire an active sandbox session.
+
+    Returns a guard whose ``error`` is a ready-to-return JsonResponse when any check fails,
+    otherwise ``session`` is populated. When ``endpoint`` is given, failures are logged with
+    the same shape the individual handlers used before this helper existed.
+    """
+    if task is None:
+        task = _task_from_route(task_id)
+    log_started_at = started_at if started_at is not None else time.perf_counter()
+
+    def _log(**fields) -> None:
+        if endpoint is not None:
+            _log_playground_event(
+                request, task, endpoint=endpoint, started_at=log_started_at, **fields
+            )
+
+    if check_lock and not can_open_task(request.user, task):
+        _log(status_code=403, ok=False, reason="task_locked")
+        return _SessionGuard(task, None, JsonResponse({"ok": False, "message": "Task is locked"}, status=403))
+    if rate_action is not None and not allow_playground_action(request.user.id, task.id, rate_action):
+        _log(status_code=429, ok=False, reason="rate_limited")
+        return _SessionGuard(
+            task,
+            None,
+            JsonResponse({"ok": False, "message": _RATE_LIMIT_MESSAGES[rate_action]}, status=429),
+        )
+    try:
+        session = get_or_create_active_session(request.user, task)
+    except RuntimeError as exc:
+        _log(status_code=503, ok=False, reason="sandbox_unavailable", details=str(exc))
+        return _SessionGuard(task, None, JsonResponse({"ok": False, "message": str(exc)}, status=503))
+    return _SessionGuard(task, session, None)
 
 
 @login_required
@@ -104,14 +163,10 @@ def playground(request, task_id):
 @login_required
 @require_POST
 def playground_start(request: HttpRequest, task_id: str) -> JsonResponse:
-    task = _task_from_route(task_id)
-    if not can_open_task(request.user, task):
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
-    return JsonResponse({"ok": True, "session_id": session.id, "status": session.status})
+    guard = _acquire_session(request, task_id)
+    if guard.error:
+        return guard.error
+    return JsonResponse({"ok": True, "session_id": guard.session.id, "status": guard.session.status})
 
 
 @login_required
@@ -131,47 +186,12 @@ def playground_run_command(request: HttpRequest, task_id: str) -> JsonResponse:
             reason="empty_command",
         )
         return JsonResponse({"ok": False, "message": "Command is required"}, status=400)
-    if not can_open_task(request.user, task):
-        _log_playground_event(
-            request,
-            task,
-            endpoint="run",
-            started_at=started_at,
-            status_code=403,
-            ok=False,
-            reason="task_locked",
-        )
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-
-    if not allow_playground_action(request.user.id, task.id, "run"):
-        _log_playground_event(
-            request,
-            task,
-            endpoint="run",
-            started_at=started_at,
-            status_code=429,
-            ok=False,
-            reason="rate_limited",
-        )
-        return JsonResponse(
-            {"ok": False, "message": "Слишком много запросов к терминалу. Подождите немного."},
-            status=429,
-        )
-
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        _log_playground_event(
-            request,
-            task,
-            endpoint="run",
-            started_at=started_at,
-            status_code=503,
-            ok=False,
-            reason="sandbox_unavailable",
-            details=str(exc),
-        )
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    guard = _acquire_session(
+        request, task_id, task=task, endpoint="run", started_at=started_at, rate_action="run"
+    )
+    if guard.error:
+        return guard.error
+    session = guard.session
     result = run_command(session, command)
     response = JsonResponse(
         {
@@ -199,18 +219,10 @@ def playground_run_command(request: HttpRequest, task_id: str) -> JsonResponse:
 @login_required
 @require_GET
 def playground_read_file(request: HttpRequest, task_id: str) -> JsonResponse:
-    task = _task_from_route(task_id)
-    if not can_open_task(request.user, task):
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-    if not allow_playground_action(request.user.id, task.id, "file_read"):
-        return JsonResponse(
-            {"ok": False, "message": "Слишком много запросов чтения файлов. Подождите немного."},
-            status=429,
-        )
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    guard = _acquire_session(request, task_id, rate_action="file_read")
+    if guard.error:
+        return guard.error
+    session = guard.session
     path = (request.GET.get("path") or "").strip()
     if not path:
         return JsonResponse({"ok": False, "message": "path is required"}, status=400)
@@ -230,18 +242,10 @@ def playground_read_file(request: HttpRequest, task_id: str) -> JsonResponse:
 @login_required
 @require_POST
 def playground_write_file(request: HttpRequest, task_id: str) -> JsonResponse:
-    task = _task_from_route(task_id)
-    if not can_open_task(request.user, task):
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-    if not allow_playground_action(request.user.id, task.id, "file_write"):
-        return JsonResponse(
-            {"ok": False, "message": "Слишком много запросов записи файлов. Подождите немного."},
-            status=429,
-        )
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    guard = _acquire_session(request, task_id, rate_action="file_write")
+    if guard.error:
+        return guard.error
+    session = guard.session
     path = (request.POST.get("path") or "").strip()
     if not path:
         return JsonResponse({"ok": False, "message": "path is required"}, status=400)
@@ -281,32 +285,10 @@ def playground_write_file(request: HttpRequest, task_id: str) -> JsonResponse:
 @require_POST
 def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
     started_at = time.perf_counter()
-    task = _task_from_route(task_id)
-    if not can_open_task(request.user, task):
-        _log_playground_event(
-            request,
-            task,
-            endpoint="validate",
-            started_at=started_at,
-            status_code=403,
-            ok=False,
-            reason="task_locked",
-        )
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        _log_playground_event(
-            request,
-            task,
-            endpoint="validate",
-            started_at=started_at,
-            status_code=503,
-            ok=False,
-            reason="sandbox_unavailable",
-            details=str(exc),
-        )
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    guard = _acquire_session(request, task_id, endpoint="validate", started_at=started_at)
+    if guard.error:
+        return guard.error
+    task, session = guard.task, guard.session
     before_achievement_ids = set(
         UserAchievement.objects.filter(user=request.user).values_list("achievement_id", flat=True)
     )
@@ -361,21 +343,12 @@ def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
 @require_POST
 def playground_reset(request: HttpRequest, task_id: str) -> JsonResponse:
     started_at = time.perf_counter()
-    task = _task_from_route(task_id)
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        _log_playground_event(
-            request,
-            task,
-            endpoint="reset",
-            started_at=started_at,
-            status_code=503,
-            ok=False,
-            reason="sandbox_unavailable",
-            details=str(exc),
-        )
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    guard = _acquire_session(
+        request, task_id, endpoint="reset", started_at=started_at, check_lock=False
+    )
+    if guard.error:
+        return guard.error
+    task, session = guard.task, guard.session
     new_session = reset_session(session)
     response = JsonResponse(
         {
