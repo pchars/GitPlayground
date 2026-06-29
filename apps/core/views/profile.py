@@ -6,12 +6,12 @@ from django.db.models import Avg, Max
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.achievements.models import Achievement, UserAchievement
-
-K = Achievement.CriterionKind
 from apps.progress.models import TaskAttempt, TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
 from apps.users.models import UserProfile
+
+K = Achievement.CriterionKind
 
 
 def _profile_learning_stats(user: User) -> dict:

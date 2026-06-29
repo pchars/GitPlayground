@@ -3,6 +3,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
+from apps.quiz.progit_questions import PROGIT_CONCEPT_QUESTIONS
 from apps.quiz.question_generator import iter_packed_questions, question_count
 
 
@@ -104,7 +105,25 @@ class QuizViewsTests(TestCase):
     def test_question_bank_contains_only_unique_prompts(self):
         prompts = [row["prompt"] for row in iter_packed_questions()]
         self.assertEqual(len(prompts), len(set(prompts)))
-        self.assertGreaterEqual(question_count(), 300)
+        self.assertGreaterEqual(question_count(), 400)
+
+    def test_progit_questions_are_in_bank(self):
+        rows = iter_packed_questions()
+        prompts = {row["prompt"] for row in rows}
+        missing = [q[0] for q in PROGIT_CONCEPT_QUESTIONS if q[0] not in prompts]
+        self.assertFalse(missing, f"Pro Git questions missing from bank: {missing[:5]}")
+
+    def test_question_bank_has_no_duplicate_correct_answers_for_command_prompts(self):
+        rows = iter_packed_questions()
+        direct_keys: set[str] = set()
+        for row in rows:
+            prompt = row["prompt"].lower()
+            if not prompt.startswith("что делает команда"):
+                continue
+            correct = row[f"choice_{row['correct_index']}"]
+            key = correct.strip().lower()
+            self.assertNotIn(key, direct_keys, msg=f"Duplicate direct question for: {correct}")
+            direct_keys.add(key)
 
     def test_solved_question_does_not_repeat_and_failed_can_repeat(self):
         c = Client()

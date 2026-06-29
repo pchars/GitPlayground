@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
+
+from apps.quiz.difficulty import classify_command_difficulty, classify_concept_difficulty
+from apps.quiz.progit_questions import PROGIT_CONCEPT_QUESTIONS
 
 # Команда → короткое верное описание (по смыслу, для учебного квиза).
 CMD_TO_DESC: dict[str, str] = {
@@ -967,13 +971,6 @@ CONCEPT_QUESTIONS: list[tuple[str, str, str, str, str]] = [
         "Пушит файлы",
     ),
     (
-        "Что делает `git restore --staged` (эквивалент части git reset)?",
-        "Убирает из индекса, оставляя рабочую копию",
-        "Удаляет файлы с диска",
-        "Коммитит индекс",
-        "Создаёт ветку",
-    ),
-    (
         "Что делает `git diff --color-moved`?",
         "Подсвечивает переносы блоков кода как перемещённые",
         "Удаляет цвет",
@@ -1269,22 +1266,6 @@ def _shuffle_choices(correct: str, w1: str, w2: str, w3: str, seed: int) -> tupl
     return permuted, correct_index
 
 
-def _difficulty_for_command(cmd: str) -> str:
-    if any(flag in cmd for flag in ("--force-with-lease", "range-diff", "bisect", "worktree", "submodule")):
-        return "hard"
-    if any(flag in cmd for flag in ("rebase", "cherry-pick", "stash", "reset", "merge --")):
-        return "medium"
-    return "easy"
-
-
-def _difficulty_for_concept(index: int) -> str:
-    if index < 40:
-        return "easy"
-    if index < 90:
-        return "medium"
-    return "hard"
-
-
 def _explanation_map_for_command_question(cmd: str, choices: list[str], correct_index: int) -> dict[str, str]:
     explanations: dict[str, str] = {}
     correct_desc = CMD_TO_DESC[cmd]
@@ -1329,6 +1310,39 @@ def _explanation_map_for_concept_question(correct_text: str, choices: list[str],
     return explanations
 
 
+def _normalize_prompt(text: str) -> str:
+    lowered = text.lower().strip()
+    lowered = re.sub(r"`[^`]+`", " ", lowered)
+    lowered = re.sub(r"\s+", " ", lowered)
+    return lowered
+
+
+def _semantic_dedup_key(row: dict[str, Any]) -> str:
+    """Ключ для сбалансированной дедупликации: одна идея — один вопрос."""
+    prompt = _normalize_prompt(row["prompt"])
+    correct = _normalize_prompt(row[f"choice_{row['correct_index']}"])
+    if prompt.startswith("нужно выполнить действие") or "какую команду выбрать" in prompt:
+        return f"scenario:{correct}"
+    if prompt.startswith("что делает команда") or prompt.startswith("за что отвечает команда"):
+        return f"direct:{correct}"
+    return f"concept:{correct}|{prompt[:72]}"
+
+
+def _dedupe_question_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen_prompts: set[str] = set()
+    seen_semantic: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for row in rows:
+        prompt_key = row["prompt"]
+        semantic_key = _semantic_dedup_key(row)
+        if prompt_key in seen_prompts or semantic_key in seen_semantic:
+            continue
+        seen_prompts.add(prompt_key)
+        seen_semantic.add(semantic_key)
+        unique.append(row)
+    return unique
+
+
 def iter_packed_questions() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     all_descs = list(CMD_TO_DESC.values())
@@ -1353,7 +1367,7 @@ def iter_packed_questions() -> list[dict[str, Any]]:
                 "choice_2": choices[2],
                 "choice_3": choices[3],
                 "correct_index": ci,
-                "difficulty": _difficulty_for_command(cmd),
+                "difficulty": classify_command_difficulty(cmd),
                 **_explanation_map_for_command_question(cmd, choices, ci),
             }
         )
@@ -1379,32 +1393,17 @@ def iter_packed_questions() -> list[dict[str, Any]]:
                 "choice_2": scenario_choices[2],
                 "choice_3": scenario_choices[3],
                 "correct_index": scenario_ci,
-                "difficulty": _difficulty_for_command(cmd),
+                "difficulty": classify_command_difficulty(cmd),
                 **_explanation_map_for_inverse_question(cmd, scenario_choices, scenario_ci),
             }
         )
 
-    for desc, cmd_correct in ((d, c) for c, d in CMD_TO_DESC.items()):
-        others = [c for c in all_cmds if c != cmd_correct]
-        rng = random.Random(hash(desc) & 0xFFFFFFFF)
-        rng.shuffle(others)
-        w1, w2, w3 = others[:3]
-        prompt = INVERSE_TEMPLATE[0].format(desc)
-        choices, ci = _shuffle_choices(cmd_correct, w1, w2, w3, seed=(hash(prompt) % 2**31))
-        rows.append(
-            {
-                "prompt": prompt,
-                "choice_0": choices[0],
-                "choice_1": choices[1],
-                "choice_2": choices[2],
-                "choice_3": choices[3],
-                "correct_index": ci,
-                "difficulty": _difficulty_for_command(cmd_correct),
-                **_explanation_map_for_inverse_question(cmd_correct, choices, ci),
-            }
-        )
-
-    for idx, (q, a, b, c, d) in enumerate(CONCEPT_QUESTIONS):
+    all_concept_questions = [
+        *CONCEPT_QUESTIONS,
+        *EXTRA_CONCEPT_QUESTIONS,
+        *PROGIT_CONCEPT_QUESTIONS,
+    ]
+    for q, a, b, c, d in all_concept_questions:
         choices, ci = _shuffle_choices(a, b, c, d, seed=(hash(q) % 2**31))
         rows.append(
             {
@@ -1414,35 +1413,12 @@ def iter_packed_questions() -> list[dict[str, Any]]:
                 "choice_2": choices[2],
                 "choice_3": choices[3],
                 "correct_index": ci,
-                "difficulty": _difficulty_for_concept(idx),
-                **_explanation_map_for_concept_question(a, choices, ci),
-            }
-        )
-    concept_offset = len(CONCEPT_QUESTIONS)
-    for idx, (q, a, b, c, d) in enumerate(EXTRA_CONCEPT_QUESTIONS):
-        choices, ci = _shuffle_choices(a, b, c, d, seed=(hash(q) % 2**31))
-        rows.append(
-            {
-                "prompt": q,
-                "choice_0": choices[0],
-                "choice_1": choices[1],
-                "choice_2": choices[2],
-                "choice_3": choices[3],
-                "correct_index": ci,
-                "difficulty": _difficulty_for_concept(concept_offset + idx),
+                "difficulty": classify_concept_difficulty(q, a),
                 **_explanation_map_for_concept_question(a, choices, ci),
             }
         )
 
-    # Уникальность по тексту вопроса (на случай совпадений шаблонов).
-    seen: set[str] = set()
-    unique: list[dict[str, Any]] = []
-    for row in rows:
-        if row["prompt"] in seen:
-            continue
-        seen.add(row["prompt"])
-        unique.append(row)
-    return unique
+    return _dedupe_question_rows(rows)
 
 
 def question_count() -> int:

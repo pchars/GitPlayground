@@ -61,6 +61,37 @@ Tests, coverage gate, and migration check (run before every commit):
 `sync_theory_content` updates only the theory blocks in the DB from
 `apps/tasks/theory_content.py` without rebuilding tasks.
 
+## Clean dev cycle after every code change (required)
+
+After **any** code change, before telling the user something is ready to check, run the
+full clean cycle so the user always lands on a fresh, junk-free state. Sandbox state is
+persisted on disk and survives a server restart, so a plain `runserver` restart is **not**
+enough on its own.
+
+1. **Clear ephemeral sandbox state.** Workspaces, terminal logs, and the managed git
+   config live under `.sandboxes/` (gitignored) and accumulate across runs. Wipe them:
+
+```powershell
+if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Item -Recurse -Force }
+```
+
+2. **Stop stale sessions** so the DB no longer points at deleted workspaces (the next page
+   load reseeds a fresh workspace with an empty terminal log):
+
+```powershell
+.\.venv\Scripts\python.exe manage.py shell -c "from apps.sandbox.models import SandboxSession; SandboxSession.objects.exclude(status=SandboxSession.Status.STOPPED).update(status=SandboxSession.Status.STOPPED)"
+```
+
+3. **Restart the server** (stop the running `runserver`, then start it again):
+
+```powershell
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+Only after this full cycle should the user be asked to reload the page / verify behavior.
+`.sandboxes/_logs/session_<id>.terminal.log` is the per-session terminal history shown on
+page load; clearing it (step 1) is what removes leftover "junk" output.
+
 ## Sandbox command policy (security-critical)
 
 User input is **not** run through a shell. `_parse_user_command` in
@@ -68,10 +99,16 @@ User input is **not** run through a shell. `_parse_user_command` in
 (`command_not_allowed`) and is audit-logged (`sandbox_command_policy`). Allowed forms:
 
 - `git ...` (any git subcommand)
+- `ls` / `ls <path>` (read-only listing, implemented in Python; flags accepted but ignored)
+- `pwd`
+- `mkdir <dir>` / `mkdir -p <dir>`
 - `touch <file>`
 - `cat <file>`
 - `type nul > <file>`
 - `echo <text> > <file>` and `echo <text> >> <file>`
+
+Non-`git` verbs are executed in pure Python (no subprocess, no shell) and guarded by
+`_resolve_repo_relative_path` + the `..` check, so they cannot escape the workspace.
 
 Multi-line file content uses the file-editor API (`read_text_file_from_repo` /
 `write_text_file_to_repo`), not shell redirection. When a task needs a capability

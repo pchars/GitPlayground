@@ -530,7 +530,8 @@ def playground_log_stream(request: HttpRequest, task_id: str) -> StreamingHttpRe
         for _ in range(25):
             payload = session_log(session)
             if payload != previous:
-                yield f"event: log\ndata: {payload.replace(chr(10), '\\n')}\n\n"
+                escaped = payload.replace("\n", "\\n")
+                yield f"event: log\ndata: {escaped}\n\n"
                 previous = payload
             time.sleep(1)
         yield "event: done\ndata: reconnect\n\n"

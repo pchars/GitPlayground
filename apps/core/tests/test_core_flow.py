@@ -203,6 +203,58 @@ class CoreFlowTests(TestCase):
         self.assertFalse((Path(first_session.repo_path) / ".git").exists())
         self.assertFalse((Path(second_session.repo_path) / ".git").exists())
 
+    def test_init_repo_sandbox_does_not_leak_host_repository(self):
+        init_task = Task.objects.create(
+            external_id="1.9",
+            slug="init_repo",
+            title="Init Repo Leak",
+            description="init",
+            level=self.level,
+            order=9,
+            points=1,
+        )
+        session = get_or_create_active_session(self.user, init_task)
+        # До git init рабочая папка не должна «всплывать» в .git самого проекта.
+        before = run_command(session, "git status")
+        self.assertNotEqual(before.return_code, 0)
+        out_before = (before.output or "").lower()
+        self.assertNotIn("apps/", out_before)
+        self.assertNotIn("origin/main", out_before)
+        # После git init это уже изолированный пустой репозиторий песочницы.
+        self.assertEqual(run_command(session, "git init").return_code, 0)
+        after = run_command(session, "git status")
+        self.assertEqual(after.return_code, 0)
+        self.assertNotIn("apps/", (after.output or "").lower())
+
+    def test_navigation_commands_are_allowed_and_sandboxed(self):
+        task = Task.objects.create(
+            external_id="1.8",
+            slug="nav_helpers",
+            title="Nav",
+            description="nav",
+            level=self.level,
+            order=8,
+            points=1,
+        )
+        session = get_or_create_active_session(self.user, task)
+
+        self.assertEqual(run_command(session, "pwd").output, "~/repo")
+
+        self.assertEqual(run_command(session, "mkdir notes").return_code, 0)
+        self.assertEqual(run_command(session, "touch notes/todo.txt").return_code, 0)
+        ls = run_command(session, "ls")
+        self.assertEqual(ls.return_code, 0)
+        self.assertIn("notes/", ls.output)
+        self.assertIn("todo.txt", run_command(session, "ls notes").output)
+
+        # mkdir -p идемпотентен, обычный mkdir по существующей папке — ошибка.
+        self.assertEqual(run_command(session, "mkdir -p notes").return_code, 0)
+        self.assertNotEqual(run_command(session, "mkdir notes").return_code, 0)
+
+        # Выход за пределы песочницы заблокирован для всех новых глаголов.
+        self.assertEqual(run_command(session, "ls ../..").return_code, 126)
+        self.assertEqual(run_command(session, "mkdir ../escape").return_code, 126)
+
     def test_playground_reset_endpoint_works(self):
         self.client.force_login(self.user)
         response = self.client.post("/playground/1_1/reset/")

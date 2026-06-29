@@ -1,4 +1,3 @@
-from pathlib import Path
 from uuid import uuid4
 
 from django.contrib.auth.models import User

@@ -29,7 +29,7 @@ TASK_BLUEPRINTS = {
         ("init_repo", "Инициализируй репозиторий в текущей папке (`git init`).", 6),
         ("first_commit", "Создай `hello.txt` с текстом `Hello, Git!`, добавь в индекс и сделай коммит `Add hello`.", 10),
         ("check_status", "Измени `hello.txt` и проверь, что изменение не в staging (`git status --short`).", 6),
-        ("stage_unstage", "Добавь `hello.txt` в staging, затем убери из staging (например `git restore --staged hello.txt`), сохранив изменение в файле.", 8),
+        ("stage_unstage", "Цель — снять файл со staging, не теряя правку. Измени `hello.txt`, добавь его в индекс (`git add hello.txt`), затем убери из индекса командой `git restore --staged hello.txt`. Важно различать: `git restore --staged <файл>` снимает файл со staging (это и нужно), а `git restore <файл>` без `--staged` откатывает саму правку в рабочей копии. Итог: в `git status --short` файл показан как ` M` — изменён, но не застейджен.", 8),
         ("view_diff", "Добавь строку `Another line` в `hello.txt` и выполни `git diff`, чтобы увидеть это изменение до коммита.", 6),
         ("commit_second", "Сделай второй коммит с сообщением `Update hello`.", 10),
         ("amend_commit", "Добавь `config.txt` в последний коммит через `--amend`.", 12),

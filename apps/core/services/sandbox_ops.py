@@ -118,11 +118,17 @@ def _ensure_git_config() -> Path:
 
 def git_env() -> dict[str, str]:
     """Окружение для git-вызовов песочницы: ветка по умолчанию `main`, фиксированная личность,
-    отключённый системный конфиг и неинтерактивный режим (детерминизм между машинами/CI)."""
+    отключённый системный конфиг и неинтерактивный режим (детерминизм между машинами/CI).
+
+    GIT_CEILING_DIRECTORIES не даёт git «всплывать» из рабочей папки песочницы в .git
+    самого проекта (песочницы лежат внутри дерева проекта): без этого `git status` до
+    `git init` показывал бы файлы и историю репозитория GitPlayground.
+    """
     env = os.environ.copy()
     env["GIT_CONFIG_GLOBAL"] = str(_ensure_git_config())
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_CEILING_DIRECTORIES"] = str(SANDBOX_ROOT.resolve())
     return env
 
 
@@ -174,6 +180,7 @@ def _start_docker_container(container_id: str, workspace: Path) -> bool:
         "-c",
         "while true; do sleep 3600; done",
     ]
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     return result.returncode == 0
 
@@ -481,6 +488,36 @@ def _parse_user_command(command: str) -> tuple[bool, str, dict]:
     if root == "type" and len(tokens) == 4 and tokens[1].lower() == "nul" and tokens[2] == ">":
         return True, "type_nul_redirect", {"path": tokens[3]}
 
+    if root == "pwd" and len(tokens) == 1:
+        return True, "pwd", {}
+
+    # «ls» и «ls <path>»: только чтение, реализуется в Python (без запуска /bin/ls).
+    # Флаги вроде -l/-a допускаются, но игнорируются — вывод всегда одинаковый и простой.
+    if root == "ls":
+        targets = [t for t in tokens[1:] if not t.startswith("-")]
+        if len(targets) > 1:
+            return False, "ls_too_many_args", {}
+        target = targets[0] if targets else "."
+        if _relative_path_has_dotdot(target):
+            return False, "ls_path_dotdot", {}
+        return True, "ls", {"path": target}
+
+    if root == "mkdir":
+        parents = False
+        targets: list[str] = []
+        for token in tokens[1:]:
+            if token == "-p":
+                parents = True
+            elif token.startswith("-"):
+                return False, "mkdir_flag_not_allowed", {}
+            else:
+                targets.append(token)
+        if len(targets) != 1:
+            return False, "mkdir_needs_one_path", {}
+        if _relative_path_has_dotdot(targets[0]):
+            return False, "mkdir_path_dotdot", {}
+        return True, "mkdir", {"path": targets[0], "parents": parents}
+
     if root == "echo":
         op_index = -1
         op_token = ""
@@ -572,8 +609,8 @@ def run_command(
                 return_code=126,
                 output=(
                     "Команда запрещена политикой песочницы. Разрешено: git, "
-                    "touch <файл>, cat <файл>, type nul > <файл>, "
-                    "echo <текст> > <файл>, echo <текст> >> <файл>. "
+                    "ls [путь], pwd, mkdir [-p] <папка>, touch <файл>, cat <файл>, "
+                    "type nul > <файл>, echo <текст> > <файл>, echo <текст> >> <файл>. "
                     "Многострочный текст — через блок «Редактор файла» на странице (без shell)."
                 ),
                 duration_ms=0,
@@ -651,6 +688,47 @@ def run_command(
             handle.write(policy_data["text"])
             handle.write("\n")
         proc = subprocess.CompletedProcess(["policy"], 0, "", "")
+    elif policy_kind == "pwd":
+        proc = subprocess.CompletedProcess(["policy"], 0, "~/repo", "")
+    elif policy_kind == "ls":
+        dir_path = _resolve_repo_relative_path(session, policy_data["path"])
+        if not dir_path:
+            return CommandResult(
+                command=command,
+                return_code=1,
+                output="Path escapes sandbox and is blocked.",
+                duration_ms=0,
+            )
+        if not dir_path.exists():
+            proc = subprocess.CompletedProcess(
+                ["policy"], 1, "", f"ls: нет такого файла или каталога: {policy_data['path']}"
+            )
+        elif dir_path.is_dir():
+            entries = sorted(
+                (f"{item.name}/" if item.is_dir() else item.name for item in dir_path.iterdir()),
+                key=str.lower,
+            )
+            proc = subprocess.CompletedProcess(["policy"], 0, "\n".join(entries), "")
+        else:
+            proc = subprocess.CompletedProcess(["policy"], 0, dir_path.name, "")
+    elif policy_kind == "mkdir":
+        dir_path = _resolve_repo_relative_path(session, policy_data["path"])
+        if not dir_path:
+            return CommandResult(
+                command=command,
+                return_code=1,
+                output="Path escapes sandbox and is blocked.",
+                duration_ms=0,
+            )
+        if dir_path.exists():
+            output = "" if policy_data["parents"] else f"mkdir: каталог уже существует: {policy_data['path']}"
+            proc = subprocess.CompletedProcess(["policy"], 0 if policy_data["parents"] else 1, "", output)
+        else:
+            try:
+                dir_path.mkdir(parents=policy_data["parents"])
+                proc = subprocess.CompletedProcess(["policy"], 0, "", "")
+            except OSError as exc:
+                proc = subprocess.CompletedProcess(["policy"], 1, "", f"mkdir: {exc}")
     elif policy_kind == "cat_read":
         ok, payload, truncated = read_text_file_from_repo(session, policy_data["path"])
         if not ok:
