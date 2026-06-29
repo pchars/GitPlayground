@@ -39,6 +39,25 @@ SANDBOX_ALLOW_LOCAL_FALLBACK = (
 )
 audit_logger = logging.getLogger("apps.core.sandbox.audit")
 
+# Детерминированное окружение git для песочницы: фиксированная личность и ветка
+# по умолчанию `main`, изоляция от глобального/системного конфига разработчика.
+SANDBOX_GIT_CONFIG = SANDBOX_ROOT / "_gitconfig"
+SANDBOX_GIT_USER_NAME = "GitPlayground Learner"
+SANDBOX_GIT_USER_EMAIL = "learner@gitplayground.local"
+_GIT_CONFIG_TEMPLATE = (
+    "[init]\n"
+    "\tdefaultBranch = main\n"
+    "[user]\n"
+    "\tname = {name}\n"
+    "\temail = {email}\n"
+    "[safe]\n"
+    "\tdirectory = *\n"
+    "[commit]\n"
+    "\tgpgsign = false\n"
+    "[tag]\n"
+    "\tgpgsign = false\n"
+)
+
 
 def validated_sandbox_workspace(repo_path: str) -> Path:
     """Разрешить путь и убедиться, что он внутри SANDBOX_ROOT (защита для delete/reset)."""
@@ -83,6 +102,28 @@ class CommandResult:
 
 def _ensure_sandbox_root() -> None:
     SANDBOX_ROOT.mkdir(exist_ok=True)
+
+
+def _ensure_git_config() -> Path:
+    """Записать управляемый global-конфиг git (идемпотентно) и вернуть путь к нему."""
+    _ensure_sandbox_root()
+    expected = _GIT_CONFIG_TEMPLATE.format(name=SANDBOX_GIT_USER_NAME, email=SANDBOX_GIT_USER_EMAIL)
+    try:
+        if not SANDBOX_GIT_CONFIG.exists() or SANDBOX_GIT_CONFIG.read_text(encoding="utf-8") != expected:
+            SANDBOX_GIT_CONFIG.write_text(expected, encoding="utf-8")
+    except OSError:
+        pass
+    return SANDBOX_GIT_CONFIG
+
+
+def git_env() -> dict[str, str]:
+    """Окружение для git-вызовов песочницы: ветка по умолчанию `main`, фиксированная личность,
+    отключённый системный конфиг и неинтерактивный режим (детерминизм между машинами/CI)."""
+    env = os.environ.copy()
+    env["GIT_CONFIG_GLOBAL"] = str(_ensure_git_config())
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
 
 
 def _task_workspace_name(user: User, task: Task) -> str:
@@ -280,6 +321,13 @@ def _seed_workspace_from_assets(task: Task, workspace: Path) -> None:
             (workspace / "README_TASK.txt").write_text(payload, encoding="utf-8")
     start_meta = (task.metadata or {}).get("start") if isinstance(task.metadata, dict) else {}
     requires = start_meta.get("requires", []) if isinstance(start_meta, dict) else []
+    env = git_env()
+
+    def _git(*args: str) -> None:
+        subprocess.run(
+            ["git", *args], cwd=workspace, check=False, capture_output=True, text=True, env=env
+        )
+
     # Для init_repo репозиторий должен быть "чистым", иначе git init сразу вернет reinitialized.
     # Для остальных задач, где есть предпосылки по истории/веткам, поднимаем git-репозиторий заранее.
     needs_repo = bool(start_repo_asset) or bool(
@@ -288,48 +336,26 @@ def _seed_workspace_from_assets(task: Task, workspace: Path) -> None:
     if task.slug == "init_repo":
         needs_repo = False
     if needs_repo:
-        subprocess.run(["git", "init"], cwd=workspace, check=False, capture_output=True, text=True)
-        subprocess.run(
-            ["git", "config", "user.email", "gitplayground@example.local"],
-            cwd=workspace,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "GitPlayground Bot"],
-            cwd=workspace,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        _git("init")
+        _git("config", "user.email", SANDBOX_GIT_USER_EMAIL)
+        _git("config", "user.name", SANDBOX_GIT_USER_NAME)
     if "hello_committed" in requires:
         hello_path = workspace / "hello.txt"
         if not hello_path.exists():
             hello_path.write_text("Hello, Git!\n", encoding="utf-8")
-        subprocess.run(["git", "add", "hello.txt"], cwd=workspace, check=False, capture_output=True, text=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Add hello"],
-            cwd=workspace,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        _git("add", "hello.txt")
+        _git("commit", "-m", "Add hello")
     if "feature_branch_exists" in requires:
-        subprocess.run(
-            ["git", "checkout", "-b", "feature-x"],
-            cwd=workspace,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["git", "checkout", "main"],
-            cwd=workspace,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        if task.slug == "switch_branch":
+            # Старт НА ветке feature-x с уже закоммиченным feature.txt: ученик должен
+            # сам вернуться в main и увидеть, что feature.txt исчез из рабочей копии.
+            _git("checkout", "-b", "feature-x")
+            (workspace / "feature.txt").write_text("Feature work in progress\n", encoding="utf-8")
+            _git("add", "feature.txt")
+            _git("commit", "-m", "Add feature")
+        else:
+            _git("checkout", "-b", "feature-x")
+            _git("checkout", "main")
 
 
 def _resolve_repo_relative_path(session: SandboxSession, candidate: str) -> Path | None:
@@ -573,6 +599,7 @@ def run_command(
                 text=True,
                 timeout=session.timeout_seconds,
                 check=False,
+                env=git_env(),
             )
     elif policy_kind == "git":
         args = policy_data["args"]
@@ -592,6 +619,7 @@ def run_command(
                 text=True,
                 timeout=session.timeout_seconds,
                 check=False,
+                env=git_env(),
             )
     elif policy_kind in {"touch", "type_nul_redirect"}:
         file_path = _resolve_repo_relative_path(session, policy_data["path"])

@@ -14,7 +14,7 @@ from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task, TaskAsset
 from apps.users.models import PointLedgerEntry, UserProfile
 
-from .sandbox_ops import _is_docker_session, _write_log
+from .sandbox_ops import _is_docker_session, _write_log, git_env
 
 
 def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttempt:
@@ -60,6 +60,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
                 text=True,
                 timeout=session.timeout_seconds,
                 check=False,
+                env=git_env(),
             )
             output = (proc.stdout or "") + (proc.stderr or "")
             _write_log(

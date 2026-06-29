@@ -88,7 +88,7 @@ TASK_BLUEPRINTS = {
         ("create_tag", "Создай аннотированный тег `v1.0` с сообщением.", 10),
         ("show_tag", "Покажи детали тега через `git show`.", 7),
         ("tag_old_commit", "Поставь тег на прошлый коммит по SHA.", 10),
-        ("push_tags", "Отправь теги в remote и проверь, что они опубликованы.", 10),
+        ("push_tags", "Подготовь релизный тег `v1.0` к публикации (в песочнице без сети проверяется наличие тега).", 10),
     ],
 }
 
@@ -930,7 +930,13 @@ def build_start_repo_asset(slug: str) -> str | None:
     with tempfile.TemporaryDirectory() as td:
         repo = Path(td) / "repo"
         repo.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "init"], cwd=repo, check=False, capture_output=True, text=True)
+        subprocess.run(
+            ["git", "-c", "init.defaultBranch=main", "init"],
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         subprocess.run(
             ["git", "config", "user.email", "gitplayground@example.local"],
             cwd=repo,
