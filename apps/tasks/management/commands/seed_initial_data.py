@@ -93,36 +93,6 @@ TASK_BLUEPRINTS = {
     ],
 }
 
-GITLAB_BLUEPRINTS = {
-    1: [
-        ("gitlab_repo_init", "Создай проект в GitLab, добавь remote origin и выполни первый push.", 8),
-        ("gitlab_readme_badges", "Добавь бейдж pipeline и ссылку на проект в README.md.", 8),
-        ("gitlab_protected_branch", "Настрой protected branch для main/master через настройки проекта.", 12),
-    ],
-    2: [
-        ("gitlab_mr_flow", "Создай feature-ветку и оформи Merge Request с осмысленным описанием.", 12),
-        ("gitlab_codeowners", "Подключи CODEOWNERS и проверь, что для MR требуется review.", 12),
-        ("gitlab_ci_lint_test", "Собери .gitlab-ci.yml с этапами lint и test.", 14),
-    ],
-    3: [
-        ("gitlab_ci_cache", "Добавь cache/artifacts для ускорения и передачи данных между stage.", 16),
-        ("gitlab_pages_basic", "Опубликуй документацию проекта через GitLab Pages.", 14),
-        ("gitlab_pages_preview", "Сделай preview окружение для Merge Request через GitLab CI.", 18),
-    ],
-    4: [
-        ("gitlab_release_notes", "Собери релиз с changelog и публикацией по git tag.", 18),
-        ("gitlab_env_approval", "Добавь approval перед deploy в production environment.", 20),
-    ],
-    5: [
-        ("gitlab_security_scan", "Подключи SAST/Dependency scanning и сделай fail на critical issues.", 20),
-        ("gitlab_child_pipelines", "Разбей основной pipeline на child pipelines по подсистемам.", 22),
-    ],
-    6: [
-        ("gitlab_monorepo_rules", "Настрой rules:changes для selective jobs в monorepo.", 24),
-        ("gitlab_ci_optimize", "Оптимизируй тяжелый CI за счет needs/parallel и сравни время прогона.", 24),
-    ],
-}
-
 TASK_VALIDATORS = {
     "1.1": """\
 import sys
@@ -320,14 +290,6 @@ def _validator_by_slug(slug: str, external_id: str) -> str:
         return "import subprocess, sys\nr=subprocess.run(['git','reflog','-n','5'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 and bool(r.stdout.strip()) else 1)"
     if slug in {"clone_local", "add_remote", "push_first", "fetch_merge", "pull_rebase", "push_conflict", "remote_prune"}:
         return "import subprocess, sys\nr=subprocess.run(['git','remote','-v'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
-    if slug in {"gitlab_repo_init"}:
-        return (
-            "import subprocess, sys\n"
-            "has_commit=subprocess.run(['git','rev-parse','--verify','HEAD'],capture_output=True,text=True,check=False).returncode==0\n"
-            "origin=subprocess.run(['git','remote','get-url','origin'],capture_output=True,text=True,check=False)\n"
-            "upstream=subprocess.run(['git','rev-parse','--abbrev-ref','--symbolic-full-name','@{u}'],capture_output=True,text=True,check=False)\n"
-            "sys.exit(0 if has_commit and origin.returncode==0 and bool(origin.stdout.strip()) and upstream.returncode==0 else 1)"
-        )
     if slug in {"find_bisect", "reflog_recovery", "filter_branch", "worktree", "submodule", "inspect_objects", "custom_aliases_hooks"}:
         return "import subprocess, sys\nr=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
     if slug in {"init_repo", "first_commit", "check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit"}:
@@ -577,6 +539,11 @@ class Command(BaseCommand):
                     )
                     created_tasks += 1
                     created_assets += 3
+
+        # Ачивки — глобальные определения; создаём один раз при сидировании, а не на каждый запрос профиля.
+        from apps.achievements.services import bootstrap_default_achievements
+
+        bootstrap_default_achievements()
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -8,6 +8,7 @@ from markdown.extensions.toc import slugify as md_slugify
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
 
+from apps.core.services import get_next_unlockable_task_for_user
 from apps.progress.models import TaskCompletion
 from apps.tasks.models import Level, Task
 
@@ -25,11 +26,10 @@ def tasks_list(request, level_number=None):
         .order_by("level__number", "order")
     )
     all_tasks = list(task_qs)
-    next_unlocked_id = None
-    for task in all_tasks:
-        if task.id not in completed_ids:
-            next_unlocked_id = task.id
-            break
+    # «Активной» считается первая незавершённая задача в линейном треке — та же логика,
+    # что и при открытии песочницы (см. apps.core.services.get_next_unlockable_task_for_user).
+    next_task = get_next_unlockable_task_for_user(request.user)
+    next_unlocked_id = next_task.id if next_task else None
 
     grouped = defaultdict(list)
     for task in all_tasks:

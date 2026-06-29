@@ -8,7 +8,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.achievements.models import Achievement, UserAchievement
 
 K = Achievement.CriterionKind
-from apps.achievements.services import bootstrap_default_achievements
 from apps.progress.models import TaskAttempt, TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
@@ -16,7 +15,6 @@ from apps.users.models import UserProfile
 
 
 def _profile_learning_stats(user: User) -> dict:
-    bootstrap_default_achievements()
     profile, _ = UserProfile.objects.get_or_create(
         user=user,
         defaults={"public_nickname": user.username},
