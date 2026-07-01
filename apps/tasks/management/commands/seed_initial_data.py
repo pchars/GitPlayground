@@ -312,7 +312,7 @@ def validator_for(external_id: str, slug: str) -> str:
     return TASK_VALIDATORS.get(external_id) or _validator_by_slug(slug, external_id)
 
 
-def task_metadata(level_number: int, slug: str, description: str, platform: str = "github") -> dict:
+def task_metadata(level_number: int, slug: str, description: str) -> dict:
     requires = []
     if slug != "init_repo":
         requires.append("repo_initialized")
@@ -328,11 +328,6 @@ def task_metadata(level_number: int, slug: str, description: str, platform: str 
         ]
     return {
         "objective": description,
-        "platform": platform,
-        "playground_subtitle": (
-            f"{slug.replace('_', ' ').title()} · Режим обучения: приоритет у команд git; "
-            "для подготовки файлов разрешены безопасные команды echo/touch."
-        ),
         "steps": [
             "Проверь стартовое состояние через git status --short.",
             "Выполни требуемые команды из условия.",
@@ -457,88 +452,86 @@ class Command(BaseCommand):
                 },
             )
 
-            # В учебном UI показываем единый github-трек; пересобираем задачи уровня детерминированно.
-            Task.objects.filter(level=level, platform__in=("github", "gitlab")).delete()
-            for platform, blueprints in (
-                ("github", TASK_BLUEPRINTS.get(level_number, [])),
+            # Пересобираем github-задачи уровня детерминированно.
+            Task.objects.filter(level=level, platform=Task.Platform.GITHUB).delete()
+            for order, (slug, description, points) in enumerate(
+                TASK_BLUEPRINTS.get(level_number, []), start=1
             ):
-                platform_prefix = "gh" if platform == "github" else "gl"
-                for order, (slug, description, points) in enumerate(blueprints, start=1):
-                    level_hints = LEVEL_SECTION_HINTS.get(
-                        level_number,
-                        (
-                            "Проверь текущее состояние через git status и выполни шаги задачи последовательно.",
-                            "Сверь результат через git log --oneline и git status --short перед проверкой.",
-                        ),
-                    )
-                    metadata = task_metadata(level_number, slug, description, platform=platform)
-                    defaults = {
-                        "slug": slug,
-                        "title": slug.replace("_", " ").title(),
-                        "description": description,
-                        "platform": platform,
-                        "level": level,
-                        "order": order,
-                        "points": points,
-                        "validator_cmd": "python validator.py",
-                        "success_message": "Отлично! Задача решена.",
-                        "metadata": metadata,
-                    }
-                    task = Task.objects.create(
-                        external_id=f"{platform_prefix}-{level_number}.{order}",
-                        **defaults,
-                    )
-                    revision, _ = TaskRevision.objects.update_or_create(
-                        task=task,
-                        version=1,
-                        defaults={
-                            "is_active": True,
-                            **revision_payload(task),
-                        },
-                    )
-                    TaskRevision.objects.filter(task=task).exclude(pk=revision.pk).update(is_active=False)
-                    start_repo_payload = build_start_repo_asset(slug)
-                    if start_repo_payload:
-                        TaskAsset.objects.update_or_create(
-                            task=task,
-                            asset_type=TaskAsset.AssetType.START_REPO,
-                            path="start-repo.zip",
-                            defaults={
-                                "sort_order": 1,
-                                "content": start_repo_payload,
-                            },
-                        )
-                    else:
-                        TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.START_REPO).delete()
+                level_hints = LEVEL_SECTION_HINTS.get(
+                    level_number,
+                    (
+                        "Проверь текущее состояние через git status и выполни шаги задачи последовательно.",
+                        "Сверь результат через git log --oneline и git status --short перед проверкой.",
+                    ),
+                )
+                metadata = task_metadata(level_number, slug, description)
+                defaults = {
+                    "slug": slug,
+                    "title": slug.replace("_", " ").title(),
+                    "description": description,
+                    "platform": Task.Platform.GITHUB,
+                    "level": level,
+                    "order": order,
+                    "points": points,
+                    "validator_cmd": "python validator.py",
+                    "success_message": "Отлично! Задача решена.",
+                    "metadata": metadata,
+                }
+                task = Task.objects.create(
+                    external_id=f"gh-{level_number}.{order}",
+                    **defaults,
+                )
+                revision, _ = TaskRevision.objects.update_or_create(
+                    task=task,
+                    version=1,
+                    defaults={
+                        "is_active": True,
+                        **revision_payload(task),
+                    },
+                )
+                TaskRevision.objects.filter(task=task).exclude(pk=revision.pk).update(is_active=False)
+                start_repo_payload = build_start_repo_asset(slug)
+                if start_repo_payload:
                     TaskAsset.objects.update_or_create(
                         task=task,
-                        asset_type=TaskAsset.AssetType.VALIDATOR,
-                        path="validator.py",
+                        asset_type=TaskAsset.AssetType.START_REPO,
+                        path="start-repo.zip",
                         defaults={
                             "sort_order": 1,
-                            "content": validator_for(task.external_id, slug),
+                            "content": start_repo_payload,
                         },
                     )
-                    TaskAsset.objects.update_or_create(
-                        task=task,
-                        asset_type=TaskAsset.AssetType.HINT,
-                        path="hints/hint1.txt",
-                        defaults={
-                            "sort_order": 1,
-                            "content": level_hints[0],
-                        },
-                    )
-                    TaskAsset.objects.update_or_create(
-                        task=task,
-                        asset_type=TaskAsset.AssetType.HINT,
-                        path="hints/hint2.txt",
-                        defaults={
-                            "sort_order": 2,
-                            "content": level_hints[1],
-                        },
-                    )
-                    created_tasks += 1
-                    created_assets += 3
+                else:
+                    TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.START_REPO).delete()
+                TaskAsset.objects.update_or_create(
+                    task=task,
+                    asset_type=TaskAsset.AssetType.VALIDATOR,
+                    path="validator.py",
+                    defaults={
+                        "sort_order": 1,
+                        "content": validator_for(task.external_id, slug),
+                    },
+                )
+                TaskAsset.objects.update_or_create(
+                    task=task,
+                    asset_type=TaskAsset.AssetType.HINT,
+                    path="hints/hint1.txt",
+                    defaults={
+                        "sort_order": 1,
+                        "content": level_hints[0],
+                    },
+                )
+                TaskAsset.objects.update_or_create(
+                    task=task,
+                    asset_type=TaskAsset.AssetType.HINT,
+                    path="hints/hint2.txt",
+                    defaults={
+                        "sort_order": 2,
+                        "content": level_hints[1],
+                    },
+                )
+                created_tasks += 1
+                created_assets += 3
 
         # Ачивки — глобальные определения; создаём один раз при сидировании, а не на каждый запрос профиля.
         from apps.achievements.services import bootstrap_default_achievements

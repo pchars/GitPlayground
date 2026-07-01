@@ -2,11 +2,10 @@
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Avg, Max
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.achievements.models import Achievement, UserAchievement
-from apps.progress.models import TaskAttempt, TaskCompletion
+from apps.progress.models import TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
 from apps.users.models import UserProfile
@@ -18,11 +17,6 @@ def _profile_learning_stats(user: User) -> dict:
     profile, _ = UserProfile.objects.get_or_create(
         user=user,
         defaults={"public_nickname": user.username},
-    )
-    completions = (
-        TaskCompletion.objects.filter(user=user)
-        .select_related("task")
-        .order_by("-completed_at")[:5]
     )
     completed_task_ids = set(
         TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True)
@@ -44,19 +38,6 @@ def _profile_learning_stats(user: User) -> dict:
     achievement_map = {ua.achievement_id: ua for ua in achievements}
     all_achievements = Achievement.objects.filter(is_active=True).order_by("title")
     completed_tasks_count = TaskCompletion.objects.filter(user=user).count()
-    next_achievement = (
-        Achievement.objects.filter(is_active=True, threshold_tasks__gt=completed_tasks_count)
-        .order_by("threshold_tasks")
-        .first()
-    )
-    avg_attempts = (
-        TaskAttempt.objects.filter(user=user)
-        .values("task")
-        .annotate(total=Max("attempt_no"))
-        .aggregate(avg=Avg("total"))
-        .get("avg")
-        or 0
-    )
     theory_dropoff = max(0, total_tasks - total_completed)
     quiz_stats, _ = QuizUserStats.objects.get_or_create(user=user)
     solved_progress = QuizQuestionProgress.objects.filter(user=user, solved=True).select_related("question")
@@ -98,16 +79,12 @@ def _profile_learning_stats(user: User) -> dict:
         )
     return {
         "profile": profile,
-        "completions": completions,
         "level_progress": level_progress,
         "total_tasks": total_tasks,
         "total_completed": total_completed,
         "progress_pct": progress_pct,
-        "achievements": achievements,
         "available_achievements": available_achievements,
-        "next_achievement": next_achievement,
         "completed_tasks_count": completed_tasks_count,
-        "avg_attempts": avg_attempts,
         "theory_dropoff": theory_dropoff,
     }
 

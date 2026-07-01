@@ -44,11 +44,6 @@ urlpatterns = [
     path("theory/<int:level_id>/", views.theory_detail, name="theory-detail"),
     path("playground/<str:task_id>/", views.playground, name="playground"),
     path(
-        "playground/<str:task_id>/start/",
-        views.playground_start,
-        name="playground-start",
-    ),
-    path(
         "playground/<str:task_id>/run/",
         views.playground_run_command,
         name="playground-run-command",
@@ -74,24 +69,9 @@ urlpatterns = [
         name="playground-reset",
     ),
     path(
-        "playground/<str:task_id>/stop/",
-        views.playground_stop,
-        name="playground-stop",
-    ),
-    path(
         "playground/<str:task_id>/hint/",
         views.playground_hint,
         name="playground-hint",
-    ),
-    path(
-        "playground/<str:task_id>/log/",
-        views.playground_log,
-        name="playground-log",
-    ),
-    path(
-        "playground/<str:task_id>/log-stream/",
-        views.playground_log_stream,
-        name="playground-log-stream",
     ),
     path("quiz/", include("apps.quiz.urls")),
     path("leaderboard/", views.leaderboard, name="leaderboard"),

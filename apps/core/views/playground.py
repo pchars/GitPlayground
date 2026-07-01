@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
@@ -21,8 +21,6 @@ from apps.core.services import (
     read_text_file_from_repo,
     reset_session,
     run_command,
-    session_log,
-    stop_session,
     unlock_hint,
     validate_task,
     write_text_file_to_repo,
@@ -35,10 +33,8 @@ from apps.tasks.models import Task, TaskAsset
 from .helpers import (
     _hint_ui_state,
     _log_playground_event,
-    _syntax_hints,
     _task_from_route,
     _task_learning_content,
-    _task_recommendations,
 )
 
 
@@ -143,21 +139,10 @@ def playground(request, task_id):
             "session": session,
             "fresh_requested": fresh_requested,
             "hints": hints,
-            "syntax_hints": _syntax_hints(),
-            "task_recommendations": _task_recommendations(task),
             "learning_content": _task_learning_content(request.user, task),
             "hint_ui_state": _hint_ui_state(request.user, task),
         },
     )
-
-
-@login_required
-@require_POST
-def playground_start(request: HttpRequest, task_id: str) -> JsonResponse:
-    guard = _acquire_session(request, task_id)
-    if guard.error:
-        return guard.error
-    return JsonResponse({"ok": True, "session_id": guard.session.id, "status": guard.session.status})
 
 
 @login_required
@@ -346,7 +331,6 @@ def playground_reset(request: HttpRequest, task_id: str) -> JsonResponse:
             "ok": True,
             "session_id": new_session.id,
             "status": new_session.status,
-            "log": session_log(new_session),
         }
     )
     _log_playground_event(
@@ -360,24 +344,6 @@ def playground_reset(request: HttpRequest, task_id: str) -> JsonResponse:
         new_status=new_session.status,
     )
     return response
-
-
-@login_required
-@require_POST
-def playground_stop(request: HttpRequest, task_id: str) -> JsonResponse:
-    task = _task_from_route(task_id)
-    session = (
-        SandboxSession.objects.filter(
-            user=request.user,
-            task=task,
-            status__in=[SandboxSession.Status.STARTING, SandboxSession.Status.ACTIVE],
-        )
-        .order_by("-last_activity_at")
-        .first()
-    )
-    if session:
-        stop_session(session)
-    return JsonResponse({"ok": True})
 
 
 @login_required
@@ -488,45 +454,4 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
         points_spent=charged,
         hint_exhausted=False,
     )
-    return response
-
-
-@login_required
-@require_GET
-def playground_log(request: HttpRequest, task_id: str) -> HttpResponse:
-    task = _task_from_route(task_id)
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        return HttpResponse(f"Sandbox is unavailable: {exc}", status=503)
-    return render(
-        request,
-        "core/partials/terminal_log.html",
-        {"terminal_log": session_log(session), "task": task},
-    )
-
-
-@login_required
-@require_GET
-def playground_log_stream(request: HttpRequest, task_id: str) -> StreamingHttpResponse:
-    task = _task_from_route(task_id)
-    try:
-        session = get_or_create_active_session(request.user, task)
-    except RuntimeError as exc:
-        return StreamingHttpResponse([f"event: error\ndata: {exc}\n\n"], content_type="text/event-stream")
-
-    def event_stream():
-        previous = ""
-        # Keep stream bounded; client reconnects automatically.
-        for _ in range(25):
-            payload = session_log(session)
-            if payload != previous:
-                escaped = payload.replace("\n", "\\n")
-                yield f"event: log\ndata: {escaped}\n\n"
-                previous = payload
-            time.sleep(1)
-        yield "event: done\ndata: reconnect\n\n"
-
-    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
-    response["Cache-Control"] = "no-cache"
     return response

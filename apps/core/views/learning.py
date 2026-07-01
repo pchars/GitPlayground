@@ -3,7 +3,6 @@
 from collections import defaultdict
 
 import markdown
-from markdown.extensions.toc import slugify as md_slugify
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
@@ -104,14 +103,7 @@ def theory_detail(request, level_id):
     diagram_mermaid = (theory.diagram_mermaid if theory else "") or LEVEL_DIAGRAMS.get(level.number, "")
 
     rendered_md = ""
-    theory_sections = []
     if content_md:
-        for raw_line in content_md.splitlines():
-            line = raw_line.strip()
-            if line.startswith("## "):
-                title = line.removeprefix("## ").strip()
-                anchor = md_slugify(title, "-")
-                theory_sections.append({"title": title, "anchor": anchor})
         rendered_md = markdown.markdown(
             content_md,
             extensions=["fenced_code", "tables", "sane_lists", "toc"],
@@ -119,7 +111,6 @@ def theory_detail(request, level_id):
     levels = list(Level.objects.order_by("number"))
     prev_level = next((candidate for candidate in levels if candidate.number == level.number - 1), None)
     next_level = next((candidate for candidate in levels if candidate.number == level.number + 1), None)
-    first_task = level.tasks.filter(platform=Task.Platform.GITHUB).order_by("order").first()
     return render(
         request,
         "core/theory_detail.html",
@@ -128,8 +119,6 @@ def theory_detail(request, level_id):
             "theory": theory,
             "diagram_mermaid": diagram_mermaid,
             "rendered_md": rendered_md,
-            "first_task_route_id": first_task.external_id.replace(".", "_") if first_task else None,
-            "theory_sections": theory_sections,
             "prev_level": prev_level,
             "next_level": next_level,
         },

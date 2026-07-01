@@ -91,7 +91,7 @@ def import_task_zip(raw_bytes: bytes) -> ImportResult:
             "slug": slugify(str(manifest["id"])),
             "title": str(manifest["title"]),
             "description": str(manifest["description"]),
-            "platform": str(manifest.get("platform", Task.Platform.GITHUB)).lower(),
+            "platform": Task.Platform.GITHUB,
             "level": level,
             "order": int(manifest["order"]),
             "points": int(manifest["points"]),
@@ -99,7 +99,6 @@ def import_task_zip(raw_bytes: bytes) -> ImportResult:
             "success_message": str(manifest.get("success_message", "Task completed")),
             "metadata": {
                 "tags": manifest.get("tags", []),
-                "platform": str(manifest.get("platform", Task.Platform.GITHUB)).lower(),
             },
         },
     )

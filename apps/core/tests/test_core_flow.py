@@ -303,19 +303,6 @@ class CoreFlowTests(TestCase):
         self.assertFalse(res.json()["ok"])
         self.assertEqual(HintUsage.objects.filter(user=self.user, task=self.task1, hint_index=1).count(), 0)
 
-    def test_tasks_page_shows_only_github_track(self):
-        self.client.force_login(self.user)
-        self.task1.platform = "github"
-        self.task1.save(update_fields=["platform"])
-        self.task2.platform = "gitlab"
-        self.task2.save(update_fields=["platform"])
-        tasks_page = self.client.get("/tasks/")
-        self.assertEqual(tasks_page.status_code, 200)
-        page_html = tasks_page.content.decode("utf-8")
-        self.assertIn("Task 1", page_html)
-        self.assertNotIn("Task 2", page_html)
-        self.assertNotIn("GitLab", page_html)
-
     def test_playground_hint_requires_previous_hint(self):
         self.client.force_login(self.user)
         TaskAsset.objects.create(

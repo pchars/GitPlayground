@@ -174,7 +174,7 @@ Tasks are defined in `apps/tasks/management/commands/seed_initial_data.py`:
 - Business logic belongs in `apps/core/services/`; keep views thin (use the
   `_acquire_session` guard in `playground.py` rather than re-adding lock/rate/session
   boilerplate).
-- Only the GitHub track is seeded; there is no GitLab content.
+- Only the GitHub track is seeded.
 - Comments and user-facing strings are in Russian to match the existing codebase; code
   identifiers are in English.
 - Commit messages: imperative summary line; follow the repo rule of committing and

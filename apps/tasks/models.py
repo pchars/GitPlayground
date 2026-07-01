@@ -40,7 +40,6 @@ class TheoryBlock(models.Model):
 class Task(models.Model):
     class Platform(models.TextChoices):
         GITHUB = "github", "GitHub"
-        GITLAB = "gitlab", "GitLab"
 
     external_id = models.CharField(max_length=64, unique=True)
     slug = models.SlugField(max_length=80, unique=True)

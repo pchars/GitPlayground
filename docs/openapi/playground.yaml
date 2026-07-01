@@ -8,29 +8,6 @@ info:
 servers:
   - url: /
 paths:
-  "/playground/{task_id}/start/":
-    post:
-      summary: Создать или получить активную сессию песочницы
-      parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema:
-            type: string
-            description: Внешний id задачи с подчёркиванием вместо точки (например `1_1` для `1.1`)
-      responses:
-        "200":
-          description: Сессия готова
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok: { type: boolean }
-                  session_id: { type: integer }
-                  status: { type: string }
-        "403": { description: Задача заблокирована }
-        "503": { description: Песочница недоступна }
   "/playground/{task_id}/run/":
     post:
       summary: Выполнить команду в песочнице

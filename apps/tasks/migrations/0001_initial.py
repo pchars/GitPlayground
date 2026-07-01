@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('slug', models.SlugField(max_length=80, unique=True)),
                 ('title', models.CharField(max_length=150)),
                 ('description', models.TextField()),
-                ('platform', models.CharField(choices=[('github', 'GitHub'), ('gitlab', 'GitLab')], default='github', max_length=10)),
+                ('platform', models.CharField(choices=[('github', 'GitHub')], default='github', max_length=10)),
                 ('order', models.PositiveSmallIntegerField()),
                 ('points', models.PositiveSmallIntegerField()),
                 ('validator_cmd', models.CharField(default='python validator.py', max_length=255)),
