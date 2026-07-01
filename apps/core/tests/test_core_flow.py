@@ -313,7 +313,7 @@ class CoreFlowTests(TestCase):
         self.assertEqual(tasks_page.status_code, 200)
         page_html = tasks_page.content.decode("utf-8")
         self.assertIn("Task 1", page_html)
-        self.assertIn("GitHub", page_html)
+        self.assertNotIn("Task 2", page_html)
         self.assertNotIn("GitLab", page_html)
 
     def test_playground_hint_requires_previous_hint(self):
