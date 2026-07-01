@@ -8,7 +8,6 @@
   <div class="tasks-hero">
     <div>
       <h2>Тренировочный трек Git</h2>
-      <p class="muted">Переходи от базовых операций к продвинутым сценариям. Статус каждого задания виден сразу.</p>
     </div>
     <div class="tasks-metrics">
       <div class="metric-chip"><strong>{{ completed_tasks }}</strong><span>выполнено</span></div>
@@ -33,17 +32,12 @@
               <div class="task-card-head">
                 <h4>Задача {{ forloop.counter }} · {{ item.task.title }}</h4>
                 <span class="status-badge status-{{ item.status }}">
-                  {% if item.status == "completed" %}Готово{% elif item.status == "active" %}Текущая{% else %}Locked{% endif %}
+                  {% if item.status == "completed" %}Done{% elif item.status == "active" %}Current{% else %}Locked{% endif %}
                 </span>
               </div>
-              <p class="muted">{{ item.task.get_platform_display }}</p>
-              <p class="muted">{{ item.task.points }} баллов</p>
-              <details class="task-description">
-                <summary>Показать условие</summary>
-                <p class="muted">{{ item.task.description }}</p>
-              </details>
+              <p class="muted task-card-points">{{ item.task.points }} баллов</p>
               {% if item.status == "locked" %}
-                <p class="muted">🔒 Сначала выполните предыдущие задачи</p>
+                <p class="muted task-card-locked-note">Сначала выполните предыдущие задачи</p>
               {% else %}
                 <a class="btn btn-secondary" href="{% url 'playground' item.task_route_id %}">Открыть</a>
               {% endif %}

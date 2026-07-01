@@ -89,8 +89,23 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 ```
 
 Only after this full cycle should the user be asked to reload the page / verify behavior.
-`.sandboxes/_logs/session_<id>.terminal.log` is the per-session terminal history shown on
-page load; clearing it (step 1) is what removes leftover "junk" output.
+The playground page always opens with an **empty terminal** (only the prompt). Session logs
+still persist on disk for debugging, but they are not replayed on page load.
+
+## User-reported bugs
+
+When the user reports a bug:
+
+1. Reproduce it and implement a fix.
+2. Add a **regression test** that fails without the fix (unit test, integration test, or
+   e2e — whichever fits the failure mode).
+3. Run `python manage.py test` after every code change.
+4. If any test fails after your changes, **fix the code** until the full suite passes.
+   Do not hand off broken work or ask the user to verify before tests are green.
+
+Keep client/server paste sanitization in sync: `static/js/terminal_paste.js` and
+`apps/core/terminal_paste.py` must implement the same rules; update both when changing
+paste behavior.
 
 ## Sandbox command policy (security-critical)
 

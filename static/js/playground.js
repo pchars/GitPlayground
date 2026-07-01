@@ -9,8 +9,6 @@
     const hintBtn = document.getElementById("hint-btn");
     const validateOutput = document.getElementById("validate-output");
     const hintOutput = document.getElementById("hint-output");
-    const terminalLogNode = document.getElementById("terminal-log-data");
-    const initialTerminalLog = terminalLogNode ? JSON.parse(terminalLogNode.textContent || "\"\"") : "";
     const hintsDataNode = document.getElementById("task-hints-data");
     const hintsData = hintsDataNode ? JSON.parse(hintsDataNode.textContent || "[]") : [];
     const hintUiStateNode = document.getElementById("hint-ui-state-data");
@@ -24,18 +22,71 @@
     let commandBuffer = "";
     let isCommandRunning = false;
     const promptLabel = "user@gitplayground:~/repo$ ";
+    const PROMPT_ANSI = "\u001b[1;32muser@gitplayground:~/repo$\u001b[0m ";
     let term = null;
+    let usesAnsiPrompt = false;
+    let lastPasteAt = 0;
+
+    function sanitizePaste(text) {
+      if (window.GPTerminalPaste && typeof window.GPTerminalPaste.sanitizeTerminalPaste === "function") {
+        return window.GPTerminalPaste.sanitizeTerminalPaste(text);
+      }
+      return String(text || "").split(/\r?\n/)[0].trim();
+    }
+
+    function isLikelyPasteChunk(chunk) {
+      const value = String(chunk || "");
+      return value.includes("\n")
+        || value.includes("\r")
+        || value.includes("\x1b")
+        || value.includes("user@gitplayground:~/repo$");
+    }
+
+    function extractBracketedPaste(chunk) {
+      const match = String(chunk || "").match(/\x1b\[200~([\s\S]*?)\x1b\[201~/);
+      return match ? match[1] : null;
+    }
+
+    function rewriteInputLine() {
+      if (typeof term._setLiveCommand === "function") {
+        term._setLiveCommand(commandBuffer);
+        return;
+      }
+      term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
+    }
+
+    function applyPaste(raw) {
+      const now = Date.now();
+      if (now - lastPasteAt < 80) {
+        return;
+      }
+      lastPasteAt = now;
+      const chunk = sanitizePaste(raw);
+      if (!chunk || isCommandRunning) {
+        return;
+      }
+      commandBuffer = chunk;
+      rewriteInputLine();
+    }
+
+    function writePromptText() {
+      if (usesAnsiPrompt) {
+        term.write(`\r\n${PROMPT_ANSI}`);
+        return;
+      }
+      term.write(`\r\n${promptLabel}`);
+    }
 
     function createFallbackTerminal() {
-      const output = document.createElement("pre");
+      const output = document.createElement("div");
       output.className = "terminal-log";
       const liveLine = document.createElement("div");
       liveLine.className = "terminal-live-line";
-      liveLine.innerHTML = `<span class="terminal-prompt">${promptLabel}</span><span class="terminal-fallback-command"></span><span class="terminal-cursor">█</span>`;
+      liveLine.innerHTML = `<span class="terminal-prompt">${promptLabel}</span><span class="terminal-command"></span><span class="terminal-cursor">█</span>`;
       xtermHost.innerHTML = "";
       xtermHost.appendChild(output);
       xtermHost.appendChild(liveLine);
-      const liveCommand = liveLine.querySelector(".terminal-fallback-command");
+      const liveCommand = liveLine.querySelector(".terminal-command");
       let fallbackOnData = null;
 
       term = {
@@ -48,10 +99,13 @@
           output.textContent += value.replace(/\r/g, "");
         },
         writeln: (text) => {
-          output.textContent += `${String(text || "")}\n`;
+          const line = document.createElement("div");
+          line.className = "terminal-output-line";
+          line.textContent = String(text || "");
+          output.appendChild(line);
         },
         clear: () => {
-          output.textContent = "";
+          output.replaceChildren();
         },
         scrollToBottom: () => {
           terminalBody.scrollTop = terminalBody.scrollHeight;
@@ -118,6 +172,20 @@
           scrollback: 2000,
         });
         term.open(xtermHost);
+        usesAnsiPrompt = true;
+        term.attachCustomKeyEventHandler((event) => {
+          if (event.type !== "keydown") {
+            return true;
+          }
+          if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "v") {
+            event.preventDefault();
+            if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
+              navigator.clipboard.readText().then(applyPaste).catch(() => {});
+            }
+            return false;
+          }
+          return true;
+        });
         const FitCtor = window.FitAddon && (window.FitAddon.FitAddon || window.FitAddon);
         if (typeof FitCtor === "function") {
           const fitAddon = new FitCtor();
@@ -140,24 +208,38 @@
         term._setLiveCommand("");
         return;
       }
-      term.write(`\r\n${promptLabel}`);
+      writePromptText();
     }
 
-    if (initialTerminalLog) {
-      const normalizedInitialLog = initialTerminalLog
-        .replace(/([^\n])(user@gitplayground:~\/repo\$ )/g, "$1\n$2")
-        .replace(/\n/g, "\r\n");
-      term.write(normalizedInitialLog);
-      if (typeof term._setLiveCommand === "function" && !normalizedInitialLog.endsWith("\r\n")) {
-        term.write("\r\n");
+    function appendSubmittedCommandLine(command) {
+      if (typeof term._setLiveCommand === "function") {
+        const output = xtermHost.querySelector(".terminal-log");
+        if (output) {
+          const line = document.createElement("div");
+          line.className = "terminal-history-line";
+          line.innerHTML = `<span class="terminal-prompt">${promptLabel}</span><span class="terminal-command">${escapeHtml(command)}</span>`;
+          output.appendChild(line);
+        } else {
+          term.writeln(`${promptLabel}${command}`);
+        }
+        term._setLiveCommand("");
+        return;
       }
+      term.writeln(`${promptLabel}${command}`);
     }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
     if (typeof term._setLiveCommand === "function") {
       term._setLiveCommand("");
     } else {
-      if (!initialTerminalLog || !initialTerminalLog.trim().endsWith(promptLabel.trim())) {
-        writePrompt();
-      }
+      writePrompt();
     }
 
     function scrollTerminalDown() {
@@ -221,7 +303,17 @@
       term.writeln("  - Enter: выполнить команду");
       term.writeln("  - ArrowUp / ArrowDown: история команд");
       term.writeln("  - Ctrl+L: очистить терминал");
+      term.writeln("  - Ctrl+V / Cmd+V: вставить в строку команды");
       term.writeln("Локальная команда: help");
+    }
+
+    function handleTerminalPaste(event) {
+      const pasted = event.clipboardData && event.clipboardData.getData("text");
+      if (!pasted) {
+        return;
+      }
+      event.preventDefault();
+      applyPaste(pasted);
     }
 
     async function submitCommand(command) {
@@ -232,8 +324,7 @@
       commandHistory.push(command);
       historyCursor = commandHistory.length;
       if (typeof term._setLiveCommand === "function") {
-        term.writeln(`${promptLabel}${command}`);
-        term._setLiveCommand("");
+        appendSubmittedCommandLine(command);
       }
       if (typeof term._setLiveCommand !== "function") {
         term.write("\r\n");
@@ -277,7 +368,12 @@
         validateOutput.className = "hint-box validate-banner validate-failed";
         return;
       }
-      validateOutput.textContent = `${data.verdict.toUpperCase()} (#${data.attempt_no}) - ${data.diagnostics || "No diagnostics"}`;
+      if (data.verdict === "passed") {
+        validateOutput.textContent = "Успешно";
+      } else {
+        const details = data.diagnostics ? `: ${data.diagnostics}` : "";
+        validateOutput.textContent = `Не прошло (попытка #${data.attempt_no})${details}`;
+      }
       validateOutput.className = data.verdict === "passed"
         ? "hint-box validate-banner validate-passed"
         : "hint-box validate-banner validate-failed";
@@ -366,7 +462,7 @@
         }
         historyCursor = Math.max(0, historyCursor - 1);
         commandBuffer = commandHistory[historyCursor] || "";
-        term.write("\u001b[2K\r" + promptLabel + commandBuffer);
+        term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand(commandBuffer);
         }
@@ -378,7 +474,7 @@
         }
         historyCursor = Math.min(commandHistory.length, historyCursor + 1);
         commandBuffer = commandHistory[historyCursor] || "";
-        term.write("\u001b[2K\r" + promptLabel + commandBuffer);
+        term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand(commandBuffer);
         }
@@ -390,6 +486,13 @@
         writePrompt();
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand("");
+        }
+        return;
+      }
+      if (dataChunk.length > 1) {
+        const bracketed = extractBracketedPaste(dataChunk);
+        if (bracketed !== null || isLikelyPasteChunk(dataChunk)) {
+          applyPaste(bracketed !== null ? bracketed : dataChunk);
         }
         return;
       }
@@ -490,4 +593,8 @@
     }
     term.focus();
     terminalBody.addEventListener("click", () => term.focus());
+    terminalBody.addEventListener("paste", handleTerminalPaste);
+    if (xtermHost) {
+      xtermHost.addEventListener("paste", handleTerminalPaste);
+    }
   })();

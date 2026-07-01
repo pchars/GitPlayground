@@ -9,9 +9,8 @@
 <section class="card">
   <div class="playground-header">
     <h2>{{ task.title }}</h2>
-    <p class="muted">{{ task_subtitle }}</p>
     <p>Уровень {{ task.level.number }} · {{ task.points }} баллов</p>
-    <div id="validate-output" class="hint-box validate-banner muted">Пока нет результатов проверки.</div>
+    <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
     <div class="actions">
       <a class="btn btn-secondary" href="{% url 'theory-detail' task.level.number %}">Теория уровня</a>
       <button class="btn btn-secondary" id="hint-btn" type="button">Подсказка</button>
@@ -29,9 +28,6 @@
   <article class="card tab-panel active" data-panel="condition" role="tabpanel">
     <h3>Условие</h3>
     <p>{{ learning_content.objective|default:task.description }}</p>
-    {% if learning_content.validator_notes %}
-      <p class="muted">Проверка: {{ learning_content.validator_notes }}</p>
-    {% endif %}
     <p class="muted">Подсказок доступно: <span id="hint-total">{{ hints|length }}</span></p>
     <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
   </article>
@@ -47,20 +43,19 @@
       </div>
     </div>
     <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
-    <details class="file-editor-panel">
-      <summary>Редактор файла в репозитории</summary>
-      <p class="muted">
-        Полноэкранные vim/nano в этом терминале недоступны (нет постоянной сессии shell).
-        Для многострочного текста используйте форму ниже: запись идёт в файл песочницы напрямую, без вызова внешних программ.
-        Просмотр одной строкой: <code>cat имя_файла</code> в терминале.
+    <details class="file-editor-panel file-editor-panel--featured" open>
+      <summary><span class="file-editor-badge">Файлы</span> Редактор файла</summary>
+      <p class="file-editor-intro">
+        Нужен текст из нескольких строк? Напишите его здесь и нажмите «Сохранить» — файл появится в репозитории.
+        Посмотреть содержимое в терминале: <code>cat имя_файла</code>.
       </p>
       <label for="file-editor-path">Путь от корня репозитория</label>
       <input id="file-editor-path" class="file-editor-path" type="text" placeholder="notes/idea.txt" autocomplete="off" />
       <label for="file-editor-body">Содержимое (UTF-8)</label>
       <textarea id="file-editor-body" class="file-editor-body" spellcheck="false"></textarea>
       <div class="file-editor-actions">
+        <button class="btn btn-primary" id="file-editor-save" type="button">Сохранить</button>
         <button class="btn btn-secondary" id="file-editor-load" type="button">Загрузить</button>
-        <button class="btn btn-secondary" id="file-editor-save" type="button">Сохранить</button>
       </div>
       <p id="file-editor-status" class="muted" aria-live="polite"></p>
     </details>
@@ -69,9 +64,9 @@
 
 {{ hints|json_script:"task-hints-data" }}
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
-{{ terminal_log|json_script:"terminal-log-data" }}
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="{% static 'js/terminal_paste.js' %}"></script>
 <script>
   window.__GP_PLAYGROUND__ = {
     urls: {

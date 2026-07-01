@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Home{% endblock %}
 
@@ -53,24 +54,10 @@
       <h3>{{ completions_total }}</h3>
       <p>успешных прохождений задач в системе</p>
     </article>
-  </section>
-
-  <section class="landing-stats grid two">
-    <article class="stat-card">
-      <h3>{{ students_solved }}</h3>
-      <p>учеников уже решили хотя бы одну задачу</p>
-    </article>
-    <article class="stat-card">
-      <h3>{{ students_total }}</h3>
-      <p>пользователей на платформе</p>
-    </article>
-    <article class="stat-card">
-      <h3>{{ tasks_total }}</h3>
-      <p>практических задач в треке</p>
-    </article>
-    <article class="stat-card">
-      <h3>{{ completions_total }}</h3>
-      <p>решений задач выполнено в системе</p>
+    <article class="feature-band-item">
+      <p class="feature-band-title">КВИЗ</p>
+      <h3>{{ quiz_questions_total }}</h3>
+      <p>вопросов для закрепления терминов и сценариев</p>
     </article>
   </section>
 
@@ -105,26 +92,46 @@
   </section>
 
   <section class="landing-section landing-section-single">
-    <h2>Как устроено обучение</h2>
-    <div class="landing-pillars">
-      <article>
-        <h3>1. Теория по уровням</h3>
-        <p>Короткие структурированные материалы с последовательным переходом между уровнями.</p>
-      </article>
-      <article>
-        <h3>2. Практика в песочнице</h3>
-        <p>Реальные команды Git в изолированном окружении с проверкой результата.</p>
-      </article>
-      <article>
-        <h3>3. Прогресс и достижения</h3>
-        <p>Отслеживание прогресса, очков и достижений, чтобы видеть рост навыков по шагам.</p>
-      </article>
-      <article>
-        <h3>4. Квиз и повторение</h3>
-        <p>Тренировка терминов и сценариев на разных уровнях сложности.</p>
-      </article>
+    <div class="learning-slider-wrap" data-learning-slider>
+      <div class="learning-slider-head">
+        <h2>Как устроено обучение</h2>
+        <div class="learning-slider-nav">
+          <button class="learning-slider-btn" type="button" data-learning-prev aria-label="Предыдущий слайд">←</button>
+          <span class="learning-slider-counter"><span data-learning-current>1</span>/4</span>
+          <button class="learning-slider-btn" type="button" data-learning-next aria-label="Следующий слайд">→</button>
+        </div>
+      </div>
+      <div class="learning-slider-viewport">
+        <div class="learning-slider-track">
+          <article class="learning-slide is-active">
+            <span class="learning-slide-step">01</span>
+            <h3>Теория по уровням</h3>
+            <p>Короткие структурированные материалы с последовательным переходом между уровнями.</p>
+          </article>
+          <article class="learning-slide">
+            <span class="learning-slide-step">02</span>
+            <h3>Практика в песочнице</h3>
+            <p>Реальные команды Git в изолированном окружении с проверкой результата.</p>
+          </article>
+          <article class="learning-slide">
+            <span class="learning-slide-step">03</span>
+            <h3>Прогресс и достижения</h3>
+            <p>Отслеживание прогресса, очков и достижений, чтобы видеть рост навыков по шагам.</p>
+          </article>
+          <article class="learning-slide">
+            <span class="learning-slide-step">04</span>
+            <h3>Квиз и повторение</h3>
+            <p>Тренировка терминов и сценариев на разных уровнях сложности.</p>
+          </article>
+        </div>
+      </div>
+      <div class="learning-slider-dots" role="tablist" aria-label="Слайды обучения">
+        <button class="learning-slider-dot is-active" type="button" data-learning-dot="0" aria-label="Слайд 1" aria-selected="true"></button>
+        <button class="learning-slider-dot" type="button" data-learning-dot="1" aria-label="Слайд 2" aria-selected="false"></button>
+        <button class="learning-slider-dot" type="button" data-learning-dot="2" aria-label="Слайд 3" aria-selected="false"></button>
+        <button class="learning-slider-dot" type="button" data-learning-dot="3" aria-label="Слайд 4" aria-selected="false"></button>
+      </div>
     </div>
-    <p class="muted">Текущий трек включает {{ levels_total }} уровней и покрывает путь от `git init` до CI и автоматизации.</p>
   </section>
 
   <section class="landing-cta-strip">
@@ -140,5 +147,7 @@
         <a class="btn btn-secondary" href="{% url 'login' %}">Войти</a>
       {% endif %}
     </div>
+  </section>
 </section>
+<script src="{% static 'js/landing_slider.js' %}"></script>
 {% endblock %}

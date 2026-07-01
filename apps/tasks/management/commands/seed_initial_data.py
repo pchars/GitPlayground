@@ -418,7 +418,7 @@ def revision_payload(task: Task) -> dict:
         "expected_state",
         "Репозиторий находится в требуемом состоянии без лишних изменений.",
     )
-    validator_notes = "Проверка использует validator.py и состояние Git-репозитория."
+    validator_notes = ""
     return {
         "objective": objective,
         "steps": steps,

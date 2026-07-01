@@ -142,20 +142,11 @@ def playground(request, task_id):
             "task_route_id": task.external_id.replace(".", "_"),
             "session": session,
             "fresh_requested": fresh_requested,
-            "terminal_log": session_log(session),
             "hints": hints,
             "syntax_hints": _syntax_hints(),
             "task_recommendations": _task_recommendations(task),
             "learning_content": _task_learning_content(request.user, task),
             "hint_ui_state": _hint_ui_state(request.user, task),
-            "task_subtitle": (
-                (task.metadata or {}).get(
-                    "playground_subtitle",
-                    "Режим обучения: приоритет у команд git; для подготовки файлов разрешены безопасные команды echo/touch.",
-                )
-                if isinstance(task.metadata, dict)
-                else "Режим обучения: приоритет у команд git; для подготовки файлов разрешены безопасные команды echo/touch."
-            ),
         },
     )
 

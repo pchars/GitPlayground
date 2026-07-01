@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}GitPlayground{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260426-toast-achievements">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260702-terminal-paste">
 </head>
 <body>
   <header class="header">
@@ -52,7 +52,9 @@
   </div>
 
   <footer class="footer">GitPlayground © 2026</footer>
+  <button class="scroll-top-btn" id="scroll-top-btn" type="button" aria-label="Наверх" hidden>↑</button>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script src="{% static 'js/toast.js' %}"></script>
+  <script src="{% static 'js/scroll_top.js' %}"></script>
 </body>
 </html>

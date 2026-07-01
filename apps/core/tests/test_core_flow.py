@@ -413,3 +413,5 @@ class CoreFlowTests(TestCase):
         content = response.content.decode("utf-8")
         self.assertIn("Первый коммит", content)
         self.assertIn("img/achievements/first_commit.png", content)
+        self.assertIn("achievement-card", content)
+        self.assertNotIn("Чтобы открыть:", content)

@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Login{% endblock %}
 
@@ -8,13 +9,19 @@
     {% csrf_token %}
     <h2>Вход</h2>
     {{ form.non_field_errors }}
-    <label>Имя пользователя {{ form.username }}</label>
+    <label for="{{ form.username.id_for_label }}">Имя пользователя</label>
+    {{ form.username }}
     {{ form.username.errors }}
-    <label>Пароль {{ form.password }}</label>
+    <label for="{{ form.password.id_for_label }}">Пароль</label>
+    <div class="password-field-wrap">
+      {{ form.password }}
+      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button>
+    </div>
     {{ form.password.errors }}
     <button class="btn btn-primary full" type="submit">Войти</button>
     <p class="muted"><a href="{% url 'password_reset' %}">Забыли пароль?</a></p>
     <p class="muted">Нет аккаунта? <a href="{% url 'signup' %}">Зарегистрироваться</a></p>
   </form>
 </section>
+<script src="{% static 'js/auth.js' %}"></script>
 {% endblock %}

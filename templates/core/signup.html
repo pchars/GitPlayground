@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Signup{% endblock %}
 
@@ -8,17 +9,28 @@
     {% csrf_token %}
     <h2>Регистрация</h2>
     {{ form.non_field_errors }}
-    <label>Имя пользователя {{ form.username }}</label>
+    <label for="{{ form.username.id_for_label }}">Имя пользователя</label>
+    {{ form.username }}
     {{ form.username.errors }}
-    <label>Email {{ form.email }}</label>
+    <label for="{{ form.email.id_for_label }}">Email</label>
+    {{ form.email }}
     {{ form.email.errors }}
-    <label>Пароль {{ form.password1 }}</label>
+    <label for="{{ form.password1.id_for_label }}">Пароль</label>
+    <div class="password-field-wrap">
+      {{ form.password1 }}
+      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button>
+    </div>
     {{ form.password1.errors }}
-    {% if form.password1.help_text %}<p class="muted small-help">{{ form.password1.help_text|safe }}</p>{% endif %}
-    <label>Подтверждение пароля {{ form.password2 }}</label>
+    <label for="{{ form.password2.id_for_label }}">Подтверждение пароля</label>
+    <div class="password-field-wrap">
+      {{ form.password2 }}
+      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button>
+    </div>
     {{ form.password2.errors }}
+    {% if form.password1.help_text %}<p class="muted small-help password-requirements">{{ form.password1.help_text|safe }}</p>{% endif %}
     <button class="btn btn-primary full" type="submit">Создать аккаунт</button>
     <p class="muted">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
   </form>
 </section>
+<script src="{% static 'js/auth.js' %}"></script>
 {% endblock %}

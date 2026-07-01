@@ -132,6 +132,5 @@ def theory_detail(request, level_id):
             "theory_sections": theory_sections,
             "prev_level": prev_level,
             "next_level": next_level,
-            "all_levels": levels,
         },
     )

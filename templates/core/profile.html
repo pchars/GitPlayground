@@ -4,34 +4,56 @@
 {% block title %}GitPlayground | Profile{% endblock %}
 
 {% block content %}
-<section class="grid two">
-  <article class="card">
+<section class="grid two profile-grid">
+  <article class="card profile-card">
     <h3>Информация о пользователе</h3>
-    <p><strong>Login:</strong> {{ profile_user.username }}</p>
-    <p><strong>E-mail:</strong> {{ profile_user.email|default:"—" }}</p>
-    <p><strong>Имя:</strong> {{ profile.public_nickname }}</p>
-    <p><strong>Среднее число попыток на задачу:</strong> {{ avg_attempts|floatformat:1 }}</p>
-    <p><strong>Количество доступных баллов:</strong> {{ profile.total_points }} баллов</p>
+    <dl class="profile-stats">
+      <div>
+        <dt>Login</dt>
+        <dd>{{ profile_user.username }}</dd>
+      </div>
+      <div>
+        <dt>E-mail</dt>
+        <dd>{{ profile_user.email|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt>Имя</dt>
+        <dd>{{ profile.public_nickname }}</dd>
+      </div>
+      <div>
+        <dt>Баллы</dt>
+        <dd>{{ profile.total_points }}</dd>
+      </div>
+    </dl>
   </article>
 
-  <article class="card">
+  <article class="card profile-card">
     <h3>Прогресс по обучению</h3>
-    <div class="ring" style="--progress: {{ progress_pct }};">
-      <span>{{ progress_pct }}%</span>
+    <div class="profile-progress-summary">
+      <strong>{{ progress_pct }}%</strong>
+      <span class="muted">{{ total_completed }}/{{ total_tasks }} задач</span>
+      <span class="muted profile-progress-remaining">осталось {{ theory_dropoff }}</span>
     </div>
-    <h3>Прогресс по уровням</h3>
-    {% for row in level_progress %}
-      <p>{{ row.level.number }}. {{ row.level.title }} ({{ row.completed }}/{{ row.total }})</p>
-      <div class="progress">
-        {% if row.total %}
-          <span style="width:{% widthratio row.completed row.total 100 %}%"></span>
-        {% else %}
-          <span style="width:0%"></span>
-        {% endif %}
-      </div>
-    {% endfor %}
-    <hr class="profile-divider">
-    <p>Осталось задач до полного прохождения: {{ theory_dropoff }}</p>
+    <div class="progress profile-progress-overall" aria-hidden="true">
+      <span style="width: {{ progress_pct }}%;"></span>
+    </div>
+    <ul class="profile-level-list">
+      {% for row in level_progress %}
+        <li class="profile-level-row">
+          <div class="profile-level-head">
+            <span>{{ row.level.number }}. {{ row.level.title }}</span>
+            <span class="muted">{{ row.completed }}/{{ row.total }}</span>
+          </div>
+          <div class="progress profile-level-bar">
+            {% if row.total %}
+              <span style="width:{% widthratio row.completed row.total 100 %}%"></span>
+            {% else %}
+              <span style="width:0%"></span>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
   </article>
 </section>
 
@@ -39,19 +61,22 @@
   <h3>Достижения</h3>
   <div class="achievement-gallery">
     {% for row in available_achievements %}
-      <article class="achievement-image-card {% if not row.unlocked %}achievement-locked{% endif %}">
+      <article class="achievement-card {% if not row.unlocked %}achievement-locked{% endif %}">
         {% if row.achievement.icon_path %}
-          <img src="{% static row.achievement.icon_path %}" alt="{{ row.achievement.title }}" class="achievement-image" loading="lazy">
+          <img src="{% static row.achievement.icon_path %}" alt="" class="achievement-card-icon" loading="lazy">
         {% endif %}
-        <h4>{{ row.achievement.title }}</h4>
-        <p class="muted">{{ row.achievement.description }}</p>
-        <p class="muted">{{ row.progress_text }}</p>
-        <p class="muted">+{{ row.achievement.points_bonus }} очков</p>
-        {% if row.unlocked %}
-          <p class="muted">Открыто</p>
-        {% else %}
-          <p class="muted">Чтобы открыть: {{ row.achievement.description }}</p>
-        {% endif %}
+        <div class="achievement-card-body">
+          <div class="achievement-card-head">
+            <h4>{{ row.achievement.title }}</h4>
+            {% if row.unlocked %}
+              <span class="achievement-badge achievement-badge-unlocked">Открыто</span>
+            {% else %}
+              <span class="achievement-badge achievement-badge-locked">Закрыто</span>
+            {% endif %}
+          </div>
+          <p class="achievement-card-desc muted">{{ row.achievement.description }}</p>
+          <p class="achievement-card-meta muted">{{ row.progress_text }} · +{{ row.achievement.points_bonus }} очков</p>
+        </div>
       </article>
     {% endfor %}
   </div>
