@@ -3,7 +3,7 @@
 
 {% block title %}GitPlayground | Playground{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/playground.css' %}?v=20260703-css-split">
+<link rel="stylesheet" href="{% static 'css/playground.css' %}?v=20260703-design10">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.5.0/css/xterm.min.css">
 {% endblock %}
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks / {{ task.external_id }}</nav>{% endblock %}
@@ -36,12 +36,12 @@
     </div>
     <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
     <div class="terminal-actions">
-      <button class="btn btn-danger" id="reset-btn" type="button">Сбросить репозиторий</button>
-      <button class="btn btn-success" id="validate-btn" type="button">Проверить</button>
+      <button class="btn btn-secondary" id="reset-btn" type="button">Сбросить репозиторий</button>
+      <button class="btn btn-primary" id="validate-btn" type="button">Проверить</button>
+      <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
     </div>
-    <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
     <details class="file-editor-panel file-editor-panel--featured" open>
-      <summary><span class="file-editor-badge">Файлы</span> Редактор файла</summary>
+      <summary>Редактор файла</summary>
       <p class="file-editor-intro">
         Нужен текст из нескольких строк? Напишите его здесь и нажмите «Сохранить» — файл появится в репозитории.
         Посмотреть содержимое в терминале: <code>cat имя_файла</code>.
@@ -63,7 +63,7 @@
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-<script src="{% static 'js/terminal_paste.js' %}"></script>
+<script src="{% static 'js/terminal_paste.js' %}?v=20260703-design10"></script>
 <script>
   window.__GP_PLAYGROUND__ = {
     urls: {
@@ -76,5 +76,5 @@
     },
   };
 </script>
-<script src="{% static 'js/playground.js' %}"></script>
+<script src="{% static 'js/playground.js' %}?v=20260703-design10"></script>
 {% endblock %}

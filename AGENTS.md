@@ -167,6 +167,70 @@ Tasks are defined in `apps/tasks/management/commands/seed_initial_data.py`:
    solution through the real sandbox + validator and asserts `PASSED`, and it fails if a
    seeded task has no registered solution. Every task must be provably solvable.
 
+## Frontend: CSS, HTML, and design
+
+When adding or changing templates or styles, follow **`DESIGN.md`** at the repository root
+as the source of truth for colors, typography, spacing, components, and responsive
+breakpoints.
+
+### CSS architecture
+
+- **`static/css/common.css`** — shared foundation only: design tokens (`:root`), reset,
+  global typography (h1–h6, p, a), header, footer, layout shell, and reusable primitives
+  (`.btn`, `.card`, forms, toasts). Every page loads this file from `core/base.html`.
+- **One page → one CSS file** — page-specific styles live in a dedicated sheet under
+  `static/css/` (e.g. `landing.css`, `playground.css`). Link it via `{% block extra_css %}`
+  in the template that owns the page. Do not add page-only rules to `common.css`.
+- **`static/css/responsive.css`** — all `@media` queries in one place, loaded **after**
+  page CSS so breakpoints can override layout. Do not embed media queries in `common.css`
+  or page stylesheets.
+- **`static/css/auth.css`** — shared styles for the auth flow (login, signup, password
+  reset). Auth templates load it through `{% block extra_css %}`.
+
+### Inheritance and tokens
+
+- Define colors, spacing, radii, and the type scale once in `:root` inside `common.css`,
+  aligned with token names in `DESIGN.md`. Page CSS must reference `var(--…)` tokens,
+  not hard-coded hex values (except documented exceptions such as terminal ANSI colors).
+- Page sheets **extend** common primitives; avoid duplicating reset, button, or card
+  definitions. Prefer composing existing classes in HTML before adding new global rules.
+
+### HTML templates
+
+- Extend `templates/core/base.html`; put page markup in `{% block content %}`.
+- Load page CSS in `{% block extra_css %}`; load page JS at the bottom of
+  `{% block content %}`.
+- User-facing copy is in Russian; `class` names and file paths are in English.
+- Match semantic structure from `DESIGN.md` (e.g. `hero-band`, `feature-card`, dark
+  `footer`).
+
+### Responsive behavior
+
+- Breakpoints per `DESIGN.md`: mobile `<768px`, tablet `768–1024px`, desktop
+  `1024–1440px`, wide `>1440px`. All grid collapses and layout shifts belong in
+  `responsive.css`.
+
+See also `docs/FRONTEND.md` for the full static-file map.
+
+## Refactor and dead code (before push)
+
+Before pushing to GitHub, clean up leftovers from the same change set (or an
+accumulated refactor branch):
+
+1. **Remove dead code** — unused CSS classes, HTML blocks, JS helpers, Python
+   imports, and static assets superseded by the new implementation (e.g. replaced
+   `app.css`, old PNG icons, removed UI labels).
+2. **Check references** — grep for orphaned class names (rules in CSS with no
+   template usage), broken `icon_path` / static URLs in tests and seed data, and
+   stale mentions in `docs/`.
+3. **Keep mirrors in sync** — when behavior is duplicated client/server (e.g.
+   `static/js/terminal_paste.js` and `apps/core/terminal_paste.py`), update both
+   or neither.
+4. **Verify** — run `manage.py test`, `coverage report` (≥ 52%), and
+   `makemigrations --check --dry-run` before commit.
+5. **Do not push** with known dead code from the refactor unless the user explicitly
+   asks to defer cleanup.
+
 ## Conventions
 
 - Lint/format with **ruff** (config in `pyproject.toml`).

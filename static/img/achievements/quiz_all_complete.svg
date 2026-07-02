@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="quiz marathon">
+  <rect x="1" y="1" width="62" height="62" rx="14" fill="#f5f5f5" stroke="#e5e7eb"/>
+  <circle cx="32" cy="27" r="14" fill="#111111"/>
+  <path d="M32 20L34.6 25.3L40.5 26.2L36.2 30.3L37.3 36.2L32 33.4L26.7 36.2L27.8 30.3L23.5 26.2L29.4 25.3Z" fill="#f5f5f5"/>
+  <path d="M25 39L21 52L32 46L43 52L39 39" fill="none" stroke="#111111" stroke-width="3.5" stroke-linejoin="round"/>
+</svg>

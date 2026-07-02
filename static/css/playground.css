@@ -84,7 +84,7 @@
   animation: blink 1s steps(1, end) infinite;
 }
 .terminal-shell .terminal-body:focus {
-  outline: 1px solid rgba(47, 129, 247, 0.45);
+  outline: 1px solid var(--color-ink);
 }
 .csrf-holder {
   display: none;
@@ -93,18 +93,13 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   margin-top: 14px;
 }
-.task-details-expand {
-  margin-top: 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--bg-primary);
-}
-.task-details-expand summary {
-  cursor: pointer;
-  color: var(--accent);
+.terminal-actions .validate-banner {
+  flex: 1 1 220px;
+  min-width: 200px;
+  margin: 0;
 }
 @keyframes blink {
   50% {
@@ -117,27 +112,27 @@
   border-style: solid;
 }
 .validate-passed {
-  border-color: var(--success);
-  color: var(--success);
-  background: rgba(45, 164, 78, 0.12);
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-canvas));
   font-weight: 600;
   font-size: 15px;
 }
 .validate-failed {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: rgba(248, 81, 73, 0.12);
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-canvas));
 }
 .mobile-tabs { display: none; gap: 8px; margin-bottom: 8px; }
 .tab-btn.active { background: var(--accent); color: #fff; }
 
 /* ——— Редактор файла ——— */
 .file-editor-panel {
-  margin-top: 14px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 5%, var(--bg-secondary));
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
+  background: var(--color-surface-soft);
 }
 .file-editor-panel--featured {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
@@ -146,21 +141,6 @@
   cursor: pointer;
   font-weight: 600;
   color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.file-editor-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #fff;
-  background: var(--accent);
 }
 .file-editor-intro {
   margin: 12px 0 10px;
@@ -169,9 +149,9 @@
   font-size: 14px;
 }
 .file-editor-intro code {
-  background: rgba(47, 129, 247, 0.12);
+  background: var(--color-surface-card);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--rounded-xs);
   padding: 1px 5px;
   font-size: 0.92em;
 }

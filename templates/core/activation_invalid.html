@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}GitPlayground | Ошибка активации{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/auth.css' %}?v=20260703-design10">{% endblock %}
 {% block content %}
 <section class="auth-wrap">
   <article class="card auth-card">

@@ -1,0 +1,54 @@
+/* ——— Auth flow (login, signup, password reset) ——— */
+.auth-wrap {
+  max-width: 420px;
+  margin: var(--spacing-section) auto var(--spacing-xxl);
+}
+
+.auth-card ul.errorlist {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-xxs) 0 var(--spacing-sm);
+  color: var(--color-error);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.auth-card .small-help {
+  font-size: 13px;
+  margin: var(--spacing-xxs) 0 var(--spacing-sm);
+  color: var(--color-muted);
+}
+
+.password-requirements {
+  margin-top: var(--spacing-xxs);
+  margin-bottom: var(--spacing-md);
+}
+
+.password-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.password-field-wrap input {
+  margin: 0;
+  padding-right: 96px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  min-height: 0;
+}

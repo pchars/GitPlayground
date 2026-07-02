@@ -1,21 +1,39 @@
 openapi: 3.0.3
 info:
   title: GitPlayground — API плейграунда
-  version: "1.0"
+  version: "1.1"
   description: |
-    JSON-эндпоинты под префиксом приложения (см. `apps/core/urls.py`).
-    Все запросы требуют аутентифицированной сессии (cookie); для POST нужен CSRF-токен Django.
+    JSON-эндпоинты песочницы (см. `apps/core/urls.py`, `apps/core/views/playground.py`).
+
+    - Все запросы требуют аутентифицированной сессии (cookie Django).
+    - Для `POST` нужен CSRF-токен (`X-CSRFToken` или поле формы).
+    - `task_id` в URL — route-id с подчёркиваниями (`gh_1_1`), не `external_id` с точками (`gh.1.1`).
+
+    Общий формат ошибки:
+
+    ```json
+    { "ok": false, "message": "…" }
+    ```
+
 servers:
   - url: /
+    description: Локальный dev-сервер
+
+tags:
+  - name: terminal
+    description: Команды в песочнице
+  - name: files
+    description: Редактор файлов (обход shell для многострочного текста)
+  - name: task
+    description: Проверка, сброс, подсказки
+
 paths:
   "/playground/{task_id}/run/":
     post:
+      tags: [terminal]
       summary: Выполнить команду в песочнице
       parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: "#/components/parameters/TaskId"
       requestBody:
         required: true
         content:
@@ -24,80 +42,338 @@ paths:
               type: object
               required: [command]
               properties:
-                command: { type: string }
+                command:
+                  type: string
+                  description: Одна строка; политика allowlist в `sandbox_ops._parse_user_command`
       responses:
         "200":
+          description: Команда выполнена (включая ненулевой exit code git)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok: { type: boolean, example: true }
-                  command: { type: string }
-                  return_code: { type: integer }
-                  output: { type: string }
-                  duration_ms: { type: integer }
-        "400": { description: Пустая команда }
-        "403": { description: Задача заблокирована }
-        "429": { description: Превышен лимит запросов }
-        "503": { description: Ошибка песочницы }
+                $ref: "#/components/schemas/RunSuccess"
+        "400":
+          description: Пустая команда
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Задача заблокирована
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Превышен лимит запросов к терминалу
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Песочница недоступна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   "/playground/{task_id}/file/read/":
     get:
+      tags: [files]
       summary: Прочитать текстовый файл из репозитория
       parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: "#/components/parameters/TaskId"
         - name: path
           in: query
-          schema: { type: string }
+          required: true
+          schema:
+            type: string
+          description: Путь относительно корня репозитория
       responses:
         "200":
+          description: Содержимое файла
           content:
             application/json:
               schema:
                 type: object
+                required: [ok, content, truncated]
                 properties:
-                  ok: { type: boolean }
-                  content: { type: string }
-        "403": { description: Задача заблокирована }
-        "429": { description: Rate limit }
+                  ok:
+                    type: boolean
+                    example: true
+                  content:
+                    type: string
+                  truncated:
+                    type: boolean
+                    description: true, если файл обрезан по лимиту песочницы
+        "400":
+          description: Пустой path или ошибка чтения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/TaskLocked"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   "/playground/{task_id}/file/write/":
     post:
-      summary: Записать текстовый файл
+      tags: [files]
+      summary: Записать текстовый файл в репозиторий
       parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Успех }
-        "429": { description: Rate limit }
-  "/playground/{task_id}/validate/":
-    post:
-      summary: Запустить валидатор задачи
-      parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+                content:
+                  type: string
+                  default: ""
       responses:
         "200":
+          description: Файл записан
           content:
             application/json:
               schema:
                 type: object
-                description: См. ответ `playground_validate` в коде (вердикт, диагностика)
+                required: [ok, path, bytes_written]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  path:
+                    type: string
+                  bytes_written:
+                    type: integer
+        "400":
+          description: Пустой path, превышен лимит размера или ошибка записи
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/TaskLocked"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  "/playground/{task_id}/validate/":
+    post:
+      tags: [task]
+      summary: Запустить валидатор задачи
+      description: |
+        Записывает `validator.py` из ассета задачи и выполняет его в корне репозитория.
+        См. `docs/VALIDATOR_CONTRACT.md`.
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Попытка проверки записана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateSuccess"
+        "403":
+          $ref: "#/components/responses/TaskLocked"
+        "503":
+          description: Песочница недоступна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/playground/{task_id}/reset/":
+    post:
+      tags: [task]
+      summary: Сбросить песочницу задачи
+      description: |
+        Пересоздаёт workspace с начальным состоянием задачи.
+        Проверка блокировки задачи (`can_open_task`) **не** применяется — сброс доступен
+        даже при заблокированной задаче (см. `check_lock=False` в `_acquire_session`).
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Новая сессия создана
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, session_id, status]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: integer
+                  status:
+                    type: string
+                    description: Статус `SandboxSession` после сброса
+        "503":
+          description: Песочница недоступна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   "/playground/{task_id}/hint/":
     post:
-      summary: Открыть подсказку
+      tags: [task]
+      summary: Открыть подсказку по индексу
       parameters:
-        - name: task_id
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                hint_index:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  description: Порядковый номер подсказки (1-based)
       responses:
-        "200": { description: Подсказка выдана или уже открыта }
-        "403": { description: Нет доступа к задаче }
-        "429": { description: Rate limit }
+        "200":
+          description: Подсказка выдана или уже была открыта ранее
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HintSuccess"
+        "400":
+          description: Нет подсказки, не открыта предыдущая, недостаточно баллов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/TaskLocked"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+components:
+  parameters:
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+        example: gh_1_1
+      description: Route-id задачи (`external_id` с `.` заменёнными на `_`)
+
+  responses:
+    TaskLocked:
+      description: Задача заблокирована
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+    RunSuccess:
+      type: object
+      required: [ok, command, return_code, output, duration_ms]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        command:
+          type: string
+        return_code:
+          type: integer
+        output:
+          type: string
+        duration_ms:
+          type: integer
+
+    ValidateSuccess:
+      type: object
+      required: [ok, verdict, diagnostics, attempt_no, duration_ms, awarded_achievements]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        verdict:
+          type: string
+          enum: [PASSED, FAILED, ERROR]
+        diagnostics:
+          type: string
+          nullable: true
+        attempt_no:
+          type: integer
+        duration_ms:
+          type: integer
+        learning_content:
+          type: object
+          nullable: true
+          description: Объект из `_task_learning_content` (может быть пустым)
+        next_task_route_id:
+          type: string
+          nullable: true
+          description: Route-id следующей открытой задачи при `PASSED`
+        awarded_achievements:
+          type: array
+          items:
+            type: object
+            properties:
+              icon:
+                type: string
+              title:
+                type: string
+              description:
+                type: string
+
+    HintSuccess:
+      type: object
+      required:
+        - ok
+        - hint_index
+        - total_hints
+        - points_spent
+        - already_unlocked
+        - next_hint_index
+        - hints_exhausted
+        - content
+      properties:
+        ok:
+          type: boolean
+          example: true
+        hint_index:
+          type: integer
+        total_hints:
+          type: integer
+        points_spent:
+          type: integer
+          description: Списано баллов за эту подсказку (0 если уже была открыта)
+        already_unlocked:
+          type: boolean
+        next_hint_index:
+          type: integer
+        hints_exhausted:
+          type: boolean
+        content:
+          type: string

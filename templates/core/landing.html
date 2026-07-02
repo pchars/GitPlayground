@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}GitPlayground | Home{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260703-css-split">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260703-design10">{% endblock %}
 
 {% block content %}
 <section class="landing-shell">
@@ -14,8 +14,7 @@
         от первых коммитов до CI-сценариев
       </h1>
       <p class="landing-lead">
-        Здесь ты учишь Git на реальных задачах, а не на сухой теории:
-        ветки, слияния, хуки, ревью и автоматизация в понятном и безопасном формате.
+        Подходит для новичков, джунов и тех, кто хочет структурировать знания перед собеседованиями.
       </p>
       <div class="hero-actions">
         {% if request.user.is_authenticated %}
@@ -35,11 +34,15 @@
         <li>Песочница с реальными командами Git.</li>
         <li>Проверка результата и измеримый прогресс.</li>
       </ul>
-      <p class="muted">Подходит для новичков, джунов и тех, кто хочет структурировать знания перед собеседованиями.</p>
     </div>
   </section>
 
   <section class="landing-feature-band">
+    <article class="feature-band-item">
+      <p class="feature-band-title">КВИЗ</p>
+      <h3>{{ quiz_questions_total }}</h3>
+      <p>вопросов для закрепления терминов и сценариев</p>
+    </article>
     <article class="feature-band-item">
       <p class="feature-band-title">УЛЬТРА-ПРАКТИКА</p>
       <h3>{{ tasks_total }}</h3>
@@ -55,11 +58,6 @@
       <h3>{{ completions_total }}</h3>
       <p>успешных прохождений задач в системе</p>
     </article>
-    <article class="feature-band-item">
-      <p class="feature-band-title">КВИЗ</p>
-      <h3>{{ quiz_questions_total }}</h3>
-      <p>вопросов для закрепления терминов и сценариев</p>
-    </article>
   </section>
 
   <section class="landing-section landing-section-single">
@@ -68,6 +66,36 @@
       Git — это распределенная система контроля версий. Она хранит историю изменений проекта, помогает
       безопасно экспериментировать в ветках и синхронизировать работу команды без потери кода.
     </p>
+  </section>
+
+  <section class="landing-section learning-band" data-learning-slider>
+    <h2 class="learning-band-title">Как устроено обучение</h2>
+    <div class="learning-slider-viewport">
+      <div class="learning-slider-track">
+        <article class="learning-slide is-active">
+          <h3>Теория по уровням</h3>
+          <p>Короткие структурированные материалы с последовательным переходом между уровнями.</p>
+        </article>
+        <article class="learning-slide">
+          <h3>Практика в песочнице</h3>
+          <p>Реальные команды Git в изолированном окружении с проверкой результата.</p>
+        </article>
+        <article class="learning-slide">
+          <h3>Прогресс и достижения</h3>
+          <p>Отслеживание прогресса, очков и достижений, чтобы видеть рост навыков по шагам.</p>
+        </article>
+        <article class="learning-slide">
+          <h3>Квиз и повторение</h3>
+          <p>Тренировка терминов и сценариев на разных уровнях сложности.</p>
+        </article>
+      </div>
+    </div>
+    <div class="learning-slider-dots" role="tablist" aria-label="Слайды обучения">
+      <button class="learning-slider-dot is-active" type="button" data-learning-dot="0" aria-label="Слайд 1" aria-selected="true"></button>
+      <button class="learning-slider-dot" type="button" data-learning-dot="1" aria-label="Слайд 2" aria-selected="false"></button>
+      <button class="learning-slider-dot" type="button" data-learning-dot="2" aria-label="Слайд 3" aria-selected="false"></button>
+      <button class="learning-slider-dot" type="button" data-learning-dot="3" aria-label="Слайд 4" aria-selected="false"></button>
+    </div>
   </section>
 
   <section class="grid two landing-grid-info">
@@ -90,49 +118,6 @@
         <li>QA и автотесты, когда тесты хранятся вместе с кодом.</li>
       </ul>
     </article>
-  </section>
-
-  <section class="landing-section landing-section-single">
-    <div class="learning-slider-wrap" data-learning-slider>
-      <div class="learning-slider-head">
-        <h2>Как устроено обучение</h2>
-        <div class="learning-slider-nav">
-          <button class="learning-slider-btn" type="button" data-learning-prev aria-label="Предыдущий слайд">←</button>
-          <span class="learning-slider-counter"><span data-learning-current>1</span>/4</span>
-          <button class="learning-slider-btn" type="button" data-learning-next aria-label="Следующий слайд">→</button>
-        </div>
-      </div>
-      <div class="learning-slider-viewport">
-        <div class="learning-slider-track">
-          <article class="learning-slide is-active">
-            <span class="learning-slide-step">01</span>
-            <h3>Теория по уровням</h3>
-            <p>Короткие структурированные материалы с последовательным переходом между уровнями.</p>
-          </article>
-          <article class="learning-slide">
-            <span class="learning-slide-step">02</span>
-            <h3>Практика в песочнице</h3>
-            <p>Реальные команды Git в изолированном окружении с проверкой результата.</p>
-          </article>
-          <article class="learning-slide">
-            <span class="learning-slide-step">03</span>
-            <h3>Прогресс и достижения</h3>
-            <p>Отслеживание прогресса, очков и достижений, чтобы видеть рост навыков по шагам.</p>
-          </article>
-          <article class="learning-slide">
-            <span class="learning-slide-step">04</span>
-            <h3>Квиз и повторение</h3>
-            <p>Тренировка терминов и сценариев на разных уровнях сложности.</p>
-          </article>
-        </div>
-      </div>
-      <div class="learning-slider-dots" role="tablist" aria-label="Слайды обучения">
-        <button class="learning-slider-dot is-active" type="button" data-learning-dot="0" aria-label="Слайд 1" aria-selected="true"></button>
-        <button class="learning-slider-dot" type="button" data-learning-dot="1" aria-label="Слайд 2" aria-selected="false"></button>
-        <button class="learning-slider-dot" type="button" data-learning-dot="2" aria-label="Слайд 3" aria-selected="false"></button>
-        <button class="learning-slider-dot" type="button" data-learning-dot="3" aria-label="Слайд 4" aria-selected="false"></button>
-      </div>
-    </div>
   </section>
 
   <section class="landing-cta-strip">

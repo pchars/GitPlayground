@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GitPlayground logo">
-  <rect x="6" y="6" width="52" height="52" rx="12" fill="#1f6feb"/>
-  <circle cx="22" cy="22" r="5" fill="#ffffff"/>
-  <circle cx="42" cy="22" r="5" fill="#ffffff"/>
-  <circle cx="32" cy="42" r="5" fill="#ffffff"/>
-  <path d="M22 22L42 22L32 42Z" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#111111"/>
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 18V46"/>
+    <path d="M24 30H33Q40 30 40 37V39"/>
+  </g>
+  <circle cx="24" cy="18" r="5.5" fill="#ffffff"/>
+  <circle cx="24" cy="46" r="5.5" fill="#ffffff"/>
+  <circle cx="40" cy="41" r="5.5" fill="#ffffff"/>
 </svg>

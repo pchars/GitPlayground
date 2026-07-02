@@ -57,7 +57,7 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("пользователей на платформе", html)
         self.assertNotIn("landing-stats", html)
         self.assertIn("Готов прокачать Git на практике?", html)
-        self.assertIn("learning-slider-wrap", html)
+        self.assertIn("learning-slider", html)
         self.assertIn("landing_slider.js", html)
         self.assertNotIn("Текущий трек включает", html)
 

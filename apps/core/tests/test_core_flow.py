@@ -6,6 +6,7 @@ from django.test import Client, TestCase
 
 from apps.achievements.models import Achievement, UserAchievement
 from apps.core.services import can_open_task, get_or_create_active_session, run_command
+from apps.core.terminal_paste import apply_paste_to_command
 from apps.progress.models import HintUsage, TaskCompletion, TaskRevisionProgress
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Level, Task, TaskAsset, TaskRevision
@@ -255,6 +256,16 @@ class CoreFlowTests(TestCase):
         self.assertEqual(run_command(session, "ls ../..").return_code, 126)
         self.assertEqual(run_command(session, "mkdir ../escape").return_code, 126)
 
+    def test_paste_appended_to_git_init_runs_as_unknown_git_command(self):
+        # Регрессия: юзер печатает "git init", в буфере "ls", вставка дописывает
+        # справа -> "git initls". Enter -> git сообщает, что команды нет (не 0).
+        session = get_or_create_active_session(self.user, self.task1)
+        command = apply_paste_to_command("git init", "ls")
+        self.assertEqual(command, "git initls")
+        result = run_command(session, command)
+        self.assertNotEqual(result.return_code, 0)
+        self.assertIn("initls", (result.output or "").lower())
+
     def test_playground_reset_endpoint_works(self):
         self.client.force_login(self.user)
         response = self.client.post("/playground/1_1/reset/")
@@ -390,7 +401,7 @@ class CoreFlowTests(TestCase):
             slug="first_commit",
             title="Первый коммит",
             description="Завершена первая задача.",
-            icon_path="img/achievements/first_commit.png",
+            icon_path="img/achievements/first_commit.svg",
             points_bonus=5,
             threshold_tasks=1,
         )
@@ -399,6 +410,6 @@ class CoreFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")
         self.assertIn("Первый коммит", content)
-        self.assertIn("img/achievements/first_commit.png", content)
+        self.assertIn("img/achievements/first_commit.svg", content)
         self.assertIn("achievement-card", content)
         self.assertNotIn("Чтобы открыть:", content)

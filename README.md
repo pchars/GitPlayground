@@ -57,7 +57,7 @@ To refresh theory text in the database without reseeding all tasks:
 
 `sync_theory_content` обновляет записи теории в БД из того же источника, что и сид, без полного пересоздания всех задач. Полный `seed_initial_data` перезаписывает теорию и заново прогоняет задачи и ассеты.
 
-Подробности продакшен-окружения: [docs/DEPLOY.md](docs/DEPLOY.md). Описание JSON API плейграунда: [docs/openapi/playground.yaml](docs/openapi/playground.yaml).
+Подробности продакшен-окружения: [docs/DEPLOY.md](docs/DEPLOY.md). Описание JSON API плейграунда: [docs/openapi/playground.yaml](docs/openapi/playground.yaml). Дизайн-система и фронтенд: [DESIGN.md](DESIGN.md), [docs/FRONTEND.md](docs/FRONTEND.md). Полный индекс документации: [docs/README.md](docs/README.md).
 
 ## Docker dev stack
 
