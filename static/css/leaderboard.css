@@ -41,11 +41,11 @@
   box-shadow: 0 2px 8px rgba(17, 17, 17, 0.06);
 }
 
-/* 1 место — крупнее, с акцентной рамкой и более заметной тенью */
+/* 1 место — крупнее, выделяется мягкой тенью (без жёсткой обводки) */
 .podium-first {
   order: 2;
-  border-color: var(--color-ink);
-  box-shadow: 0 6px 18px rgba(17, 17, 17, 0.12);
+  border-color: var(--color-hairline);
+  box-shadow: 0 8px 22px rgba(17, 17, 17, 0.12);
 }
 .podium-first .podium-medal { font-size: 1.7rem; }
 .podium-first .podium-name { font-size: 1rem; }

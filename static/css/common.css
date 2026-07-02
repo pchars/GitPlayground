@@ -482,9 +482,6 @@ input:focus, textarea:focus, select:focus {
 .toast-achievement-thumb-wrap {
   width: 52px;
   height: 52px;
-  border-radius: var(--rounded-md);
-  border: 1px solid var(--color-hairline);
-  background: var(--color-surface-card);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -493,7 +490,7 @@ input:focus, textarea:focus, select:focus {
 .toast-achievement-thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .toast-achievement-title {

@@ -10,7 +10,13 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock, TaskRevision
+from apps.tasks.task_descriptions import TASK_CONDITIONS
+from apps.tasks.task_hints import TASK_HINTS
 from apps.tasks.theory_content import LEVEL_DIAGRAMS, LEVEL_SECTION_HINTS, THEORY_CONTENT
+
+
+def _task_blueprints(specs: list[tuple[str, int]]) -> list[tuple[str, str, int]]:
+    return [(slug, TASK_CONDITIONS[slug], points) for slug, points in specs]
 
 
 LEVELS = [
@@ -25,72 +31,88 @@ LEVELS = [
 ]
 
 TASK_BLUEPRINTS = {
-    1: [
-        ("init_repo", "Инициализируй репозиторий в текущей папке (`git init`).", 6),
-        ("first_commit", "Создай `hello.txt` с текстом `Hello, Git!`, добавь в индекс и сделай коммит `Add hello`.", 10),
-        ("check_status", "Измени `hello.txt` и проверь, что изменение не в staging (`git status --short`).", 6),
-        ("stage_unstage", "Цель — снять файл со staging, не теряя правку. Измени `hello.txt`, добавь его в индекс (`git add hello.txt`), затем убери из индекса командой `git restore --staged hello.txt`. Важно различать: `git restore --staged <файл>` снимает файл со staging (это и нужно), а `git restore <файл>` без `--staged` откатывает саму правку в рабочей копии. Итог: в `git status --short` файл показан как ` M` — изменён, но не застейджен.", 8),
-        ("view_diff", "Добавь строку `Another line` в `hello.txt` и выполни `git diff`, чтобы увидеть это изменение до коммита.", 6),
-        ("commit_second", "Сделай второй коммит с сообщением `Update hello`.", 10),
-        ("amend_commit", "Добавь `config.txt` в последний коммит через `--amend`.", 12),
-        ("view_history", "Покажи историю в компактном виде (`git log --oneline`).", 6),
-    ],
-    2: [
-        ("create_branch", "Создай и открой ветку `feature-x`.", 8),
-        ("commit_on_branch", "На `feature-x` добавь `feature.txt` и закоммить.", 10),
-        ("switch_branch", "Вернись в `main` и убедись, что `feature.txt` исчез из рабочей копии.", 6),
-        ("list_branches", "Покажи список веток и текущую ветку (`git branch`).", 5),
-        ("rename_branch", "Переименуй рабочую ветку в более понятное имя.", 8),
-        ("branch_from_commit", "Создай ветку от выбранного SHA из истории.", 12),
-        ("delete_branch", "Удаляй ненужную ветку безопасной командой (не активную).", 7),
-    ],
-    3: [
-        ("fast_forward_merge", "Слей ветку в fast-forward без merge-коммита.", 8),
-        ("no_ff_merge", "Сделай merge с `--no-ff`, чтобы получить явный merge-коммит.", 12),
-        ("resolve_conflict", "Разреши конфликт вручную и корректно заверши merge.", 18),
-        ("abort_merge", "Запусти конфликт и откати его через `git merge --abort`.", 10),
-        ("squash_merge", "Слей ветку в один squashed commit.", 14),
-        ("cherry_pick_hotfix", "Перенеси один нужный коммит через `git cherry-pick`.", 12),
-        ("revert_merge", "Откати merge-коммит через `git revert -m`.", 14),
-    ],
-    4: [
-        ("amend_message", "Исправь сообщение последнего коммита через `--amend`.", 8),
-        ("reorder_commits", "Через `rebase -i` поменяй порядок последних коммитов.", 14),
-        ("squash_commits", "Объедини несколько соседних коммитов в один.", 14),
-        ("edit_commit", "Остановись в `rebase -i`, измени коммит и продолжи.", 16),
-        ("stash_workflow", "Спрячь изменения в stash и верни их обратно.", 10),
-        ("reset_modes", "Покажи разницу `reset --soft`, `--mixed`, `--hard`.", 14),
-    ],
-    5: [
-        ("clone_local", "Клонируй удалённый репозиторий в новую папку.", 8),
-        ("add_remote", "Добавь `upstream` и проверь remotes через `git remote -v`.", 6),
-        ("push_first", "Сделай первый push ветки в remote.", 9),
-        ("fetch_merge", "Сделай `git fetch`, затем влей изменения вручную.", 12),
-        ("pull_rebase", "Настрой `pull` через rebase и подтяни изменения.", 12),
-        ("push_conflict", "Разрули non-fast-forward и успешно повтори push.", 15),
-    ],
-    6: [
-        ("find_bisect", "Найди «плохой» коммит через `git bisect`.", 16),
-        ("reflog_recovery", "Восстанови потерянный коммит с помощью `git reflog`.", 14),
-        ("worktree", "Создай отдельный worktree для hotfix-ветки.", 10),
-        ("inspect_objects", "Посмотри объекты через `git cat-file` и `git ls-tree`.", 14),
-        ("custom_aliases_hooks", "Добавь alias и локальный hook для commit-msg.", 12),
-        ("filter_branch", "Перепиши историю и удали чувствительный файл из прошлых коммитов.", 18),
-    ],
-    7: [
-        ("setup_ignore", "Создай `.gitignore` и добавь `*.log`, `.env`, `__pycache__/`.", 8),
-        ("ignore_node_modules", "Добавь правило `node_modules/` и проверь `git status`.", 7),
-        ("untrack_cached", "Убери ранее отслеживаемый файл из индекса через `git rm --cached`.", 10),
-        ("keep_empty_dir", "Сохрани пустую папку в Git через файл `.gitkeep`.", 7),
-        ("ignore_exceptions", "Сделай исключение в `.gitignore` через `!` для одного файла.", 10),
-    ],
-    8: [
-        ("create_lightweight_tag", "Создай lightweight тег `v0.1-lw` на текущем коммите.", 8),
-        ("create_tag", "Создай аннотированный тег `v1.0` с сообщением.", 10),
-        ("show_tag", "Покажи детали тега через `git show`.", 7),
-        ("tag_old_commit", "Поставь тег на прошлый коммит по SHA.", 10),
-        ("push_tags", "Подготовь релизный тег `v1.0` к публикации (в песочнице без сети проверяется наличие тега).", 10),
-    ],
+    1: _task_blueprints(
+        [
+            ("init_repo", 6),
+            ("first_commit", 10),
+            ("check_status", 6),
+            ("stage_unstage", 8),
+            ("view_diff", 6),
+            ("commit_second", 10),
+            ("amend_commit", 12),
+            ("view_history", 6),
+        ]
+    ),
+    2: _task_blueprints(
+        [
+            ("create_branch", 8),
+            ("commit_on_branch", 10),
+            ("switch_branch", 6),
+            ("list_branches", 5),
+            ("rename_branch", 8),
+            ("branch_from_commit", 12),
+            ("delete_branch", 7),
+        ]
+    ),
+    3: _task_blueprints(
+        [
+            ("fast_forward_merge", 8),
+            ("no_ff_merge", 12),
+            ("resolve_conflict", 18),
+            ("abort_merge", 10),
+            ("squash_merge", 14),
+            ("cherry_pick_hotfix", 12),
+            ("revert_merge", 14),
+        ]
+    ),
+    4: _task_blueprints(
+        [
+            ("amend_message", 8),
+            ("reorder_commits", 14),
+            ("squash_commits", 14),
+            ("edit_commit", 16),
+            ("stash_workflow", 10),
+            ("reset_modes", 14),
+        ]
+    ),
+    5: _task_blueprints(
+        [
+            ("clone_local", 8),
+            ("add_remote", 6),
+            ("push_first", 9),
+            ("fetch_merge", 12),
+            ("pull_rebase", 12),
+            ("push_conflict", 15),
+        ]
+    ),
+    6: _task_blueprints(
+        [
+            ("find_bisect", 16),
+            ("reflog_recovery", 14),
+            ("worktree", 10),
+            ("inspect_objects", 14),
+            ("custom_aliases_hooks", 12),
+            ("filter_branch", 18),
+        ]
+    ),
+    7: _task_blueprints(
+        [
+            ("setup_ignore", 8),
+            ("ignore_node_modules", 7),
+            ("untrack_cached", 10),
+            ("keep_empty_dir", 7),
+            ("ignore_exceptions", 10),
+        ]
+    ),
+    8: _task_blueprints(
+        [
+            ("create_lightweight_tag", 8),
+            ("create_tag", 10),
+            ("show_tag", 7),
+            ("tag_old_commit", 10),
+            ("push_tags", 10),
+        ]
+    ),
 }
 
 TASK_VALIDATORS = {
@@ -328,23 +350,22 @@ def task_metadata(level_number: int, slug: str, description: str) -> dict:
         ]
     return {
         "objective": description,
-        "steps": [
-            "Проверь стартовое состояние через git status --short.",
-            "Выполни требуемые команды из условия.",
-            "Подтверди результат через git status/git log и запусти проверку.",
-        ],
-        "expected_state": "Состояние репозитория соответствует формулировке задания.",
         "preconditions": requires,
         "validatorHints": validator_hints,
         "start": {
             "mode": "guided",
             "requires": requires,
-            "assumes": [f"level_{level_number}_context"],
         },
-        "recommendations": [
-            "Начинай с git status, чтобы увидеть исходную точку.",
-            "После каждого шага сверяйся с git log --oneline --graph.",
-        ],
+    }
+
+
+def revision_payload(task: Task) -> dict:
+    return {
+        "objective": task.description,
+        "steps": [],
+        "expected_state": "",
+        "validator_notes": "",
+        "schema_version": 1,
     }
 
 
@@ -390,39 +411,6 @@ def build_start_repo_asset(slug: str) -> str | None:
         return _zip_workspace(repo)
 
 
-def revision_payload(task: Task) -> dict:
-    level_hint = {
-        1: "Сфокусируйся на базовой механике хранилища и буферной зоны.",
-        2: "Тренируй мгновенное переключение контекста через ветки.",
-        3: "Отработай безопасную интеграцию изменений и разбор конфликтов.",
-        4: "Научись аккуратно переписывать историю без потери контроля.",
-        5: "Применяй распределенную модель: локально работаешь, в remote публикуешь.",
-        6: "Используй диагностические и низкоуровневые инструменты Git.",
-    }.get(task.level.number, "")
-    objective = f"{task.description}\n\nКонтекст раздела: {level_hint}"
-    metadata = task.metadata or {}
-    steps = metadata.get(
-        "steps",
-        [
-            "Проверь текущее состояние репозитория через git status --short.",
-            "Выполни целевое действие из формулировки задачи.",
-            "Подтверди результат через git status/git log и запусти проверку.",
-        ],
-    )
-    expected_state = metadata.get(
-        "expected_state",
-        "Репозиторий находится в требуемом состоянии без лишних изменений.",
-    )
-    validator_notes = ""
-    return {
-        "objective": objective,
-        "steps": steps,
-        "expected_state": expected_state,
-        "validator_notes": validator_notes,
-        "schema_version": 1,
-    }
-
-
 class Command(BaseCommand):
     help = "Seed levels, theory blocks and task records with enriched GitMagic content."
 
@@ -457,7 +445,7 @@ class Command(BaseCommand):
             for order, (slug, description, points) in enumerate(
                 TASK_BLUEPRINTS.get(level_number, []), start=1
             ):
-                level_hints = LEVEL_SECTION_HINTS.get(
+                task_hints = TASK_HINTS.get(slug) or LEVEL_SECTION_HINTS.get(
                     level_number,
                     (
                         "Проверь текущее состояние через git status и выполни шаги задачи последовательно.",
@@ -518,7 +506,7 @@ class Command(BaseCommand):
                     path="hints/hint1.txt",
                     defaults={
                         "sort_order": 1,
-                        "content": level_hints[0],
+                        "content": task_hints[0],
                     },
                 )
                 TaskAsset.objects.update_or_create(
@@ -527,7 +515,7 @@ class Command(BaseCommand):
                     path="hints/hint2.txt",
                     defaults={
                         "sort_order": 2,
-                        "content": level_hints[1],
+                        "content": task_hints[1],
                     },
                 )
                 created_tasks += 1
