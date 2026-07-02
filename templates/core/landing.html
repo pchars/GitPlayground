@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}GitPlayground | Home{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260703-css-split">{% endblock %}
 
 {% block content %}
 <section class="landing-shell">
@@ -62,7 +63,7 @@
   </section>
 
   <section class="landing-section landing-section-single">
-    <h2>Что такое Git</h2>
+    <h2 class="landing-what-title">Что такое Git</h2>
     <p>
       Git — это распределенная система контроля версий. Она хранит историю изменений проекта, помогает
       безопасно экспериментировать в ветках и синхронизировать работу команды без потери кода.

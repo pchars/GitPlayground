@@ -1,0 +1,91 @@
+/* ——— Адаптив (общий для всех страниц) ——— */
+@media (max-width: 1200px) {
+  .playground-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .profile-progress-remaining {
+    margin-left: 0;
+    width: 100%;
+  }
+  .theory-hero-inner {
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+  }
+  .scroll-top-btn {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .leaderboard-podium {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  .podium-first {
+    order: 1;
+    transform: none;
+  }
+  .podium-second {
+    order: 2;
+  }
+  .podium-third {
+    order: 3;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid.two, .theory-layout, .playground-grid { grid-template-columns: 1fr; }
+  .main { padding: 16px 14px 26px; }
+  .header {
+    min-height: 72px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header-nav,
+  .header-actions,
+  .header-left {
+    flex-wrap: wrap;
+  }
+  .tasks-hero { flex-direction: column; }
+  .tasks-metrics { grid-template-columns: 1fr; width: 100%; }
+  .mobile-tabs { display: flex; }
+  .playground-grid .tab-panel { display: none; }
+  .playground-grid .tab-panel.active { display: block; }
+  .terminal-prompt {
+    white-space: normal;
+  }
+  .card {
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .playground-grid,
+  .theory-layout,
+  .grid.two {
+    gap: 14px;
+  }
+  .landing-hero {
+    grid-template-columns: 1fr;
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .landing-feature-band {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .landing-cta-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+    border-radius: 14px;
+  }
+  .toast-stack {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}

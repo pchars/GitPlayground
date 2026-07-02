@@ -65,7 +65,7 @@
       if (!chunk || isCommandRunning) {
         return;
       }
-      commandBuffer = chunk;
+      commandBuffer += chunk;
       rewriteInputLine();
     }
 

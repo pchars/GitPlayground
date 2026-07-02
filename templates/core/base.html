@@ -5,7 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}GitPlayground{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260702-terminal-paste">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}?v=20260703-css-split">
+  {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/responsive.css' %}?v=20260703-css-split">
 </head>
 <body>
   <header class="header">

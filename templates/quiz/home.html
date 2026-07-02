@@ -1,6 +1,8 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Квиз{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/quiz.css' %}?v=20260703-css-split">{% endblock %}
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Квиз</nav>{% endblock %}
 
 {% block content %}
@@ -10,23 +12,16 @@
   {% if total_questions %}
     <p class="muted">В базе сейчас <strong>{{ total_questions }}</strong> вопросов.</p>
     <p class="muted">Для вас осталось нерешённых: <strong>{{ unresolved_total }}</strong>.</p>
-    <form method="get" class="quiz-difficulty-form">
-      <label for="difficulty-select">Сложность</label>
-      <select id="difficulty-select" name="difficulty" onchange="this.form.submit()">
-        {% for value, label, count in difficulty_with_counts %}
-          <option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>
-            {{ label }} ({{ count }})
-          </option>
-        {% endfor %}
-      </select>
-    </form>
-    {% if unresolved_by_difficulty %}
-      <div class="quiz-stats-row">
-        {% for value, label, count in unresolved_by_difficulty %}
-          <div class="quiz-stat-pill"><span>{{ label }}</span><strong>{{ count }}</strong></div>
-        {% endfor %}
-      </div>
-    {% endif %}
+    <div class="quiz-difficulty-bubbles" role="group" aria-label="Выбор сложности">
+      {% for value, label, count in difficulty_with_counts %}
+        <a class="quiz-difficulty-bubble {% if selected_difficulty == value %}is-active{% endif %}"
+           href="{% url 'quiz-home' %}?difficulty={{ value }}"
+           {% if selected_difficulty == value %}aria-current="true"{% endif %}>
+          <span class="bubble-label">{{ label }}</span>
+          <span class="bubble-count">{{ count }}</span>
+        </a>
+      {% endfor %}
+    </div>
     {% if stats %}
       <div class="quiz-stats-row">
         <div class="quiz-stat-pill"><span>Ответов</span><strong>{{ stats.answered_total }}</strong></div>

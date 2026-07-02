@@ -48,7 +48,8 @@ class QuizViewsTests(TestCase):
             {"question_id": str(q.id), "choice": "1"},
         )
         self.assertEqual(r2.status_code, 200)
-        self.assertContains(r2, "Верно. Это корректный смысл команды.")
+        self.assertEqual(r2.context["feedback_text"], "Верно")
+        self.assertNotContains(r2, "Это корректный смысл команды.")
         stats = QuizUserStats.objects.get(user=self.user)
         self.assertEqual(stats.answered_total, 1)
         self.assertEqual(stats.correct_total, 1)
@@ -86,7 +87,9 @@ class QuizViewsTests(TestCase):
         self.assertTrue(c.login(username="quizzer", password="pass12345"))
         r = c.get(reverse("quiz-home"), {"difficulty": "easy"})
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Сложность")
+        self.assertContains(r, "quiz-difficulty-bubble")
+        self.assertContains(r, "Легкий")
+        self.assertEqual(r.context["selected_difficulty"], "easy")
 
     def test_quiz_home_does_not_show_manage_command_hint(self):
         QuizQuestion.objects.all().delete()

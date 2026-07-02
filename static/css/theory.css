@@ -1,0 +1,99 @@
+/* ——— Теория ——— */
+.theory-layout { grid-template-columns: 2fr 1fr; display: grid; gap: 22px; }
+.theory-hero { margin-bottom: 12px; }
+.theory-hero-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+}
+.theory-hero-text {
+  text-align: center;
+}
+.theory-hero-text h2 {
+  margin: 0;
+}
+.theory-hero-nav {
+  flex: 0 0 auto;
+}
+.theory-nav-arrow.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.theory-text { line-height: 1.78; font-size: 15px; }
+.theory-text h1, .theory-text h2, .theory-text h3 { margin-top: 20px; margin-bottom: 10px; }
+.theory-text code {
+  background: rgba(47, 129, 247, 0.12);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.theory-text pre {
+  overflow-x: auto;
+  overflow-y: visible;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text-primary);
+  min-height: 2.5rem;
+  margin: 12px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Fenced code: markdown renders <pre><code class="language-..."> — без этого вложенный code ломает отображение */
+.theory-text pre code {
+  display: block;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.55;
+  color: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.diagram { min-height: 160px; }
+.theory-visualization .diagram {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: left;
+}
+.theory-visualization .diagram svg {
+  max-width: 100%;
+}
+.theory-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.theory-pager-level,
+.theory-nav-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: transparent;
+  font-weight: 500;
+}
+.theory-nav-arrow {
+  font-size: 15px;
+}
+.theory-pager-level:hover,
+.theory-nav-arrow:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.theory-pager-level.is-current {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}

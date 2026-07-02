@@ -1,0 +1,215 @@
+/* ——— Плейграунд / терминал ——— */
+.playground-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(640px, 1.8fr);
+  gap: 22px;
+}
+.terminal-body {
+  min-height: 260px; background: var(--bg-terminal);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  color: var(--text-primary);
+}
+.terminal-log { white-space: pre-wrap; margin: 0; color: var(--text-primary); }
+.terminal-output-line { white-space: pre-wrap; }
+.terminal-history-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 2px;
+}
+.terminal-command {
+  color: var(--text-primary);
+}
+.terminal-controls { display: flex; gap: 8px; margin-bottom: 10px; }
+.terminal-shell {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-terminal);
+}
+.terminal-topbar {
+  height: 34px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.red { background: #ff5f56; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #27c93f; }
+.terminal-title {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-left: 8px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.terminal-shell .terminal-body {
+  border: none;
+  border-radius: 0;
+  min-height: 300px;
+  max-height: 46vh;
+  padding: 12px 14px;
+  overflow: auto;
+}
+.xterm-host {
+  width: 100%;
+  min-height: 280px;
+}
+.terminal-prompt {
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.12);
+  border-radius: 4px;
+  padding: 0 4px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.terminal-live-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  min-height: 20px;
+}
+.terminal-cursor {
+  color: var(--accent);
+  animation: blink 1s steps(1, end) infinite;
+}
+.terminal-shell .terminal-body:focus {
+  outline: 1px solid rgba(47, 129, 247, 0.45);
+}
+.csrf-holder {
+  display: none;
+}
+.terminal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.task-details-expand {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+}
+.task-details-expand summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.hint-box { border: 1px dashed var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; }
+.validate-banner {
+  margin: 10px 0 6px;
+  border-style: solid;
+}
+.validate-passed {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(45, 164, 78, 0.12);
+  font-weight: 600;
+  font-size: 15px;
+}
+.validate-failed {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(248, 81, 73, 0.12);
+}
+.mobile-tabs { display: none; gap: 8px; margin-bottom: 8px; }
+.tab-btn.active { background: var(--accent); color: #fff; }
+
+/* ——— Редактор файла ——— */
+.file-editor-panel {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-secondary));
+}
+.file-editor-panel--featured {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.file-editor-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.file-editor-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+}
+.file-editor-intro {
+  margin: 12px 0 10px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  font-size: 14px;
+}
+.file-editor-intro code {
+  background: rgba(47, 129, 247, 0.12);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
+.file-editor-panel .file-editor-path {
+  width: 100%;
+  max-width: 100%;
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+.file-editor-panel textarea.file-editor-body {
+  width: 100%;
+  min-height: 140px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-terminal);
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+.file-editor-panel .file-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.file-editor-panel label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}

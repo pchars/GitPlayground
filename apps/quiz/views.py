@@ -196,14 +196,14 @@ def quiz_play(request: HttpRequest) -> HttpResponse:
             (2, q.choice_2),
             (3, q.choice_3),
         ]
-        picked_explanation = getattr(q, f"explanation_{picked}", "") or ""
         correct_label = [q.choice_0, q.choice_1, q.choice_2, q.choice_3][q.correct_index]
-        fallback = (
-            "Верно, это корректный вариант."
-            if ok
-            else f"Неверно, потому что правильный вариант: {correct_label}."
-        )
-        feedback_text = picked_explanation or fallback
+        if ok:
+            feedback_text = "Верно"
+        else:
+            picked_explanation = getattr(q, f"explanation_{picked}", "") or ""
+            feedback_text = picked_explanation or (
+                f"Неверно, потому что правильный вариант: {correct_label}."
+            )
         return render(
             request,
             "quiz/play.html",

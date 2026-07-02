@@ -1,6 +1,8 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Квиз{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/quiz.css' %}?v=20260703-css-split">{% endblock %}
 {% block content %}
 <section class="card quiz-card">
   <header class="quiz-card-head">

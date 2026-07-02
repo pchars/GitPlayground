@@ -1,0 +1,285 @@
+/* ——— Общие стили (наследуются всеми страницами) ——— */
+:root {
+  --bg-primary: #f7f8fb;
+  --bg-secondary: #ffffff;
+  --bg-terminal: #f4f6fa;
+  --accent: #2f6bff;
+  --success: #1f9d63;
+  --danger: #d9414f;
+  --warning: #b78011;
+  --text-primary: #1d2433;
+  --text-secondary: #677189;
+  --border: #e3e8f2;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  max-width: 100%;
+  overflow-x: hidden;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+a { color: var(--accent); text-decoration: none; }
+
+h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
+p { color: inherit; }
+
+/* ——— Шапка / подвал / каркас ——— */
+.header {
+  position: sticky; top: 0; z-index: 10;
+  height: auto;
+  min-height: 76px;
+  padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 82%, #ffffff);
+  background: color-mix(in srgb, var(--bg-secondary) 92%, #ffffff);
+  backdrop-filter: blur(10px);
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+}
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: var(--text-primary);
+}
+.brand-logo {
+  width: 28px;
+  height: 28px;
+}
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.header-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.layout { min-height: calc(100vh - 128px); }
+.main {
+  padding: 34px 28px 42px;
+  max-width: 1320px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-x: clip;
+}
+.footer {
+  height: 52px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+/* ——— Карточки / сетки ——— */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 22px;
+  box-shadow: 0 10px 28px rgba(16, 24, 40, 0.06);
+  max-width: 100%;
+}
+.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+/* ——— Кнопки ——— */
+.btn {
+  border-radius: 10px; padding: 10px 18px; border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: 0.2s ease; min-height: 42px; font: inherit; font-weight: 500;
+}
+.inline-form { display: inline-flex; margin: 0; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: color-mix(in srgb, var(--accent) 6%, #ffffff); color: var(--accent); border-color: var(--accent); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.full { width: 100%; justify-content: center; }
+
+/* ——— Формы ——— */
+input, textarea, select {
+  width: 100%; margin-top: 6px; margin-bottom: 14px; padding: 12px 13px;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg-primary); color: var(--text-primary);
+}
+input:focus, textarea:focus, select:focus { outline: 1px solid var(--accent); }
+
+/* ——— Авторизация ——— */
+.auth-wrap { max-width: 420px; margin: 56px auto; }
+.auth-card ul.errorlist {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 10px;
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.auth-card .small-help {
+  font-size: 13px;
+  margin: 4px 0 10px;
+}
+.password-requirements {
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+.password-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+.password-field-wrap input {
+  margin: 0;
+  padding-right: 96px;
+}
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  min-height: 0;
+}
+.password-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 8%, #ffffff);
+}
+
+/* ——— Утилитарные ——— */
+.muted { color: var(--text-secondary); }
+.metric { font-size: 42px; font-weight: 700; letter-spacing: -0.02em; }
+.progress { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--accent); transition: width 0.2s ease; }
+.list { padding-left: 16px; }
+.highlight { background: rgba(47, 129, 247, 0.15); border-radius: 6px; padding: 4px 8px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.breadcrumbs { color: var(--text-secondary); margin-bottom: 12px; }
+
+/* ——— Тосты ——— */
+.toast-stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: grid;
+  gap: 12px;
+  z-index: 50;
+  width: min(360px, calc(100% - 40px));
+  max-width: calc(100% - 40px);
+}
+.toast {
+  padding: 14px 15px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.toast-hiding {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.toast.success {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-secondary));
+}
+.toast.warning {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--bg-secondary));
+}
+.toast.error {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary));
+}
+.toast.info {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
+}
+.toast.achievement {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+  width: 100%;
+  max-width: 100%;
+}
+.toast-achievement-layout {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.toast-achievement-thumb-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-primary) 80%, #fff);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.toast-achievement-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.toast-achievement-title {
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.toast-achievement-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* ——— Кнопка «Наверх» ——— */
+.scroll-top-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+}
+.scroll-top-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, #ffffff);
+}
+.scroll-top-btn[hidden] {
+  display: none;
+}

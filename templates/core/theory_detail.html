@@ -1,6 +1,8 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Theory{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/theory.css' %}?v=20260703-css-split">{% endblock %}
 {% block content %}
 <section class="theory-hero card">
   <div class="theory-hero-inner">

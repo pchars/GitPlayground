@@ -1,6 +1,8 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}GitPlayground | Tasks{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/tasks.css' %}?v=20260703-css-split">{% endblock %}
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks</nav>{% endblock %}
 
 {% block content %}
