@@ -3,7 +3,7 @@
 
 {% block title %}GitPlayground | Playground{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/playground.css' %}?v=20260703-design10">
+<link rel="stylesheet" href="{% static_v 'css/playground.css' %}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.5.0/css/xterm.min.css">
 {% endblock %}
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks / {{ task.external_id }}</nav>{% endblock %}
@@ -63,7 +63,7 @@
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-<script src="{% static 'js/terminal_paste.js' %}?v=20260703-design10"></script>
+<script src="{% static_v 'js/terminal_paste.js' %}"></script>
 <script>
   window.__GP_PLAYGROUND__ = {
     urls: {
@@ -76,5 +76,5 @@
     },
   };
 </script>
-<script src="{% static 'js/playground.js' %}?v=20260703-design10"></script>
+<script src="{% static_v 'js/playground.js' %}"></script>
 {% endblock %}

@@ -14,11 +14,20 @@
 
 ```django
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260703-design">
+<link rel="stylesheet" href="{% static_v 'css/landing.css' %}">
 {% endblock %}
 ```
 
-Версию в query string (`?v=…`) меняйте при правках CSS, чтобы сбросить кэш браузера.
+## Cache-busting
+
+Для CSS/JS используйте тег **`static_v`** вместо `static` — он автоматически
+добавляет к URL хэш содержимого файла (`?v=<hash>`) и пересчитывает его при любом
+изменении файла. Ручной бамп версии не нужен, и в шаблонах/репозитории нет
+захардкоженных `?v=…design11`.
+
+Тег объявлен в `apps/core/templatetags/static_versioned.py` и подключён как
+`builtins` в `TEMPLATES` (см. `gitplayground/settings.py`), поэтому `{% load %}`
+писать не нужно. Для внешних CDN-ссылок (например, xterm.js) тег не применяется.
 
 ## Карта CSS-файлов
 

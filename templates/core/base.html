@@ -5,16 +5,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}GitPlayground{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/common.css' %}?v=20260703-design10">
+  <link rel="stylesheet" href="{% static_v 'css/common.css' %}">
   {% block extra_css %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/responsive.css' %}?v=20260703-design10">
+  <link rel="stylesheet" href="{% static_v 'css/responsive.css' %}">
 </head>
 <body>
   <header class="header top-nav">
     <div class="header-left">
       <div class="brand">
         <a class="brand-link" href="{% url 'landing' %}">
-          <img class="brand-logo" src="{% static 'img/logo.svg' %}?v=20260703-design10" alt="GitPlayground">
+          <img class="brand-logo" src="{% static_v 'img/logo.svg' %}" alt="GitPlayground">
           <span>GitPlayground</span>
         </a>
       </div>

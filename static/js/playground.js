@@ -20,6 +20,7 @@
     let historyCursor = 0;
     let nextHintIndex = hintUiState.next_hint_index || 1;
     let commandBuffer = "";
+    let cursorPos = 0;
     let isCommandRunning = false;
     const promptLabel = "user@gitplayground:~/repo$ ";
     const PROMPT_ANSI = "\u001b[1;32muser@gitplayground:~/repo$\u001b[0m ";
@@ -47,12 +48,28 @@
       return match ? match[1] : null;
     }
 
+    function clampCursor() {
+      if (cursorPos < 0) cursorPos = 0;
+      if (cursorPos > commandBuffer.length) cursorPos = commandBuffer.length;
+    }
+
     function rewriteInputLine() {
+      clampCursor();
       if (typeof term._setLiveCommand === "function") {
         term._setLiveCommand(commandBuffer);
         return;
       }
       term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
+      const back = commandBuffer.length - cursorPos;
+      if (back > 0) {
+        term.write("\u001b[" + back + "D");
+      }
+    }
+
+    function insertAtCursor(text) {
+      commandBuffer = commandBuffer.slice(0, cursorPos) + text + commandBuffer.slice(cursorPos);
+      cursorPos += text.length;
+      rewriteInputLine();
     }
 
     function applyPaste(raw) {
@@ -65,8 +82,7 @@
       if (!chunk || isCommandRunning) {
         return;
       }
-      commandBuffer += chunk;
-      rewriteInputLine();
+      insertAtCursor(chunk);
     }
 
     function writePromptText() {
@@ -143,6 +159,31 @@
         if (event.key === "ArrowDown") {
           event.preventDefault();
           fallbackOnData("\u001b[B");
+          return;
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          fallbackOnData("\u001b[D");
+          return;
+        }
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          fallbackOnData("\u001b[C");
+          return;
+        }
+        if (event.key === "Home") {
+          event.preventDefault();
+          fallbackOnData("\u001b[H");
+          return;
+        }
+        if (event.key === "End") {
+          event.preventDefault();
+          fallbackOnData("\u001b[F");
+          return;
+        }
+        if (event.key === "Delete") {
+          event.preventDefault();
+          fallbackOnData("\u001b[3~");
           return;
         }
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "l") {
@@ -398,6 +439,8 @@
         validateOutput.className = "hint-box validate-banner muted";
         term.clear();
         term.writeln("Песочница сброшена. Можно снова вводить команды Git.");
+        commandBuffer = "";
+        cursorPos = 0;
         writePrompt();
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand("");
@@ -439,21 +482,57 @@
       }
     });
 
+    function setBufferFromHistory(value) {
+      commandBuffer = value;
+      cursorPos = commandBuffer.length;
+      rewriteInputLine();
+    }
+
     term.onData(async (dataChunk) => {
       if (dataChunk === "\r") {
         const command = commandBuffer.trim();
         commandBuffer = "";
+        cursorPos = 0;
         await submitCommand(command);
         return;
       }
-      if (dataChunk === "\u007F") {
-        if (commandBuffer.length > 0) {
-          commandBuffer = commandBuffer.slice(0, -1);
-          term.write("\b \b");
-          if (typeof term._setLiveCommand === "function") {
-            term._setLiveCommand(commandBuffer);
-          }
+      if (dataChunk === "\u007F" || dataChunk === "\b") {
+        if (cursorPos > 0) {
+          commandBuffer = commandBuffer.slice(0, cursorPos - 1) + commandBuffer.slice(cursorPos);
+          cursorPos -= 1;
+          rewriteInputLine();
         }
+        return;
+      }
+      if (dataChunk === "\u001b[3~") {
+        if (cursorPos < commandBuffer.length) {
+          commandBuffer = commandBuffer.slice(0, cursorPos) + commandBuffer.slice(cursorPos + 1);
+          rewriteInputLine();
+        }
+        return;
+      }
+      if (dataChunk === "\u001b[D") {
+        if (cursorPos > 0) {
+          cursorPos -= 1;
+          rewriteInputLine();
+        }
+        return;
+      }
+      if (dataChunk === "\u001b[C") {
+        if (cursorPos < commandBuffer.length) {
+          cursorPos += 1;
+          rewriteInputLine();
+        }
+        return;
+      }
+      if (dataChunk === "\u001b[H" || dataChunk === "\u001b[1~" || dataChunk === "\u0001") {
+        cursorPos = 0;
+        rewriteInputLine();
+        return;
+      }
+      if (dataChunk === "\u001b[F" || dataChunk === "\u001b[4~" || dataChunk === "\u0005") {
+        cursorPos = commandBuffer.length;
+        rewriteInputLine();
         return;
       }
       if (dataChunk === "\u001b[A") {
@@ -461,11 +540,7 @@
           return;
         }
         historyCursor = Math.max(0, historyCursor - 1);
-        commandBuffer = commandHistory[historyCursor] || "";
-        term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand(commandBuffer);
-        }
+        setBufferFromHistory(commandHistory[historyCursor] || "");
         return;
       }
       if (dataChunk === "\u001b[B") {
@@ -473,16 +548,13 @@
           return;
         }
         historyCursor = Math.min(commandHistory.length, historyCursor + 1);
-        commandBuffer = commandHistory[historyCursor] || "";
-        term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand(commandBuffer);
-        }
+        setBufferFromHistory(commandHistory[historyCursor] || "");
         return;
       }
       if (dataChunk === "\u000c") {
         term.clear();
         commandBuffer = "";
+        cursorPos = 0;
         writePrompt();
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand("");
@@ -497,11 +569,7 @@
         return;
       }
       if (dataChunk.length === 1 && dataChunk >= " ") {
-        commandBuffer += dataChunk;
-        term.write(dataChunk);
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand(commandBuffer);
-        }
+        insertAtCursor(dataChunk);
       }
     });
 
