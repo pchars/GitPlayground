@@ -109,14 +109,19 @@ chain with `;` or run commands separately.
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
-Tests, coverage gate, and migration check (run before every commit):
+Pre-push gate — **same order as CI** (`.github/workflows/ci.yml`); run before every
+commit or push. Do not push if any step fails.
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py test
+.\.venv\Scripts\python.exe -m ruff check .             # lint first — catches unused imports (F401), etc.
+.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run   # must report "No changes detected"
 .\.venv\Scripts\python.exe -m coverage run manage.py test
 .\.venv\Scripts\python.exe -m coverage report          # must stay >= 52% (pyproject fail_under)
-.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run   # must report "No changes detected"
 ```
+
+`manage.py test` alone is **not** enough before push: CI runs `ruff check .` before
+tests. After refactors that move or delete code, run `ruff check .` explicitly — stale
+imports (e.g. `F401`) will not show up in the test suite.
 
 `sync_theory_content` updates only the theory blocks in the DB from
 `apps/tasks/theory_content.py` without rebuilding tasks.
@@ -320,14 +325,17 @@ optionally self-review with [code-reviewer](.cursor/agents/code-reviewer.md):
 3. **Keep mirrors in sync** — when behavior is duplicated client/server (e.g.
    `static/js/terminal_paste.js` and `apps/core/terminal_paste.py`), update both
    or neither.
-4. **Verify** — run `manage.py test`, `coverage report` (≥ 52%), and
-   `makemigrations --check --dry-run` before commit.
-5. **Do not push** with known dead code from the refactor unless the user explicitly
-   asks to defer cleanup.
+4. **Verify (CI parity)** — before commit or push, run the full pre-push gate above:
+   `ruff check .`, then `makemigrations --check --dry-run`, then coverage-backed tests
+   (≥ 52%). Refactors that split modules or delete symbols almost always need an explicit
+   `ruff check .` pass — unused imports are a common miss if you only run tests.
+5. **Do not push** with known dead code, lint failures, or failing tests from the refactor
+   unless the user explicitly asks to defer cleanup.
 
 ## Conventions
 
-- Lint/format with **ruff** (config in `pyproject.toml`).
+- Lint/format with **ruff** (config in `pyproject.toml`). **`ruff check .` is mandatory
+  before push** — it is the first CI job step and is not covered by `manage.py test`.
 - Keep the **coverage gate at >= 52%**.
 - Business logic belongs in `apps/core/services/`; keep views thin (use the
   `_acquire_session` guard in `playground.py` rather than re-adding lock/rate/session
