@@ -3,7 +3,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
-from apps.quiz.progit_questions import PROGIT_CONCEPT_QUESTIONS
+from apps.quiz.concept_questions import CONCEPT_QUESTIONS
 from apps.quiz.question_generator import iter_packed_questions, question_count
 
 
@@ -110,11 +110,12 @@ class QuizViewsTests(TestCase):
         self.assertEqual(len(prompts), len(set(prompts)))
         self.assertGreaterEqual(question_count(), 400)
 
-    def test_progit_questions_are_in_bank(self):
+    def test_concept_questions_are_in_bank(self):
         rows = iter_packed_questions()
         prompts = {row["prompt"] for row in rows}
-        missing = [q[0] for q in PROGIT_CONCEPT_QUESTIONS if q[0] not in prompts]
-        self.assertFalse(missing, f"Pro Git questions missing from bank: {missing[:5]}")
+        sample = CONCEPT_QUESTIONS[:5]
+        missing = [q[0] for q in sample if q[0] not in prompts]
+        self.assertFalse(missing, f"Concept questions missing from bank: {missing}")
 
     def test_question_bank_has_no_duplicate_correct_answers_for_command_prompts(self):
         rows = iter_packed_questions()

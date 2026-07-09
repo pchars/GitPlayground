@@ -57,7 +57,7 @@ To refresh theory text in the database without reseeding all tasks:
 
 `sync_theory_content` обновляет записи теории в БД из того же источника, что и сид, без полного пересоздания всех задач. Полный `seed_initial_data` перезаписывает теорию и заново прогоняет задачи и ассеты.
 
-Подробности продакшен-окружения: [docs/DEPLOY.md](docs/DEPLOY.md). Описание JSON API плейграунда: [docs/openapi/playground.yaml](docs/openapi/playground.yaml). Дизайн-система и фронтенд: [DESIGN.md](DESIGN.md), [docs/FRONTEND.md](docs/FRONTEND.md). Полный индекс документации: [docs/README.md](docs/README.md).
+Подробности продакшен-окружения: [docs/DEPLOY.md](docs/DEPLOY.md). Эксплуатация: [docs/OPERATIONS.md](docs/OPERATIONS.md). Описание JSON API плейграунда: [docs/openapi/playground.yaml](docs/openapi/playground.yaml). Дизайн-система и фронтенд: [DESIGN.md](DESIGN.md), [docs/FRONTEND.md](docs/FRONTEND.md). Инструкции для AI-агентов: [AGENTS.md](AGENTS.md) (ролевые playbooks — [.cursor/agents/](.cursor/agents/)). Полный индекс документации: [docs/README.md](docs/README.md).
 
 ## Docker dev stack
 
@@ -78,6 +78,17 @@ docker compose exec web python manage.py seed_quiz_questions
 ```
 
 ## Tests
+
+Перед коммитом:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py test
+.\.venv\Scripts\python.exe -m coverage run manage.py test
+.\.venv\Scripts\python.exe -m coverage report
+.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+```
+
+Порог покрытия — не ниже 52% (`pyproject.toml`).
 
 macOS / Linux:
 

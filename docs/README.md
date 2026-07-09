@@ -7,6 +7,8 @@
 | [../DESIGN.md](../DESIGN.md) | Дизайн-система: токены, типографика, компоненты, адаптив |
 | [FRONTEND.md](FRONTEND.md) | CSS/HTML-архитектура, статика, шаблоны |
 | [DEPLOY.md](DEPLOY.md) | Чеклист деплоя и переменные окружения |
+| [OPERATIONS.md](OPERATIONS.md) | Эксплуатация: процессы, логи, песочница, мониторинг |
+| [PRODUCT.md](PRODUCT.md) | Путь ученика и сценарии использования |
 | [VALIDATOR_CONTRACT.md](VALIDATOR_CONTRACT.md) | Контракт `validator.py` для задач |
 | [API.md](API.md) | Зачем OpenAPI, кому полезен, что не светить в проде |
 | [openapi/playground.yaml](openapi/playground.yaml) | OpenAPI 3.0: JSON API плейграунда (run, files, validate, reset, hint) |

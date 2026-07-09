@@ -108,6 +108,8 @@ def theory_detail(request, level_id):
             content_md,
             extensions=["fenced_code", "tables", "sane_lists", "toc"],
         )
+        rendered_md = rendered_md.replace("<table>", '<div class="theory-table-wrap"><table>')
+        rendered_md = rendered_md.replace("</table>", "</table></div>")
     levels = list(Level.objects.order_by("number"))
     prev_level = next((candidate for candidate in levels if candidate.number == level.number - 1), None)
     next_level = next((candidate for candidate in levels if candidate.number == level.number + 1), None)

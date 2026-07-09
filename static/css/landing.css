@@ -7,16 +7,31 @@
 }
 
 .landing-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
-  gap: var(--spacing-md);
-  align-items: start;
+  display: block;
   padding: 0;
 }
 
-.landing-hero-main h1 {
-  max-width: 16ch;
+.landing-hero-full .landing-hero-main {
+  max-width: none;
+  text-align: center;
+}
+
+.landing-hero-full .landing-kicker {
   margin-bottom: var(--spacing-md);
+}
+
+.landing-hero-full h1 {
+  max-width: none;
+  margin: 0 auto var(--spacing-md);
+}
+
+.landing-hero-full .landing-lead {
+  max-width: 60ch;
+  margin: 0 auto var(--spacing-lg);
+}
+
+.landing-hero-full .hero-actions {
+  justify-content: center;
 }
 
 .landing-kicker {
@@ -34,31 +49,6 @@
   color: var(--color-body);
   font-size: 16px;
   line-height: 1.5;
-}
-
-.landing-hero-side {
-  border-left: 2px solid var(--color-hairline);
-  padding: var(--spacing-xxs) 0 var(--spacing-xxs) var(--spacing-lg);
-}
-
-.landing-hero-side h3 {
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-muted);
-  margin: 0 0 var(--spacing-sm);
-}
-
-.landing-hero-side .list {
-  margin: var(--spacing-sm) 0 var(--spacing-md);
-  padding-left: var(--spacing-md);
-  color: var(--color-body);
-}
-
-.landing-hero-side .list li {
-  margin-bottom: var(--spacing-xs);
 }
 
 .hero-actions {

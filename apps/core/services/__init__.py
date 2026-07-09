@@ -2,9 +2,12 @@
 
 from .learn_ops import (
     HINT_UNLOCK_COSTS,
+    HintRequestError,
+    HintUnlockResult,
     NotEnoughPointsError,
     can_open_task,
     get_next_unlockable_task_for_user,
+    process_hint_request,
     unlock_hint,
     validate_task,
 )
@@ -32,6 +35,8 @@ from .sandbox_ops import (
 
 __all__ = [
     "HINT_UNLOCK_COSTS",
+    "HintRequestError",
+    "HintUnlockResult",
     "NotEnoughPointsError",
     "SANDBOX_ALLOW_LOCAL_FALLBACK",
     "SANDBOX_DOCKER_CPUS",
@@ -47,6 +52,7 @@ __all__ = [
     "audit_playground_repo_file",
     "can_open_task",
     "get_next_unlockable_task_for_user",
+    "process_hint_request",
     "get_or_create_active_session",
     "read_text_file_from_repo",
     "reset_session",

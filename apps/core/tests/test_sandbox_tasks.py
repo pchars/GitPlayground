@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.core.services.sandbox_ops import SANDBOX_ROOT, _ensure_sandbox_root
+from apps.core.services.sandbox_git import SANDBOX_ROOT, ensure_sandbox_root
 from apps.sandbox.models import SandboxSession
 from apps.sandbox.tasks import cleanup_expired_sandboxes
 from apps.tasks.models import Level, Task
@@ -25,7 +25,7 @@ class SandboxCleanupTaskTests(TestCase):
         )
 
     def test_cleanup_expired_sandboxes_removes_workspace_and_marks_expired(self):
-        _ensure_sandbox_root()
+        ensure_sandbox_root()
         workspace = SANDBOX_ROOT / f"gp_cleanup_test_{uuid4().hex}"
         workspace.mkdir(parents=True)
         marker = workspace / "marker.txt"

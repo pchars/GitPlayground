@@ -76,7 +76,7 @@
 
 | Файл | Страница |
 | --- | --- |
-| `toast.js`, `scroll_top.js` | Все (из `base.html`) |
+| `toast.js`, `scroll_top.js`, `auth.js`, `landing_slider.js` | Все (из `base.html` или страниц; через `static_v`) |
 | `landing_slider.js` | Лендинг |
 | `playground.js`, `terminal_paste.js` | Плейграунд |
 | `auth.js` | Login / signup / reset |

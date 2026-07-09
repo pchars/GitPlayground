@@ -10,110 +10,24 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock, TaskRevision
-from apps.tasks.task_descriptions import TASK_CONDITIONS
 from apps.tasks.task_hints import TASK_HINTS
+from apps.tasks.task_registry import LEVEL_TASK_POINTS, blueprints_for_level
 from apps.tasks.theory_content import LEVEL_DIAGRAMS, LEVEL_SECTION_HINTS, THEORY_CONTENT
 
 
-def _task_blueprints(specs: list[tuple[str, int]]) -> list[tuple[str, str, int]]:
-    return [(slug, TASK_CONDITIONS[slug], points) for slug, points in specs]
-
+TASK_BLUEPRINTS = {level: blueprints_for_level(level) for level in LEVEL_TASK_POINTS}
 
 LEVELS = [
-    (1, "Основы Git", 8),
-    (2, "Ветвление", 7),
+    (1, "Основы Git", 11),
+    (2, "Ветвление", 9),
     (3, "Слияния и интеграция", 7),
     (4, "История и переписывание", 6),
-    (5, "Удаленные репозитории и командная работа", 6),
-    (6, "Диагностика, внутренности и автоматизация", 6),
-    (7, "Гигиена репозитория: .gitignore и .gitkeep", 5),
+    (5, "Удаленные репозитории и командная работа", 8),
+    (6, "Диагностика, внутренности и автоматизация", 10),
+    (7, "Гигиена репозитория: .gitignore и .gitkeep", 6),
     (8, "Тегирование и фиксация версий", 5),
+    (9, "Платформы и профессиональные практики", 11),
 ]
-
-TASK_BLUEPRINTS = {
-    1: _task_blueprints(
-        [
-            ("init_repo", 6),
-            ("first_commit", 10),
-            ("check_status", 6),
-            ("stage_unstage", 8),
-            ("view_diff", 6),
-            ("commit_second", 10),
-            ("amend_commit", 12),
-            ("view_history", 6),
-        ]
-    ),
-    2: _task_blueprints(
-        [
-            ("create_branch", 8),
-            ("commit_on_branch", 10),
-            ("switch_branch", 6),
-            ("list_branches", 5),
-            ("rename_branch", 8),
-            ("branch_from_commit", 12),
-            ("delete_branch", 7),
-        ]
-    ),
-    3: _task_blueprints(
-        [
-            ("fast_forward_merge", 8),
-            ("no_ff_merge", 12),
-            ("resolve_conflict", 18),
-            ("abort_merge", 10),
-            ("squash_merge", 14),
-            ("cherry_pick_hotfix", 12),
-            ("revert_merge", 14),
-        ]
-    ),
-    4: _task_blueprints(
-        [
-            ("amend_message", 8),
-            ("reorder_commits", 14),
-            ("squash_commits", 14),
-            ("edit_commit", 16),
-            ("stash_workflow", 10),
-            ("reset_modes", 14),
-        ]
-    ),
-    5: _task_blueprints(
-        [
-            ("clone_local", 8),
-            ("add_remote", 6),
-            ("push_first", 9),
-            ("fetch_merge", 12),
-            ("pull_rebase", 12),
-            ("push_conflict", 15),
-        ]
-    ),
-    6: _task_blueprints(
-        [
-            ("find_bisect", 16),
-            ("reflog_recovery", 14),
-            ("worktree", 10),
-            ("inspect_objects", 14),
-            ("custom_aliases_hooks", 12),
-            ("filter_branch", 18),
-        ]
-    ),
-    7: _task_blueprints(
-        [
-            ("setup_ignore", 8),
-            ("ignore_node_modules", 7),
-            ("untrack_cached", 10),
-            ("keep_empty_dir", 7),
-            ("ignore_exceptions", 10),
-        ]
-    ),
-    8: _task_blueprints(
-        [
-            ("create_lightweight_tag", 8),
-            ("create_tag", 10),
-            ("show_tag", 7),
-            ("tag_old_commit", 10),
-            ("push_tags", 10),
-        ]
-    ),
-}
 
 TASK_VALIDATORS = {
     "1.1": """\
@@ -284,6 +198,260 @@ def _validator_by_slug(slug: str, external_id: str) -> str:
         return "from pathlib import Path\nimport sys\nc=Path('.gitignore').read_text(encoding='utf-8') if Path('.gitignore').exists() else ''\nsys.exit(0 if '*.log' in c and '__pycache__/' in c else 1)"
     if slug in {"create_tag", "push_tags"}:
         return "import subprocess, sys\nr=subprocess.run(['git','tag','-l','v1.0'],capture_output=True,text=True).stdout.strip();sys.exit(0 if r=='v1.0' else 1)"
+    if slug == "export_format_patch":
+        return "import sys\nfrom pathlib import Path\np=list(Path('.').glob('*.patch'))\nsys.exit(0 if p else 1)"
+    if slug == "git_mv_rename":
+        return "import subprocess, sys\nfrom pathlib import Path\nif not Path('readme.txt').exists():\n    sys.exit(1)\nr=subprocess.run(['git','ls-files','hello.txt'],capture_output=True,text=True)\nsys.exit(0 if not r.stdout.strip() else 1)"
+    if slug == "commit_signoff":
+        return "import subprocess, sys\nm=subprocess.run(['git','log','-1','--pretty=%B'],capture_output=True,text=True).stdout\nsys.exit(0 if 'Signed-off-by:' in m else 1)"
+    if slug == "semantic_describe":
+        return "import subprocess, sys\nd=subprocess.run(['git','describe','--tags'],capture_output=True,text=True)\nsys.exit(0 if d.returncode==0 and 'v1.0.0' in (d.stdout or '') else 1)"
+    if slug == "readme_first":
+        return "from pathlib import Path\nimport sys\np=Path('README.md')\nif not p.exists():\n    sys.exit(1)\nc=p.read_text(encoding='utf-8')\nsys.exit(0 if '#' in c and c.strip() else 1)"
+    if slug == "issue_close_message":
+        return "import subprocess, sys\nb=subprocess.run(['git','log','-1','--pretty=%B'],capture_output=True,text=True).stdout.lower()\nsys.exit(0 if 'fixes #42' in b or 'fixes#42' in b.replace(' ', '') else 1)"
+    if slug == "closes_issue_gitlab":
+        return "import subprocess, sys\nb=subprocess.run(['git','log','-1','--pretty=%B'],capture_output=True,text=True).stdout.lower()\nsys.exit(0 if 'closes #7' in b or 'closes#7' in b.replace(' ', '') else 1)"
+    if slug == "gitlab_md_issue_ref":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "p = pathlib.Path('notes.md')\n"
+            "if not p.is_file():\n"
+            "    sys.exit(1)\n"
+            "t = p.read_text(encoding='utf-8').lower()\n"
+            "if '#3' not in t:\n"
+            "    sys.exit(1)\n"
+            "r = subprocess.run(['git', 'ls-files', '--error-unmatch', 'notes.md'], capture_output=True)\n"
+            "sys.exit(r.returncode)"
+        )
+    if slug == "rev_parse_head_sha":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "p = pathlib.Path('current-branch.txt')\n"
+            "if not p.is_file():\n"
+            "    sys.exit(1)\n"
+            "expected = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True)\n"
+            "if expected.returncode != 0:\n"
+            "    sys.exit(1)\n"
+            "branch = (expected.stdout or '').strip()\n"
+            "content = p.read_text(encoding='utf-8').strip()\n"
+            "sys.exit(0 if branch and branch == content else 1)"
+        )
+    if slug == "log_double_dot_range":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "if not pathlib.Path('range-done.txt').is_file():\n"
+            "    sys.exit(1)\n"
+            "branch = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True)\n"
+            "if branch.returncode != 0 or (branch.stdout or '').strip() == 'main':\n"
+            "    sys.exit(1)\n"
+            "log = subprocess.run(['git', 'log', 'main..HEAD', '--oneline'], capture_output=True, text=True)\n"
+            "if log.returncode != 0 or not (log.stdout or '').strip():\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "pickaxe_log_search":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "if not pathlib.Path('pickaxe-done.txt').is_file():\n"
+            "    sys.exit(1)\n"
+            "log = subprocess.run(['git', 'log', '-S', 'PROGIT_FIND', '--oneline'], capture_output=True, text=True)\n"
+            "if log.returncode != 0 or not (log.stdout or '').strip():\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "merge_base_ready":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "if not pathlib.Path('merge-base-done.txt').is_file():\n"
+            "    sys.exit(1)\n"
+            "branch = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True)\n"
+            "if branch.returncode != 0 or (branch.stdout or '').strip() == 'main':\n"
+            "    sys.exit(1)\n"
+            "mb = subprocess.run(['git', 'merge-base', 'main', 'HEAD'], capture_output=True, text=True)\n"
+            "if mb.returncode != 0 or not (mb.stdout or '').strip():\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "diff_cached_staged":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "if not pathlib.Path('staged-ready.txt').is_file():\n"
+            "    sys.exit(1)\n"
+            "d = subprocess.run(['git', 'diff', '--cached'], capture_output=True, text=True)\n"
+            "if d.returncode != 0 or not (d.stdout or '').strip():\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "triple_dot_log_range":
+        return (
+            "import pathlib, subprocess, sys\n"
+            "if not pathlib.Path('triple-done.txt').is_file():\n"
+            "    sys.exit(1)\n"
+            "branch = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True)\n"
+            "if branch.returncode != 0 or (branch.stdout or '').strip() == 'main':\n"
+            "    sys.exit(1)\n"
+            "log = subprocess.run(['git', 'log', 'main...HEAD', '--oneline'], capture_output=True, text=True)\n"
+            "if log.returncode != 0 or not (log.stdout or '').strip():\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "gh_pages_branch":
+        return "import subprocess, sys\nc=subprocess.run(['git','show','gh-pages:index.html'],capture_output=True,text=True)\nsys.exit(0 if c.returncode==0 and c.stdout.strip() else 1)"
+    if slug == "jekyll_post_front_matter":
+        return """from pathlib import Path
+import subprocess, sys
+posts = list(Path('_posts').glob('*.md')) if Path('_posts').is_dir() else []
+if not posts:
+    print('_posts/*.md missing')
+    sys.exit(1)
+text = posts[0].read_text(encoding='utf-8')
+if '---' not in text or 'title:' not in text or 'layout: post' not in text:
+    print('Expected YAML front matter with title and layout: post')
+    sys.exit(1)
+r = subprocess.run(['git','ls-files', posts[0].as_posix()], capture_output=True, text=True)
+if not r.stdout.strip():
+    print('Post file should be tracked in git')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "write_git_blob":
+        return """import subprocess, sys
+from pathlib import Path
+if not Path('api.txt').exists():
+    print('api.txt missing')
+    sys.exit(1)
+h = subprocess.run(['git','hash-object','api.txt'], capture_output=True, text=True).stdout.strip()
+if not h:
+    sys.exit(1)
+e = subprocess.run(['git','cat-file','-e', h], capture_output=True, text=True)
+sys.exit(0 if e.returncode == 0 else 1)"""
+    if slug == "save_symbolic_head":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('head-ref.txt')
+if not p.exists():
+    print('head-ref.txt missing')
+    sys.exit(1)
+text = p.read_text(encoding='utf-8').strip()
+ref = subprocess.run(['git','symbolic-ref','HEAD'], capture_output=True, text=True)
+if ref.returncode != 0 or text != ref.stdout.strip():
+    print('head-ref.txt should match git symbolic-ref HEAD')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "tree_list_root":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('tree-list.txt')
+if not p.exists():
+    print('tree-list.txt missing')
+    sys.exit(1)
+expected = subprocess.run(['git','ls-tree','--name-only','HEAD'], capture_output=True, text=True).stdout.strip().splitlines()
+actual = [ln.strip() for ln in p.read_text(encoding='utf-8').splitlines() if ln.strip()]
+if sorted(actual) != sorted(expected):
+    print('tree-list.txt should match git ls-tree --name-only HEAD')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "mr_feature_branch":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('mr-branch.txt')
+if not p.exists():
+    print('mr-branch.txt missing')
+    sys.exit(1)
+name = p.read_text(encoding='utf-8').strip()
+if name != 'awesome-feature':
+    print('expected awesome-feature in mr-branch.txt')
+    sys.exit(1)
+ref = subprocess.run(['git','symbolic-ref','HEAD'], capture_output=True, text=True)
+if ref.returncode != 0 or ref.stdout.strip() != 'refs/heads/awesome-feature':
+    print('HEAD should be on awesome-feature')
+    sys.exit(1)
+msg = subprocess.run(['git','log','-1','--pretty=%s'], capture_output=True, text=True).stdout
+if 'Feature for MR' not in msg:
+    print('commit message should mention Feature for MR')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "add_gitlab_ci_yaml":
+        return """import subprocess, sys
+show = subprocess.run(['git','show','HEAD:.gitlab-ci.yml'], capture_output=True, text=True)
+if show.returncode != 0:
+    print('.gitlab-ci.yml not in HEAD')
+    sys.exit(1)
+text = show.stdout.lower()
+if 'script' not in text or 'echo ok' not in text:
+    print('.gitlab-ci.yml should define a script with echo ok')
+    sys.exit(1)
+if 'test' not in text:
+    print('expected test job in .gitlab-ci.yml')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "create_offline_bundle":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('repo.bundle')
+if not p.exists():
+    print('repo.bundle missing')
+    sys.exit(1)
+v = subprocess.run(['git','bundle','verify','repo.bundle'], capture_output=True, text=True)
+if v.returncode != 0:
+    print('git bundle verify failed')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "attach_git_note":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('note-check.txt')
+if not p.exists():
+    print('note-check.txt missing')
+    sys.exit(1)
+expected = p.read_text(encoding='utf-8').strip()
+note = subprocess.run(['git','notes','show','HEAD'], capture_output=True, text=True)
+if note.returncode != 0 or note.stdout.strip() != expected:
+    print('note-check.txt should match git notes show HEAD')
+    sys.exit(1)
+if expected != 'reviewed':
+    print('expected note text reviewed')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "branch_without_checkout":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('active-branch.txt')
+if not p.exists():
+    print('active-branch.txt missing')
+    sys.exit(1)
+current = subprocess.run(['git','branch','--show-current'], capture_output=True, text=True).stdout.strip()
+if current != 'main':
+    print('expected to stay on main')
+    sys.exit(1)
+if p.read_text(encoding='utf-8').strip() != current:
+    print('active-branch.txt should match current branch')
+    sys.exit(1)
+br = subprocess.run(['git','branch','--list','sidecar'], capture_output=True, text=True).stdout
+if 'sidecar' not in br:
+    print('sidecar branch missing')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "rescue_detached_head":
+        return """from pathlib import Path
+import subprocess, sys
+p = Path('rescue-branch.txt')
+if not p.exists():
+    print('rescue-branch.txt missing')
+    sys.exit(1)
+name = p.read_text(encoding='utf-8').strip()
+ref = subprocess.run(['git','symbolic-ref','HEAD'], capture_output=True, text=True)
+if ref.returncode != 0 or ref.stdout.strip() != f'refs/heads/{name}':
+    print('HEAD should be on branch named in rescue-branch.txt')
+    sys.exit(1)
+if name != 'rescue-tip':
+    print('expected rescue-tip branch')
+    sys.exit(1)
+br = subprocess.run(['git','branch','--list','rescue-tip'], capture_output=True, text=True).stdout
+if 'rescue-tip' not in br:
+    print('rescue-tip branch missing')
+    sys.exit(1)
+sys.exit(0)"""
     if slug in {"view_history", "branch_compare", "branch_from_commit", "track_remote_branch"}:
         return "import subprocess, sys\nr=subprocess.run(['git','rev-list','--count','HEAD'],capture_output=True,text=True,check=False)\nsys.exit(0 if r.returncode==0 and int((r.stdout or '0').strip() or 0)>=1 else 1)"
     if slug in {"switch_branch"}:
@@ -314,6 +482,49 @@ def _validator_by_slug(slug: str, external_id: str) -> str:
         return "import subprocess, sys\nr=subprocess.run(['git','remote','-v'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
     if slug in {"find_bisect", "reflog_recovery", "filter_branch", "worktree", "submodule", "inspect_objects", "custom_aliases_hooks"}:
         return "import subprocess, sys\nr=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
+    if slug == "grep_in_repo":
+        return """import sys
+from pathlib import Path
+p = Path('grep-hit.txt')
+if not p.exists():
+    print('grep-hit.txt missing')
+    sys.exit(1)
+text = p.read_text(encoding='utf-8')
+if 'hello.txt' not in text or 'Git' not in text:
+    print('grep-hit.txt should contain a git grep hit from hello.txt')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug == "stage_tracked_only":
+        return """import subprocess, sys
+tracked = subprocess.run(['git', 'ls-files', 'scratch.txt'], capture_output=True, text=True)
+if tracked.stdout.strip():
+    print('scratch.txt must remain untracked')
+    sys.exit(1)
+names = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD', '--name-only'], capture_output=True, text=True)
+if names.returncode != 0:
+    print('Need at least two commits to verify the last change')
+    sys.exit(1)
+if 'hello.txt' not in names.stdout:
+    print('hello.txt should be in the last commit')
+    sys.exit(1)
+if 'scratch.txt' in names.stdout:
+    print('scratch.txt must not be committed')
+    sys.exit(1)
+sys.exit(0)"""
+    if slug in {"reset_head_unstage", "stage_unstage"}:
+        return TASK_VALIDATORS["1.4"]
+    if slug == "clean_untracked":
+        return """import sys
+from pathlib import Path
+if Path('garbage.tmp').exists():
+    print('garbage.tmp should be removed')
+    sys.exit(1)
+import subprocess
+tracked = subprocess.run(['git', 'ls-files', 'garbage.tmp'], capture_output=True, text=True)
+if tracked.stdout.strip():
+    print('garbage.tmp must never have been tracked')
+    sys.exit(1)
+sys.exit(0)"""
     if slug in {"init_repo", "first_commit", "check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit"}:
         reverse_lookup = {
             "init_repo": "1.1",
@@ -338,8 +549,12 @@ def task_metadata(level_number: int, slug: str, description: str) -> dict:
     requires = []
     if slug != "init_repo":
         requires.append("repo_initialized")
-    if slug in {"check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit", "view_history"}:
+    if slug in {"check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit", "view_history", "grep_in_repo", "stage_tracked_only", "reset_head_unstage", "tree_list_root", "branch_without_checkout", "rescue_detached_head", "create_offline_bundle", "attach_git_note", "mr_feature_branch", "add_gitlab_ci_yaml"}:
         requires.append("hello_committed")
+    if slug in {"export_format_patch", "git_mv_rename", "commit_signoff", "semantic_describe", "issue_close_message", "closes_issue_gitlab", "rev_parse_head_sha", "log_double_dot_range", "pickaxe_log_search", "merge_base_ready", "diff_cached_staged", "triple_dot_log_range"}:
+        requires.append("hello_committed")
+    if slug in {"readme_first", "gh_pages_branch", "jekyll_post_front_matter", "write_git_blob", "save_symbolic_head", "gitlab_md_issue_ref"}:
+        requires.append("repo_initialized")
     if slug in {"commit_on_branch", "switch_branch", "list_branches", "delete_branch"}:
         requires.extend(["hello_committed", "feature_branch_exists"])
     validator_hints = ["Проверка опирается на состояние репозитория и историю коммитов."]
@@ -379,7 +594,7 @@ def _zip_workspace(repo: Path) -> str:
 
 
 def build_start_repo_asset(slug: str) -> str | None:
-    if slug not in {"check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit", "view_history"}:
+    if slug not in {"check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit", "view_history", "grep_in_repo", "stage_tracked_only", "reset_head_unstage"}:
         return None
     with tempfile.TemporaryDirectory() as td:
         repo = Path(td) / "repo"

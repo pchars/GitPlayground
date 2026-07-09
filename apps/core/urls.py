@@ -1,3 +1,4 @@
+from apps.core.forms import LoginForm
 from django.contrib.auth.views import (
     LoginView,
     LogoutView,
@@ -16,7 +17,7 @@ urlpatterns = [
     path("", views.landing, name="landing"),
     path("signup/", views.signup_view, name="signup"),
     path("activate/<uidb64>/<token>/", views.activate_account, name="activate-account"),
-    path("login/", LoginView.as_view(template_name="core/login.html"), name="login"),
+    path("login/", LoginView.as_view(template_name="core/login.html", authentication_form=LoginForm), name="login"),
     path(
         "password-reset/",
         PasswordResetView.as_view(

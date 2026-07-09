@@ -4,7 +4,6 @@ import time
 from typing import NamedTuple
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -14,19 +13,20 @@ from apps.achievements.models import UserAchievement
 from apps.core.playground_limits import allow_playground_action
 from apps.core.services import (
     SANDBOX_TEXT_FILE_WRITE_MAX_BYTES,
+    HintRequestError,
     audit_playground_repo_file,
     can_open_task,
     get_or_create_active_session,
     get_next_unlockable_task_for_user,
+    process_hint_request,
     read_text_file_from_repo,
     reset_session,
     run_command,
-    unlock_hint,
     validate_task,
     write_text_file_to_repo,
     NotEnoughPointsError,
 )
-from apps.progress.models import HintUsage, TaskAttempt
+from apps.progress.models import TaskAttempt
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task, TaskAsset
 
@@ -371,75 +371,33 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
         hint_index = int(request.POST.get("hint_index", "1"))
     except ValueError:
         hint_index = 1
-    hints = list(
-        TaskAsset.objects.filter(
-            task=task,
-            asset_type=TaskAsset.AssetType.HINT,
-        )
-        .order_by("sort_order")
-        .values_list("content", flat=True)
-    )
-    hint = hints[hint_index - 1] if 0 < hint_index <= len(hints) else None
-    if not hint:
+    try:
+        result = process_hint_request(request.user, task, hint_index)
+    except HintRequestError as exc:
         _log_playground_event(
             request,
             task,
             endpoint="hint",
             started_at=started_at,
-            status_code=400,
+            status_code=exc.status_code,
             ok=False,
             hint_index=hint_index,
-            hint_exhausted=True,
+            hint_exhausted=exc.message == "Подсказки для этой задачи закончились.",
         )
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": "Подсказки для этой задачи закончились.",
-            },
-            status=400,
-        )
-
-    already = HintUsage.objects.filter(user=request.user, task=task, hint_index=hint_index).exists()
-    if not already and hint_index > 1:
-        if not HintUsage.objects.filter(user=request.user, task=task, hint_index=hint_index - 1).exists():
-            resp = JsonResponse(
-                {
-                    "ok": False,
-                    "message": "Сначала откройте предыдущую подсказку.",
-                },
-                status=400,
-            )
-            _log_playground_event(
-                request,
-                task,
-                endpoint="hint",
-                started_at=started_at,
-                status_code=400,
-                ok=False,
-                hint_index=hint_index,
-                hint_exhausted=False,
-            )
-            return resp
-
-    try:
-        usage, charged, was_already = unlock_hint(request.user, task, hint_index)
+        return JsonResponse({"ok": False, "message": exc.message}, status=exc.status_code)
     except NotEnoughPointsError as exc:
         return JsonResponse({"ok": False, "message": str(exc)}, status=400)
-    max_idx = (
-        HintUsage.objects.filter(user=request.user, task=task).aggregate(m=Max("hint_index")).get("m") or 0
-    )
-    next_hint_index = max_idx + 1
-    hints_exhausted = next_hint_index > len(hints)
+
     response = JsonResponse(
         {
             "ok": True,
-            "hint_index": usage.hint_index,
-            "total_hints": len(hints),
-            "points_spent": charged,
-            "already_unlocked": was_already,
-            "next_hint_index": next_hint_index,
-            "hints_exhausted": hints_exhausted,
-            "content": hint,
+            "hint_index": result.hint_index,
+            "total_hints": result.total_hints,
+            "points_spent": result.points_spent,
+            "already_unlocked": result.already_unlocked,
+            "next_hint_index": result.next_hint_index,
+            "hints_exhausted": result.hints_exhausted,
+            "content": result.content,
         }
     )
     _log_playground_event(
@@ -449,9 +407,9 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
         started_at=started_at,
         status_code=200,
         ok=True,
-        hint_index=usage.hint_index,
-        total_hints=len(hints),
-        points_spent=charged,
+        hint_index=result.hint_index,
+        total_hints=result.total_hints,
+        points_spent=result.points_spent,
         hint_exhausted=False,
     )
     return response

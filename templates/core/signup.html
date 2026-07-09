@@ -19,13 +19,13 @@
     <label for="{{ form.password1.id_for_label }}">Пароль</label>
     <div class="password-field-wrap">
       {{ form.password1 }}
-      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button>
+      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль" aria-pressed="false"></button>
     </div>
     {{ form.password1.errors }}
     <label for="{{ form.password2.id_for_label }}">Подтверждение пароля</label>
     <div class="password-field-wrap">
       {{ form.password2 }}
-      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button>
+      <button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль" aria-pressed="false"></button>
     </div>
     {{ form.password2.errors }}
     {% if form.password1.help_text %}<p class="muted small-help password-requirements">{{ form.password1.help_text|safe }}</p>{% endif %}
@@ -33,5 +33,5 @@
     <p class="muted">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
   </form>
 </section>
-<script src="{% static 'js/auth.js' %}"></script>
+<script src="{% static_v 'js/auth.js' %}"></script>
 {% endblock %}

@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
 
@@ -19,3 +19,10 @@ class SignUpForm(UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Пользователь с таким email уже существует.")
         return email
+
+
+class LoginForm(AuthenticationForm):
+    error_messages = {
+        "invalid_login": "Пожалуйста, введите правильные имя пользователя и пароль.",
+        "inactive": "Этот аккаунт деактивирован.",
+    }

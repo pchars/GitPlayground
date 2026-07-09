@@ -6,7 +6,7 @@
 
 {% block content %}
 <section class="landing-shell">
-  <section class="landing-hero">
+  <section class="landing-hero landing-hero-full">
     <div class="landing-hero-main">
       <p class="landing-kicker">GitPlayground</p>
       <h1>
@@ -25,15 +25,6 @@
           <a class="btn btn-secondary" href="{% url 'login' %}">У меня уже есть аккаунт</a>
         {% endif %}
       </div>
-    </div>
-
-    <div class="landing-hero-side">
-      <h3>Почему это работает</h3>
-      <ul class="list">
-        <li>Наглядная теория + сразу практическая задача.</li>
-        <li>Песочница с реальными командами Git.</li>
-        <li>Проверка результата и измеримый прогресс.</li>
-      </ul>
     </div>
   </section>
 
@@ -135,5 +126,5 @@
     </div>
   </section>
 </section>
-<script src="{% static 'js/landing_slider.js' %}"></script>
+<script src="{% static_v 'js/landing_slider.js' %}"></script>
 {% endblock %}

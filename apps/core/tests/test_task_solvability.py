@@ -52,6 +52,21 @@ SOLUTIONS: dict[str, list[str]] = {
         "git commit --amend --no-edit",
     ],
     "view_history": [],
+    "grep_in_repo": [
+        "git grep Git",
+        'echo "hello.txt:Hello, Git!" > grep-hit.txt',
+    ],
+    "stage_tracked_only": [
+        'echo "tracked-only" >> hello.txt',
+        'echo "temp" > scratch.txt',
+        "git add -u",
+        'git commit -m "Only tracked files"',
+    ],
+    "reset_head_unstage": [
+        'echo "reset head demo" >> hello.txt',
+        "git add hello.txt",
+        "git reset HEAD hello.txt",
+    ],
     # Level 2 — branching
     "create_branch": ["git checkout -b feature-x"],
     "commit_on_branch": [
@@ -75,6 +90,15 @@ SOLUTIONS: dict[str, list[str]] = {
         "git branch from-c1 HEAD",
     ],
     "delete_branch": ["git branch -d feature-x"],
+    "branch_without_checkout": [
+        "git branch sidecar",
+        "echo main > active-branch.txt",
+    ],
+    "rescue_detached_head": [
+        "git checkout --detach",
+        "git checkout -b rescue-tip",
+        "echo rescue-tip > rescue-branch.txt",
+    ],
     # Level 3 — merges and integration
     "fast_forward_merge": [
         'echo "a" > a.txt',
@@ -125,6 +149,7 @@ SOLUTIONS: dict[str, list[str]] = {
     "fetch_merge": [],
     "pull_rebase": [],
     "push_conflict": [],
+    "create_offline_bundle": ["git bundle create repo.bundle HEAD main"],
     # Level 6 — diagnostics and internals
     "find_bisect": [],
     "reflog_recovery": [],
@@ -142,6 +167,11 @@ SOLUTIONS: dict[str, list[str]] = {
     "untrack_cached": [],
     "keep_empty_dir": [],
     "ignore_exceptions": [],
+    "clean_untracked": [
+        "echo garbage > garbage.tmp",
+        "git clean -n",
+        "git clean -f",
+    ],
     # Level 8 — tagging
     "create_lightweight_tag": [],
     "create_tag": [
@@ -157,6 +187,119 @@ SOLUTIONS: dict[str, list[str]] = {
         "git add a.txt",
         'git commit -m "c1"',
         'git tag -a v1.0 -m "Release v1.0"',
+    ],
+    # Level 9 — platforms & pro practices
+    "export_format_patch": ["git format-patch -1 HEAD"],
+    "git_mv_rename": [
+        "git mv hello.txt readme.txt",
+        'git commit -m "Rename hello to readme"',
+    ],
+    "commit_signoff": [
+        'echo "signed" >> hello.txt',
+        "git add hello.txt",
+        'git commit -s -m "Update with sign-off"',
+    ],
+    "semantic_describe": [
+        'git tag -a v1.0.0 -m "Release 1.0.0"',
+        "git describe --tags",
+    ],
+    "readme_first": [
+        'echo "# GitPlayground Demo" > README.md',
+        "git add README.md",
+        'git commit -m "Add README"',
+    ],
+    "issue_close_message": [
+        'echo "fix" >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Fix typo, Fixes #42"',
+    ],
+    "gh_pages_branch": [
+        "git checkout -b gh-pages",
+        'echo "<h1>Project page</h1>" > index.html',
+        "git add index.html",
+        'git commit -m "Add GitHub Pages stub"',
+    ],
+    "jekyll_post_front_matter": [
+        "mkdir _posts",
+        "echo --- > _posts/welcome.md",
+        "echo title: Welcome >> _posts/welcome.md",
+        "echo layout: post >> _posts/welcome.md",
+        "echo --- >> _posts/welcome.md",
+        "echo Hello Jekyll >> _posts/welcome.md",
+        "git add _posts/welcome.md",
+        'git commit -m "Add Jekyll post"',
+    ],
+    "write_git_blob": [
+        "echo api > api.txt",
+        "git hash-object -w api.txt",
+    ],
+    "save_symbolic_head": [
+        "git checkout -b internals-demo",
+        "echo refs/heads/internals-demo > head-ref.txt",
+    ],
+    "tree_list_root": ["echo hello.txt > tree-list.txt"],
+    "attach_git_note": [
+        'git notes add -m "reviewed"',
+        "echo reviewed > note-check.txt",
+    ],
+    "rev_parse_head_sha": [
+        "echo main > current-branch.txt",
+    ],
+    "log_double_dot_range": [
+        "git checkout -b explore-range",
+        'echo "range" >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Commit for double-dot range"',
+        "echo ok > range-done.txt",
+    ],
+    "pickaxe_log_search": [
+        'echo PROGIT_FIND >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Add pickaxe marker"',
+        "echo ok > pickaxe-done.txt",
+    ],
+    "triple_dot_log_range": [
+        "git checkout -b triple-explore",
+        'echo "triple" >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Commit for triple-dot range"',
+        "echo ok > triple-done.txt",
+    ],
+    "diff_cached_staged": [
+        'echo "staged line" >> hello.txt',
+        "git add hello.txt",
+        "echo ok > staged-ready.txt",
+    ],
+    "merge_base_ready": [
+        "git checkout -b prof-feature",
+        'echo "prof" >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Prof feature commit"',
+        "echo ok > merge-base-done.txt",
+    ],
+    "mr_feature_branch": [
+        "git checkout -b awesome-feature",
+        "echo update >> hello.txt",
+        "git add hello.txt",
+        'git commit -m "Feature for MR"',
+        "echo awesome-feature > mr-branch.txt",
+    ],
+    "add_gitlab_ci_yaml": [
+        "echo test: > .gitlab-ci.yml",
+        "echo   script: >> .gitlab-ci.yml",
+        "echo     - echo ok >> .gitlab-ci.yml",
+        "git add .gitlab-ci.yml",
+        'git commit -m "Add GitLab CI config"',
+    ],
+    "closes_issue_gitlab": [
+        'echo "gitlab" >> hello.txt',
+        "git add hello.txt",
+        'git commit -m "Docs update, Closes #7"',
+    ],
+    "gitlab_md_issue_ref": [
+        'echo "See issue #3 for details" > notes.md',
+        "git add notes.md",
+        'git commit -m "Add GLFM issue reference"',
     ],
 }
 

@@ -139,7 +139,7 @@ class CoreFlowTests(TestCase):
         content = response.content.decode("utf-8")
         self.assertIn("/static/js/playground.js", content)
         js = (Path(settings.BASE_DIR) / "static" / "js" / "playground.js").read_text(encoding="utf-8")
-        self.assertIn("GitPlayground help", js)
+        self.assertIn("Справка GitPlayground", js)
         self.assertIn("Локальная команда: help", js)
 
     def test_tasks_by_level_page_renders(self):

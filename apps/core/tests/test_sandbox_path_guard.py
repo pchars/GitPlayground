@@ -3,9 +3,8 @@ from pathlib import Path
 
 from django.test import TestCase
 
+from apps.core.services.sandbox_git import SANDBOX_ROOT, ensure_sandbox_root
 from apps.core.services.sandbox_ops import (
-    SANDBOX_ROOT,
-    _ensure_sandbox_root,
     rmtree_sandbox_workspace_if_safe,
     validated_sandbox_workspace,
 )
@@ -32,7 +31,7 @@ class SandboxPathGuardTests(TestCase):
             self.assertTrue(marker.exists())
 
     def test_rmtree_removes_workspace_under_root(self):
-        _ensure_sandbox_root()
+        ensure_sandbox_root()
         workspace = SANDBOX_ROOT / "gp_path_guard_test_workspace"
         workspace.mkdir(parents=True, exist_ok=True)
         marker = workspace / "m.txt"

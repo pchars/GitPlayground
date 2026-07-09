@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# Базовые команды уровня «Git за 80% случаев» (Pro Git, гл. 2).
+# Базовые команды уровня «Git за 80% случаев».
 EASY_COMMANDS: frozenset[str] = frozenset(
     {
         "git init",
@@ -168,7 +168,7 @@ MEDIUM_COMMAND_MARKERS: tuple[str, ...] = (
     "help -w",
 )
 
-# Темы «уровень 1» — основы Git / Pro Git гл. 1–3.
+# Темы «уровень 1» — основы Git.
 EASY_CONCEPT_MARKERS: tuple[str, ...] = (
     "три состоян",
     "три основных состоян",

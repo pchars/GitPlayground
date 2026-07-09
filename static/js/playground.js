@@ -202,6 +202,8 @@
       return { background: "#ffffff", foreground: "#24292f", cursor: "#24292f" };
     }
 
+    let fitAddon = null;
+
     try {
       if (typeof window.Terminal === "function") {
         term = new window.Terminal({
@@ -229,7 +231,7 @@
         });
         const FitCtor = window.FitAddon && (window.FitAddon.FitAddon || window.FitAddon);
         if (typeof FitCtor === "function") {
-          const fitAddon = new FitCtor();
+          fitAddon = new FitCtor();
           term.loadAddon(fitAddon);
           fitAddon.fit();
           window.addEventListener("resize", () => fitAddon.fit());
@@ -329,7 +331,7 @@
 
     function renderLocalHelp() {
       term.writeln("");
-      term.writeln("GitPlayground help");
+      term.writeln("Справка GitPlayground");
       term.writeln("----------------");
       term.writeln("Доступные команды:");
       term.writeln("  - git <...>");
@@ -345,7 +347,7 @@
       term.writeln("  - ArrowUp / ArrowDown: история команд");
       term.writeln("  - Ctrl+L: очистить терминал");
       term.writeln("  - Ctrl+V / Cmd+V: вставить в строку команды");
-      term.writeln("Локальная команда: help");
+      term.writeln("Локальная команда: help (справка)");
     }
 
     function handleTerminalPaste(event) {
@@ -379,9 +381,9 @@
       }
       const data = await post(urls.run, { command });
       if (!data.ok) {
-        validateOutput.textContent = data.message || "Command failed";
+        validateOutput.textContent = data.message || "Команда не выполнена";
         validateOutput.className = "hint-box validate-banner validate-failed";
-        term.writeln(`Error: ${data.message || "Command failed"}`);
+        term.writeln(`Ошибка: ${data.message || "Команда не выполнена"}`);
         writePrompt();
         if (typeof term._setLiveCommand === "function") {
           term._setLiveCommand("");
@@ -587,6 +589,9 @@
         btn.setAttribute("aria-selected", "true");
         const panel = document.querySelector(`[data-panel="${target}"]`);
         if (panel) panel.classList.add("active");
+        if (fitAddon && target === "terminal") {
+          requestAnimationFrame(() => fitAddon.fit());
+        }
       });
     });
 

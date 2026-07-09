@@ -78,6 +78,7 @@ docker compose exec web python manage.py seed_quiz_questions
 ## См. также
 
 - [README.md](README.md) — оглавление документации
+- [OPERATIONS.md](OPERATIONS.md) — эксплуатация и мониторинг
 - [VALIDATOR_CONTRACT.md](VALIDATOR_CONTRACT.md) — выполнение `validator.py`
 - [openapi/playground.yaml](openapi/playground.yaml) — JSON API плейграунда
 - [../AGENTS.md](../AGENTS.md) — политики разработки

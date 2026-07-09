@@ -3,13 +3,73 @@
 Guidance for AI agents and contributors working in this repository. Keep changes
 small, run the test suite, and respect the security posture of the sandbox.
 
+## Specialist agent playbooks
+
+Role-specific playbooks live in [`.cursor/agents/`](.cursor/agents/). **This file
+always takes precedence** over generic agent defaults — read the relevant playbook
+*in addition to* the sections below when the task matches.
+
+> **DESIGN.md ≠ ui-designer.** [`DESIGN.md`](DESIGN.md) is the **project design
+> specification** (tokens, typography, components). [`ui-designer`](.cursor/agents/ui-designer.md)
+> is a generic design **workflow** agent. For visual work in this repo, read both
+> [`design-system`](.cursor/agents/design-system.md) (pointer to `DESIGN.md`) and
+> `ui-designer` when you need process guidance.
+
+### Engineering
+
+| Playbook | When to use in GitPlayground |
+| --- | --- |
+| [django-developer](.cursor/agents/django-developer.md) | Django views, models, migrations, management commands, middleware, Celery tasks, settings |
+| [python-pro](.cursor/agents/python-pro.md) | Validators, `sandbox_ops.py`, service-layer Python, management commands, ruff/coverage |
+| [backend-developer](.cursor/agents/backend-developer.md) | Playground JSON API, auth flows, rate limits, Celery/Redis integration |
+| [javascript-pro](.cursor/agents/javascript-pro.md) | `static/js/` (playground terminal, paste, quiz), vanilla JS patterns, xterm integration |
+| [frontend-developer](.cursor/agents/frontend-developer.md) | Templates, page JS/CSS wiring, terminal UX, quiz/tasks UI behavior |
+| [fullstack-developer](.cursor/agents/fullstack-developer.md) | End-to-end features (e.g. new task flow: seed → API → playground UI) |
+
+### Design & UX
+
+| Playbook | When to use in GitPlayground |
+| --- | --- |
+| [design-system](.cursor/agents/design-system.md) | **Read [`DESIGN.md`](DESIGN.md)** — tokens, layout, components (project spec) |
+| [ui-designer](.cursor/agents/ui-designer.md) | Visual exploration, component specs, accessibility, SVG assets, design critique |
+| [ui-ux-tester](.cursor/agents/ui-ux-tester.md) | Exhaustive UI flow testing, spacing/visual defects, structured defect reports |
+
+### Quality & security
+
+| Playbook | When to use in GitPlayground |
+| --- | --- |
+| [qa-expert](.cursor/agents/qa-expert.md) | Test strategy, coverage gaps, quality metrics, release readiness |
+| [test-automator](.cursor/agents/test-automator.md) | Django test suites, regression tests, CI test integration |
+| [code-reviewer](.cursor/agents/code-reviewer.md) | Pre-push review, maintainability, test quality |
+| [refactoring-specialist](.cursor/agents/refactoring-specialist.md) | Large refactors, dead-code cleanup, extracting services without behavior change |
+| [security-auditor](.cursor/agents/security-auditor.md) | Compliance-style audit, risk assessment, evidence-based findings |
+| [security-engineer](.cursor/agents/security-engineer.md) | Sandbox allowlist hardening, secrets, Docker/CI security controls |
+
+### Docs, ops & product
+
+| Playbook | When to use in GitPlayground |
+| --- | --- |
+| [documentation-engineer](.cursor/agents/documentation-engineer.md) | `docs/`, `AGENTS.md`, `DESIGN.md`, API docs, README upkeep |
+| [docker-expert](.cursor/agents/docker-expert.md) | `docker-compose.yml`, production images, deploy hardening |
+| [project-manager](.cursor/agents/project-manager.md) | Multi-step initiatives, milestones, risk/dependency tracking |
+| [product-manager](.cursor/agents/product-manager.md) | Feature prioritization, learner UX goals, roadmap trade-offs |
+| [business-analyst](.cursor/agents/business-analyst.md) | Requirements for new learning tracks, metrics, stakeholder needs |
+| [content-marketer](.cursor/agents/content-marketer.md) | Landing copy, learner-facing messaging, SEO for public pages |
+| [git-professional](.cursor/agents/git-professional.md) | Git theory, quiz, tasks; **update playbook after each book read**; GitHub/GitLab workflows |
+
+**How to apply:** at the start of a matching task, read the linked playbook and
+follow its workflow (analysis → implementation → verification). After reading a
+Git book, use **git-professional** and extend its *Book coverage ledger* in
+`.cursor/agents/git-professional.md`. Where the playbook conflicts with this file — e.g. migration policy, sandbox allowlist, coverage gate
+≥ 52%, Russian UI copy — **follow AGENTS.md**.
+
 ## What this project is
 
 GitPlayground is a Django web app for learning Git: theory modules, an interactive
 quiz, and hands-on tasks solved in a **sandboxed terminal** that runs real `git`
 commands and grades the result with a per-task `validator.py`.
 
-- **Stack:** Django 6, Python 3.12+, SQLite by default (Postgres via `DB_*` env vars),
+- **Stack:** Django 5+, Python 3.11+, SQLite by default (Postgres via `DB_*` env vars),
   Celery + Redis for background work, `markdown` + Mermaid for theory rendering.
 - **Entry point:** `manage.py`; project settings in `gitplayground/settings.py`;
   root URLConf in `gitplayground/urls.py`.
@@ -151,11 +211,39 @@ migration(s) (keep `__init__.py`), run `makemigrations`, recreate the dev DB
 On a fresh DB, achievement criterion fields are written by `bootstrap_default_achievements`
 (invoked by `seed_initial_data`), so no data migration is needed.
 
+## Ingesting a Git book (user request)
+
+When the user asks to **read a Git book** and apply it to the service, follow this
+order **in full** before calling the work done:
+
+1. **Read the book** — extract full text (e.g. `pypdf`); working copy under
+   `.sandboxes/` only (gitignored); never commit raw PDF/extracts.
+2. **Train the agent** — invoke [git-professional](.cursor/agents/git-professional.md):
+   gap analysis, update *Book coverage ledger* and add a *Playbook* subsection for
+   fully read books.
+3. **Theory** — update `apps/tasks/theory_content.py` where the book adds or corrects
+   material; run `sync_theory_content --force` after reseed.
+4. **Quiz** — add `apps/quiz/<book_slug>_questions.py`, wire in `question_generator.py`;
+   run dedupe/balance (`_semantic_dedup_key`); remove near-duplicates from older modules.
+5. **Tasks** — add sandbox-safe tasks only for novel, honestly validatable skills;
+   register slug, validator, `SOLUTIONS`.
+6. **Full service wipe** — delete dev `db.sqlite3`, `migrate`, `seed_initial_data`,
+   `seed_quiz_questions --force`, `sync_theory_content --force`, `manage.py test`;
+   then **clean dev cycle** (wipe `.sandboxes/`, stop `SandboxSession`, restart
+   `runserver`) per section above.
+
+Skip steps 3–5 only when gap analysis shows nothing new; still update the agent ledger
+and run step 6 if quiz or task registry changed.
+
 ## Authoring a task
+
+Invoke [git-professional](.cursor/agents/git-professional.md) when adding theory,
+quiz questions from books, or new task slugs — and **update that playbook** after
+ingesting a source (coverage ledger + content map).
 
 Tasks are defined in `apps/tasks/management/commands/seed_initial_data.py`:
 
-1. Add a `(slug, description, points)` entry to `TASK_BLUEPRINTS[level]`.
+1. Add a `(slug, description, points)` entry to `TASK_BLUEPRINTS[level]` (via `apps/tasks/task_registry.py`).
 2. Provide a validator: add a `TASK_VALIDATORS["<level>.<n>"]` entry or a branch in
    `_validator_by_slug`. Keep validators **honest** — only check what the learner can
    actually achieve in the no-network sandbox; align the `description` with the check.
@@ -171,7 +259,11 @@ Tasks are defined in `apps/tasks/management/commands/seed_initial_data.py`:
 
 When adding or changing templates or styles, follow **`DESIGN.md`** at the repository root
 as the source of truth for colors, typography, spacing, components, and responsive
-breakpoints.
+breakpoints. Read [design-system](.cursor/agents/design-system.md) (pointer to
+`DESIGN.md`) for project tokens; use [ui-designer](.cursor/agents/ui-designer.md)
+for design process; [javascript-pro](.cursor/agents/javascript-pro.md) for
+`static/js/`; [frontend-developer](.cursor/agents/frontend-developer.md) for
+templates and page wiring.
 
 ### CSS architecture
 
@@ -215,7 +307,9 @@ See also `docs/FRONTEND.md` for the full static-file map.
 ## Refactor and dead code (before push)
 
 Before pushing to GitHub, clean up leftovers from the same change set (or an
-accumulated refactor branch):
+accumulated refactor branch). For large refactors, follow
+[refactoring-specialist](.cursor/agents/refactoring-specialist.md); before push,
+optionally self-review with [code-reviewer](.cursor/agents/code-reviewer.md):
 
 1. **Remove dead code** — unused CSS classes, HTML blocks, JS helpers, Python
    imports, and static assets superseded by the new implementation (e.g. replaced

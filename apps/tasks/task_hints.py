@@ -37,6 +37,22 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Для компактного списка коммитов используй `git log --oneline`.",
         "Убедись, что в истории есть как минимум два коммита — это стартовое условие задачи.",
     ),
+    "grep_in_repo": (
+        "Поиск по отслеживаемым файлам: `git grep Git` (или `git grep -n Git` для номеров строк).",
+        "Запиши одну строку вывода в файл: `echo \"hello.txt:Hello, Git!\" > grep-hit.txt`.",
+    ),
+    "stage_tracked_only": (
+        "Измени отслеживаемый файл и создай новый: `echo \"...\" >> hello.txt`, `echo temp > scratch.txt`.",
+        "Стадируй только tracked: `git add -u`, затем `git commit -m \"...\"` — `scratch.txt` останется untracked.",
+    ),
+    "reset_head_unstage": (
+        "После правки: `git add hello.txt`, затем `git reset HEAD hello.txt`.",
+        "Проверь `git status --short`: должно быть ` M hello.txt` (изменён, но не staged).",
+    ),
+    "diff_cached_staged": (
+        "Измени `hello.txt`, затем `git add hello.txt`.",
+        "Проверь `git diff --cached`, создай маркер: `echo ok > staged-ready.txt`.",
+    ),
     # Level 2 — branching
     "create_branch": (
         "Создай и сразу переключись на ветку: `git checkout -b feature-x` (или `git switch -c feature-x`).",
@@ -66,6 +82,14 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Удаляй только неактивную ветку: `git branch -d feature-x` (сначала переключись на другую).",
         "Если ветка не слита, Git может отказать — для учебной задачи используй безопасное удаление слитой ветки.",
     ),
+    "branch_without_checkout": (
+        "Только `git branch sidecar` — без `checkout`/`switch`.",
+        "Проверь: `git branch --show-current` всё ещё `main`; запиши: `echo main > active-branch.txt`.",
+    ),
+    "rescue_detached_head": (
+        "Detached HEAD: `git checkout --detach` (или `git switch --detach`).",
+        "Спасение: `git checkout -b rescue-tip`, затем `echo rescue-tip > rescue-branch.txt`.",
+    ),
     # Level 3 — merges
     "fast_forward_merge": (
         "Слей ветку в `main`, когда `main` не ушёл вперёд: `git checkout main`, затем `git merge feature`.",
@@ -94,6 +118,10 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
     "revert_merge": (
         "Для отката merge-коммита используй `git revert -m 1 <merge-commit-sha>`.",
         "Параметр `-m 1` указывает, какого родителя считать «главной» линией истории.",
+    ),
+    "merge_base_ready": (
+        "Ветка: `git checkout -b prof-feature`, измени `hello.txt`, commit.",
+        "Проверь `git merge-base main HEAD`, затем `echo ok > merge-base-done.txt`.",
     ),
     # Level 4 — history rewriting
     "amend_message": (
@@ -145,6 +173,10 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Если push отклонён (non-fast-forward), сначала подтяни изменения: `git pull --rebase` или `git fetch` + merge/rebase.",
         "После успешной интеграции повтори `git push`.",
     ),
+    "create_offline_bundle": (
+        "Офлайн-пакет: `git bundle create repo.bundle HEAD main`.",
+        "Проверка: `git bundle verify repo.bundle` — должен завершиться без ошибок.",
+    ),
     # Level 6 — diagnostics
     "find_bisect": (
         "Запусти бинарный поиск: `git bisect start`, затем `git bisect bad` на текущем и `git bisect good` на известно хорошем коммите.",
@@ -170,6 +202,34 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Для удаления файла из всей истории в учебных задачах часто используют `git filter-branch` или последовательность checkout/rm/commit.",
         "После переписывания истории проверь `git log --oneline` и что чувствительный файл больше не встречается.",
     ),
+    "save_symbolic_head": (
+        "Новая ветка: `git checkout -b internals-demo` (или `git switch -c`).",
+        "Запиши вывод `git symbolic-ref HEAD` в файл: `echo refs/heads/internals-demo > head-ref.txt`.",
+    ),
+    "tree_list_root": (
+        "Посмотри корень: `git ls-tree --name-only HEAD`.",
+        "Запиши имена в файл, например `echo hello.txt > tree-list.txt` если в корне только hello.txt.",
+    ),
+    "attach_git_note": (
+        "Заметка: `git notes add -m \"reviewed\"` к текущему HEAD.",
+        "Сверь: `git notes show HEAD` и содержимое `note-check.txt` должны совпадать.",
+    ),
+    "rev_parse_head_sha": (
+        "Узнай ветку: `git rev-parse --abbrev-ref HEAD` (должно быть `main`).",
+        "Запиши: `echo main > current-branch.txt`.",
+    ),
+    "log_double_dot_range": (
+        "Ветка и коммит: `git checkout -b explore-range`, измени `hello.txt`, `git commit`.",
+        "Проверь `git log main..HEAD --oneline`, затем `echo ok > range-done.txt`.",
+    ),
+    "pickaxe_log_search": (
+        "Уникальный текст: `echo PROGIT_FIND >> hello.txt`, `git add`, `git commit`.",
+        "Поиск: `git log -S PROGIT_FIND --oneline`, маркер: `echo ok > pickaxe-done.txt`.",
+    ),
+    "triple_dot_log_range": (
+        "Ветка: `git checkout -b triple-explore`, измени `hello.txt`, commit.",
+        "Проверь `git log main...HEAD --oneline`, затем `echo ok > triple-done.txt`.",
+    ),
     # Level 7 — hygiene
     "setup_ignore": (
         "Создай `.gitignore` и добавь строки: `*.log`, `.env`, `__pycache__/` (по одной на строку).",
@@ -191,6 +251,10 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "В `.gitignore` правило `*.log` игнорирует все `.log`, исключение: `!important.log`.",
         "Исключение сработает только если родительская папка не игнорируется целиком.",
     ),
+    "clean_untracked": (
+        "Создай мусорный файл: `echo tmp > garbage.tmp`, затем `git clean -n` — dry-run.",
+        "Удали untracked: `git clean -f` (или `git clean -f garbage.tmp`).",
+    ),
     # Level 8 — tagging
     "create_lightweight_tag": (
         "Лёгкий тег на текущем коммите: `git tag v0.1-lw` (без `-a` и без сообщения).",
@@ -211,5 +275,58 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
     "push_tags": (
         "В песочнице сеть отключена — достаточно создать тег `v1.0` локально: `git tag -a v1.0 -m \"Release v1.0\"`.",
         "В реальном проекте теги публикуют `git push origin v1.0` или `git push --tags`.",
+    ),
+    # Level 9
+    "export_format_patch": (
+        "Экспорт одного коммита: `git format-patch -1 HEAD` — появится файл `0001-....patch`.",
+        "Патч можно отправить по почте или применить на другой машине через `git am`.",
+    ),
+    "git_mv_rename": (
+        "Переименование с историей: `git mv hello.txt readme.txt`.",
+        "Зафиксируй: `git commit -m \"Rename hello to readme\"`.",
+    ),
+    "commit_signoff": (
+        "Измени файл, добавь в индекс, коммить с подписью: `git commit -s -m \"...\"`.",
+        "В теле коммита появится строка `Signed-off-by: ...` — это DCO.",
+    ),
+    "semantic_describe": (
+        "Тег SemVer: `git tag -a v1.0.0 -m \"Release 1.0.0\"`.",
+        "Версия в тексте: `git describe --tags` — должно содержать `v1.0.0`.",
+    ),
+    "readme_first": (
+        "Создай README: `echo \"# GitPlayground Demo\" > README.md` (или свой заголовок с `#`).",
+        "Добавь и закоммить: `git add README.md`, `git commit -m \"Add README\"`.",
+    ),
+    "issue_close_message": (
+        "Измени файл, добавь в индекс, коммить с `Fixes #42` в сообщении.",
+        "Пример: `git commit -m \"Fix typo, Fixes #42\"`.",
+    ),
+    "gh_pages_branch": (
+        "Новая ветка: `git checkout -b gh-pages`.",
+        "Файл и коммит: `echo \"<h1>Pages</h1>\" > index.html`, `git add index.html`, `git commit -m \"Add pages stub\"`.",
+    ),
+    "jekyll_post_front_matter": (
+        "Каталог: `mkdir _posts`. В файле между `---` укажи `title:` и `layout: post`.",
+        "Пример: `echo --- > _posts/welcome.md`, строки метаданных, `echo --- >> ...`, тело, `git add`, `git commit`.",
+    ),
+    "write_git_blob": (
+        "Создай файл: `echo api > api.txt`.",
+        "Запиши blob в БД: `git hash-object -w api.txt` (SHA появится в выводе).",
+    ),
+    "mr_feature_branch": (
+        "Ветка для MR: `git checkout -b awesome-feature`.",
+        "Измени `hello.txt`, commit с `Feature for MR`, запиши `echo awesome-feature > mr-branch.txt`.",
+    ),
+    "add_gitlab_ci_yaml": (
+        "Минимальный CI: job `test` с `script:` и `echo ok` в `.gitlab-ci.yml`.",
+        "Не забудь `git add` и `git commit` — файл должен быть в истории.",
+    ),
+    "closes_issue_gitlab": (
+        "Измени файл, добавь в индекс, коммить с `Closes #7` в сообщении.",
+        "Пример: `git commit -m \"Update docs, Closes #7\"`.",
+    ),
+    "gitlab_md_issue_ref": (
+        "GLFM-ссылка: `echo \"See issue #3 for details\" > notes.md`.",
+        "Закоммить: `git add notes.md`, `git commit -m \"Add issue reference\"`.",
     ),
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from django.contrib.auth.models import User
@@ -143,6 +144,57 @@ HINT_UNLOCK_COSTS: dict[int, int] = {1: 3, 2: 5, 3: 10}
 
 class NotEnoughPointsError(Exception):
     pass
+
+
+class HintRequestError(Exception):
+    def __init__(self, message: str, *, status_code: int = 400) -> None:
+        self.message = message
+        self.status_code = status_code
+        super().__init__(message)
+
+
+@dataclass(frozen=True)
+class HintUnlockResult:
+    hint_index: int
+    total_hints: int
+    points_spent: int
+    already_unlocked: bool
+    next_hint_index: int
+    hints_exhausted: bool
+    content: str
+
+
+def process_hint_request(user: User, task: Task, hint_index: int) -> HintUnlockResult:
+    """Проверяет порядок подсказок, списывает баллы и возвращает данные для JSON API."""
+    hints = list(
+        TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.HINT)
+        .order_by("sort_order")
+        .values_list("content", flat=True)
+    )
+    hint = hints[hint_index - 1] if 0 < hint_index <= len(hints) else None
+    if not hint:
+        raise HintRequestError("Подсказки для этой задачи закончились.")
+
+    already = HintUsage.objects.filter(user=user, task=task, hint_index=hint_index).exists()
+    if not already and hint_index > 1:
+        if not HintUsage.objects.filter(user=user, task=task, hint_index=hint_index - 1).exists():
+            raise HintRequestError("Сначала откройте предыдущую подсказку.")
+
+    usage, charged, was_already = unlock_hint(user, task, hint_index)
+    max_idx = (
+        HintUsage.objects.filter(user=user, task=task).aggregate(m=Max("hint_index")).get("m") or 0
+    )
+    next_hint_index = max_idx + 1
+    hints_exhausted = next_hint_index > len(hints)
+    return HintUnlockResult(
+        hint_index=usage.hint_index,
+        total_hints=len(hints),
+        points_spent=charged,
+        already_unlocked=was_already,
+        next_hint_index=next_hint_index,
+        hints_exhausted=hints_exhausted,
+        content=hint,
+    )
 
 
 def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int, bool]:
