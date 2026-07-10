@@ -4,8 +4,6 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from django.utils import timezone
-
 from apps.core.tests.helpers import make_user
 from apps.progress.models import LeaderboardSnapshot
 from apps.users.legal import PRIVACY_CONSENT_SNAPSHOT, PRIVACY_POLICY_VERSION

@@ -3,7 +3,6 @@ from django.utils import timezone
 
 from apps.users.legal import PRIVACY_CONSENT_SNAPSHOT, PRIVACY_POLICY_VERSION
 from apps.users.models import UserProfile
-from apps.users.validators import validate_pseudonym
 
 
 def fallback_pseudonym(user: User) -> str:

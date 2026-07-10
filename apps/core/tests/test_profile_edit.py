@@ -1,6 +1,4 @@
-from django.contrib.auth.models import User
 from django.test import Client, TestCase
-from django.utils import timezone
 
 from apps.core.tests.helpers import make_user
 from apps.users.legal import MARKETING_CONSENT_VERSION

@@ -1,7 +1,6 @@
 import os
 from unittest import mock
 
-from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 

@@ -7,7 +7,6 @@ from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Task
 from apps.users.models import PointLedgerEntry
 from apps.users.services import ensure_user_profile
-from apps.users.services import ensure_user_profile
 
 K = Achievement.CriterionKind
 
