@@ -43,11 +43,11 @@ SANDBOX_ALLOW_LOCAL_FALLBACK = (
 )
 audit_logger = logging.getLogger("apps.core.sandbox.audit")
 
-# Детерминированное окружение git — см. sandbox_git.py
+# Deterministic git environment — see sandbox_git.py
 
 
 def validated_sandbox_workspace(repo_path: str) -> Path:
-    """Разрешить путь и убедиться, что он внутри SANDBOX_ROOT (защита для delete/reset)."""
+    """Resolve path and ensure it stays inside SANDBOX_ROOT (delete/reset guard)."""
     ensure_sandbox_root()
     root = SANDBOX_ROOT.resolve()
     path = Path(repo_path).resolve()
@@ -57,7 +57,7 @@ def validated_sandbox_workspace(repo_path: str) -> Path:
 
 
 def rmtree_sandbox_workspace_if_safe(repo_path: str) -> bool:
-    """Удалить рабочую директорию только если она лежит под SANDBOX_ROOT. Возвращает True, если удаление выполнено или каталога не было."""
+    """Delete workspace only if under SANDBOX_ROOT. Returns True if deleted or absent."""
     try:
         workspace = validated_sandbox_workspace(repo_path)
     except ValueError:
@@ -71,11 +71,11 @@ def rmtree_sandbox_workspace_if_safe(repo_path: str) -> bool:
     return True
 
 
-# Лимиты текстовых файлов в репозитории песочницы (чтение cat / редактор в UI).
+# Text file limits in the sandbox repo (cat read / UI file editor).
 SANDBOX_TEXT_FILE_READ_MAX_BYTES = 256 * 1024
 SANDBOX_TEXT_FILE_WRITE_MAX_BYTES = 256 * 1024
 
-# Псевдо-промпт в пользовательском логе (не раскрывать реальные пути хоста).
+# Pseudo-prompt in the user log (do not expose host filesystem paths).
 TERMINAL_PROMPT_PREFIX = "user@gitplayground:~/repo$ "
 
 
@@ -93,6 +93,10 @@ def _task_workspace_name(user: User, task: Task) -> str:
 
 def _is_docker_session(session: SandboxSession) -> bool:
     return session.container_id.startswith("docker-")
+
+
+def is_docker_session(session: SandboxSession) -> bool:
+    return _is_docker_session(session)
 
 
 def _docker_available() -> bool:
@@ -159,7 +163,7 @@ def _cleanup_legacy_repo_log(session: SandboxSession) -> None:
 
 
 def _sanitize_terminal_output(repo_root: str, command: str, text: str) -> str:
-    """Убрать абсолютные пути к песочнице и упростить шумный вывод git для учебного терминала."""
+    """Strip sandbox absolute paths and simplify noisy git output for the learner terminal."""
     if not text:
         return text
     out = text
@@ -203,6 +207,16 @@ def _write_log(
         f.write(f"{TERMINAL_PROMPT_PREFIX}{command}\n{output}\n")
 
 
+def write_session_log(
+    session: SandboxSession,
+    command: str,
+    output: str,
+    *,
+    include_in_user_log: bool = True,
+) -> None:
+    _write_log(session, command, output, include_in_user_log=include_in_user_log)
+
+
 def _audit_log(
     session: SandboxSession,
     command: str,
@@ -239,7 +253,7 @@ def _audit_log(
 def audit_playground_repo_file(
     session: SandboxSession, op: str, rel_path: str, *, allowed: bool, extra: dict | None = None
 ) -> None:
-    """Аудит операций чтения/записи файлов в песочнице (обход shell)."""
+    """Audit sandbox file read/write operations (no shell)."""
     meta: dict = {"path": rel_path}
     if extra:
         meta.update(extra)
@@ -291,7 +305,7 @@ def _repo_quota_violation(session: SandboxSession) -> str | None:
 
 
 def read_text_file_from_repo(session: SandboxSession, relative_path: str) -> tuple[bool, str, bool]:
-    """Читает один текстовый файл внутри репозитория. (ok, текст или сообщение об ошибке, truncated)."""
+    """Read one text file inside the repo. (ok, text or error message, truncated)."""
     normalized = relative_path.strip().replace("\\", "/")
     if relative_path_has_dotdot(normalized):
         return False, "Path must not contain '..'.", False
@@ -313,7 +327,7 @@ def read_text_file_from_repo(session: SandboxSession, relative_path: str) -> tup
 
 
 def write_text_file_to_repo(session: SandboxSession, relative_path: str, content: str) -> tuple[bool, str]:
-    """Записывает UTF-8 текст в файл внутри репозитория (без shell)."""
+    """Write UTF-8 text to a file inside the repo (no shell)."""
     normalized = relative_path.strip().replace("\\", "/")
     if relative_path_has_dotdot(normalized):
         return False, "Path must not contain '..'."
@@ -349,9 +363,9 @@ def write_text_file_to_repo(session: SandboxSession, relative_path: str, content
     return True, ""
 
 
-def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
+def get_active_session(user: User, task: Task) -> SandboxSession | None:
     now = timezone.now()
-    session = (
+    return (
         SandboxSession.objects.filter(
             user=user,
             task=task,
@@ -361,6 +375,10 @@ def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
         .order_by("-last_activity_at")
         .first()
     )
+
+
+def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
+    session = get_active_session(user, task)
     if session:
         _cleanup_legacy_repo_log(session)
         return session
@@ -377,6 +395,7 @@ def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
             container_id = proposed
         elif not SANDBOX_ALLOW_LOCAL_FALLBACK:
             raise RuntimeError("Docker sandbox runtime is required but unavailable.")
+    now = timezone.now()
     session = SandboxSession.objects.create(
         user=user,
         task=task,
@@ -566,8 +585,4 @@ def stop_session(session: SandboxSession) -> None:
     rmtree_sandbox_workspace_if_safe(session.repo_path)
     session.status = SandboxSession.Status.STOPPED
     session.save(update_fields=["status", "last_activity_at"])
-
-
-def session_log(session: SandboxSession) -> str:
-    return _read_log_tail(session)
 

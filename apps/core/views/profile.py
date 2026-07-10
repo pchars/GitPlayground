@@ -1,10 +1,11 @@
-"""Профиль пользователя и связанная статистика обучения."""
+"""User profile and related learning statistics."""
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.achievements.models import Achievement, UserAchievement
+from apps.achievements.services import quiz_streak_flawless_status
 from apps.progress.models import TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
@@ -49,7 +50,6 @@ def _profile_learning_stats(user: User) -> dict:
     total_easy = QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.EASY).count()
     total_medium = QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.MEDIUM).count()
     total_hard = QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.HARD).count()
-    has_quiz_fail = QuizQuestionProgress.objects.filter(user=user, failed_attempts__gt=0).exists()
     available_achievements = []
     for ach in all_achievements:
         unlocked = ach.id in achievement_map
@@ -63,8 +63,7 @@ def _profile_learning_stats(user: User) -> dict:
         elif ach.criterion_kind == K.QUIZ_ALL_SOLVED:
             progress_text = f"{solved_total}/{total_quiz} вопросов квиза"
         elif ach.criterion_kind == K.STREAK_FLAWLESS:
-            status = "без ошибок" if not has_quiz_fail else "есть ошибки"
-            progress_text = f"{solved_total}/{total_quiz} вопросов, статус: {status}"
+            progress_text = f"{solved_total}/{total_quiz} вопросов, статус: {quiz_streak_flawless_status(user)}"
         elif ach.criterion_kind == K.STREAK_MIN:
             progress_text = f"Лучшая серия: {quiz_stats.best_streak}/{ach.criterion_target}"
         else:

@@ -10,12 +10,12 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models import Max
 
-from apps.progress.models import HintUsage, TaskAttempt, TaskCompletion
+from apps.progress.models import HintUsage, TaskAttempt, TaskCompletion, TaskRevisionProgress
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task, TaskAsset
 from apps.users.models import PointLedgerEntry, UserProfile
 
-from .sandbox_ops import _is_docker_session, _write_log, git_env
+from .sandbox_ops import is_docker_session, write_session_log, git_env
 
 
 def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttempt:
@@ -35,7 +35,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
 
     verdict = TaskAttempt.Verdict.FAILED
     try:
-        if _is_docker_session(session):
+        if is_docker_session(session):
             last_code = 1
             last_output = ""
             for py in ("python3", "python"):
@@ -64,7 +64,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
                 env=git_env(),
             )
             output = (proc.stdout or "") + (proc.stderr or "")
-            _write_log(
+            write_session_log(
                 session,
                 f"{Path(sys.executable).name} {validator_path.name}",
                 output or "(no output)",
@@ -84,7 +84,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
 
     duration_ms = int((time.perf_counter() - started) * 1000)
     with transaction.atomic():
-        # Сериализация нумерации попыток для одного пользователя (без удержания блокировки на время валидатора).
+        # Serialize attempt numbering per user (no lock held during validator run).
         User.objects.select_for_update().filter(pk=user.pk).get()
         next_attempt_no = (
             TaskAttempt.objects.filter(user=user, task=task).aggregate(m=Max("attempt_no")).get("m") or 0
@@ -138,7 +138,7 @@ def can_open_task(user: User, task: Task) -> bool:
     return TaskCompletion.objects.filter(user=user, task=task).exists()
 
 
-# Стоимость подсказки по порядковому номеру (1 — первая в списке ассетов и т.д.).
+# Hint cost by unlock order (1 = first hint asset, etc.).
 HINT_UNLOCK_COSTS: dict[int, int] = {1: 3, 2: 5, 3: 10}
 
 
@@ -165,7 +165,7 @@ class HintUnlockResult:
 
 
 def process_hint_request(user: User, task: Task, hint_index: int) -> HintUnlockResult:
-    """Проверяет порядок подсказок, списывает баллы и возвращает данные для JSON API."""
+    """Validate hint order, charge points, return JSON API payload."""
     hints = list(
         TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.HINT)
         .order_by("sort_order")
@@ -198,7 +198,7 @@ def process_hint_request(user: User, task: Task, hint_index: int) -> HintUnlockR
 
 
 def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int, bool]:
-    """Возвращает (запись использования, списано баллов в ЭТОМ запросе, уже была открыта ранее)."""
+    """Return (usage row, points spent in THIS request, already unlocked before)."""
     cost = HINT_UNLOCK_COSTS.get(hint_index, 10)
     existing = HintUsage.objects.filter(user=user, task=task, hint_index=hint_index).first()
     if existing:
@@ -230,3 +230,90 @@ def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int
                 defaults={"delta": -cost},
             )
     return usage, cost, False
+
+
+def ensure_revision_progress(user: User, task: Task) -> TaskRevisionProgress | None:
+    """Current progress for the active task revision (no per-step checklist)."""
+    active_revision = task.revisions.filter(is_active=True).order_by("-version").first()
+    if not active_revision:
+        return None
+
+    current = (
+        TaskRevisionProgress.objects.filter(user=user, task=task, is_current=True)
+        .select_related("revision")
+        .first()
+    )
+    if current and current.revision_id == active_revision.id:
+        return current
+
+    if current:
+        current.is_current = False
+        current.save(update_fields=["is_current", "updated_at"])
+
+    progress, created = TaskRevisionProgress.objects.get_or_create(
+        user=user,
+        task=task,
+        revision=active_revision,
+        defaults={
+            "is_current": True,
+            "migrated_from_revision": current.revision if current else None,
+            "completion_pct": 0,
+        },
+    )
+    if not created and not progress.is_current:
+        progress.is_current = True
+        progress.save(update_fields=["is_current", "updated_at"])
+    return progress
+
+
+def task_learning_content(user: User, task: Task) -> dict:
+    revision = task.revisions.filter(is_active=True).order_by("-version").first()
+    ensure_revision_progress(user, task)
+    if not revision:
+        return {
+            "objective": task.description,
+            "steps": [],
+            "expected_state": "",
+            "validator_notes": "",
+            "version": None,
+        }
+    return {
+        "objective": revision.objective,
+        "steps": revision.steps or [],
+        "expected_state": revision.expected_state,
+        "validator_notes": revision.validator_notes,
+        "version": revision.version,
+    }
+
+
+def hint_ui_state(user: User, task: Task) -> dict:
+    """Hint state for playground: unlocked, next index, whether limit is exhausted."""
+    contents = list(
+        TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.HINT)
+        .order_by("sort_order")
+        .values_list("content", flat=True)
+    )
+    total = len(contents)
+    rows = list(
+        HintUsage.objects.filter(user=user, task=task).order_by("hint_index").values("hint_index", "points_spent")
+    )
+    revealed: list[dict] = []
+    for row in rows:
+        idx = row["hint_index"]
+        if 1 <= idx <= total:
+            revealed.append(
+                {
+                    "index": idx,
+                    "content": contents[idx - 1],
+                    "points_spent": row["points_spent"],
+                }
+            )
+    max_idx = max((r["hint_index"] for r in rows), default=0)
+    next_hint_index = max_idx + 1 if total else 1
+    exhausted = total == 0 or max_idx >= total
+    return {
+        "revealed": revealed,
+        "next_hint_index": next_hint_index,
+        "exhausted": exhausted,
+        "total": total,
+    }

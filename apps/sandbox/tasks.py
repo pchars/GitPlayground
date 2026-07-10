@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
 
-from apps.core.services.sandbox_ops import stop_session
+from apps.core.services import stop_session
 from apps.sandbox.models import SandboxSession
 
 

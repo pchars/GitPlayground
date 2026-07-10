@@ -334,6 +334,37 @@ def bootstrap_default_achievements() -> None:
         )
 
 
+def achievement_toast_payload(user_achievement: UserAchievement) -> dict:
+    achievement = user_achievement.achievement
+    return {
+        "icon": achievement.icon_path,
+        "title": achievement.title,
+        "description": achievement.description,
+    }
+
+
+def achievement_toast_payloads_since(user: User, before_achievement_ids: set[int]) -> list[dict]:
+    rows = (
+        UserAchievement.objects.filter(user=user)
+        .exclude(achievement_id__in=before_achievement_ids)
+        .select_related("achievement")
+        .order_by("-awarded_at")
+    )
+    return [achievement_toast_payload(item) for item in rows]
+
+
+def quiz_streak_flawless_status(user: User) -> str:
+    """STREAK_FLAWLESS status — must match evaluate_achievements_for_user."""
+    has_any_quiz_fail = QuizQuestionProgress.objects.filter(user=user, failed_attempts__gt=0).exists()
+    quiz_stats, _ = QuizUserStats.objects.get_or_create(user=user)
+    flawless = (
+        not has_any_quiz_fail
+        and quiz_stats.answered_total > 0
+        and quiz_stats.answered_total == quiz_stats.correct_total
+    )
+    return "без ошибок" if flawless else "есть ошибки"
+
+
 @transaction.atomic
 def evaluate_achievements_for_user(user: User) -> list[UserAchievement]:
     bootstrap_default_achievements()

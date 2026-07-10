@@ -1,4 +1,4 @@
-"""Страница песочницы и JSON API для терминала, файлов и валидации."""
+"""Sandbox page and JSON API for terminal, files, and validation."""
 
 import time
 from typing import NamedTuple
@@ -6,36 +6,33 @@ from typing import NamedTuple
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.achievements.models import UserAchievement
+from apps.achievements.services import achievement_toast_payloads_since
 from apps.core.playground_limits import allow_playground_action
 from apps.core.services import (
-    SANDBOX_TEXT_FILE_WRITE_MAX_BYTES,
     HintRequestError,
+    NotEnoughPointsError,
     audit_playground_repo_file,
     can_open_task,
-    get_or_create_active_session,
+    get_active_session,
     get_next_unlockable_task_for_user,
+    get_or_create_active_session,
+    hint_ui_state,
     process_hint_request,
     read_text_file_from_repo,
     reset_session,
     run_command,
+    task_learning_content,
     validate_task,
     write_text_file_to_repo,
-    NotEnoughPointsError,
 )
 from apps.progress.models import TaskAttempt
 from apps.sandbox.models import SandboxSession
-from apps.tasks.models import Task, TaskAsset
+from apps.tasks.models import Task
 
-from .helpers import (
-    _hint_ui_state,
-    _log_playground_event,
-    _task_from_route,
-    _task_learning_content,
-)
+from .helpers import _log_playground_event, _task_from_route
 
 
 _RATE_LIMIT_MESSAGES = {
@@ -61,13 +58,9 @@ def _acquire_session(
     started_at: float | None = None,
     check_lock: bool = True,
     rate_action: str | None = None,
+    require_session: bool = True,
 ) -> _SessionGuard:
-    """Resolve the task, enforce the lock/rate guards and acquire an active sandbox session.
-
-    Returns a guard whose ``error`` is a ready-to-return JsonResponse when any check fails,
-    otherwise ``session`` is populated. When ``endpoint`` is given, failures are logged with
-    the same shape the individual handlers used before this helper existed.
-    """
+    """Resolve the task, enforce lock/rate guards and optionally acquire a sandbox session."""
     if task is None:
         task = _task_from_route(task_id)
     log_started_at = started_at if started_at is not None else time.perf_counter()
@@ -88,6 +81,8 @@ def _acquire_session(
             None,
             JsonResponse({"ok": False, "message": _RATE_LIMIT_MESSAGES[rate_action]}, status=429),
         )
+    if not require_session:
+        return _SessionGuard(task, None, None)
     try:
         session = get_or_create_active_session(request.user, task)
     except RuntimeError as exc:
@@ -105,42 +100,22 @@ def playground(request, task_id):
         if next_task:
             return redirect("playground", task_id=next_task.external_id.replace(".", "_"))
         return redirect("tasks")
-    fresh_requested = request.GET.get("fresh") == "1"
     try:
-        session = None
-        if fresh_requested:
-            current = (
-                SandboxSession.objects.filter(
-                    user=request.user,
-                    task=task,
-                    status__in=[SandboxSession.Status.STARTING, SandboxSession.Status.ACTIVE],
-                    expires_at__gt=timezone.now(),
-                )
-                .order_by("-last_activity_at")
-                .first()
-            )
+        if request.GET.get("fresh") == "1":
+            current = get_active_session(request.user, task)
             if current:
-                session = reset_session(current)
-        if session is None:
-            session = get_or_create_active_session(request.user, task)
+                reset_session(current)
+        get_or_create_active_session(request.user, task)
     except RuntimeError as exc:
         return HttpResponse(f"Sandbox is temporarily unavailable: {exc}", status=503)
-    hints = list(
-        TaskAsset.objects.filter(task=task, asset_type=TaskAsset.AssetType.HINT)
-        .order_by("sort_order")
-        .values("sort_order", "content")
-    )
     return render(
         request,
         "core/playground.html",
         {
             "task": task,
             "task_route_id": task.external_id.replace(".", "_"),
-            "session": session,
-            "fresh_requested": fresh_requested,
-            "hints": hints,
-            "learning_content": _task_learning_content(request.user, task),
-            "hint_ui_state": _hint_ui_state(request.user, task),
+            "learning_content": task_learning_content(request.user, task),
+            "hint_ui_state": hint_ui_state(request.user, task),
         },
     )
 
@@ -225,32 +200,15 @@ def playground_write_file(request: HttpRequest, task_id: str) -> JsonResponse:
     path = (request.POST.get("path") or "").strip()
     if not path:
         return JsonResponse({"ok": False, "message": "path is required"}, status=400)
-    content = request.POST.get("content", "")
-    if content is None:
-        content = ""
+    content = request.POST.get("content") or ""
     raw_len = len(content.encode("utf-8"))
-    if raw_len > SANDBOX_TEXT_FILE_WRITE_MAX_BYTES:
-        audit_playground_repo_file(
-            session,
-            "write",
-            path,
-            allowed=False,
-            extra={"bytes": raw_len, "deny": "too_large"},
-        )
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": f"Content exceeds limit ({SANDBOX_TEXT_FILE_WRITE_MAX_BYTES} bytes).",
-            },
-            status=400,
-        )
     ok, errmsg = write_text_file_to_repo(session, path, content)
     audit_playground_repo_file(
         session,
         "write",
         path,
         allowed=ok,
-        extra={"bytes": raw_len},
+        extra={"bytes": raw_len, **({"deny": "too_large"} if not ok and "limit" in errmsg.lower() else {})},
     )
     if not ok:
         return JsonResponse({"ok": False, "message": errmsg}, status=400)
@@ -269,20 +227,7 @@ def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
         UserAchievement.objects.filter(user=request.user).values_list("achievement_id", flat=True)
     )
     attempt = validate_task(request.user, task, session)
-    new_achievements = list(
-        UserAchievement.objects.filter(user=request.user)
-        .exclude(achievement_id__in=before_achievement_ids)
-        .select_related("achievement")
-        .order_by("-awarded_at")
-    )
-    awarded_payload = [
-        {
-            "icon": item.achievement.icon_path,
-            "title": item.achievement.title,
-            "description": item.achievement.description,
-        }
-        for item in new_achievements
-    ]
+    awarded_payload = achievement_toast_payloads_since(request.user, before_achievement_ids)
     next_task = None
     if attempt.verdict == TaskAttempt.Verdict.PASSED:
         next_task = get_next_unlockable_task_for_user(request.user)
@@ -293,7 +238,7 @@ def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
             "diagnostics": attempt.diagnostics,
             "attempt_no": attempt.attempt_no,
             "duration_ms": attempt.duration_ms,
-            "learning_content": _task_learning_content(request.user, task),
+            "learning_content": task_learning_content(request.user, task),
             "next_task_route_id": (
                 next_task.external_id.replace(".", "_")
                 if next_task and next_task.id != task.id
@@ -350,23 +295,17 @@ def playground_reset(request: HttpRequest, task_id: str) -> JsonResponse:
 @require_POST
 def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
     started_at = time.perf_counter()
-    task = _task_from_route(task_id)
-    if not can_open_task(request.user, task):
-        return JsonResponse({"ok": False, "message": "Task is locked"}, status=403)
-    if not allow_playground_action(request.user.id, task.id, "hint"):
-        _log_playground_event(
-            request,
-            task,
-            endpoint="hint",
-            started_at=started_at,
-            status_code=429,
-            ok=False,
-            reason="rate_limited",
-        )
-        return JsonResponse(
-            {"ok": False, "message": "Слишком много запросов подсказок. Подождите немного."},
-            status=429,
-        )
+    guard = _acquire_session(
+        request,
+        task_id,
+        endpoint="hint",
+        started_at=started_at,
+        rate_action="hint",
+        require_session=False,
+    )
+    if guard.error:
+        return guard.error
+    task = guard.task
     try:
         hint_index = int(request.POST.get("hint_index", "1"))
     except ValueError:
@@ -386,6 +325,16 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
         )
         return JsonResponse({"ok": False, "message": exc.message}, status=exc.status_code)
     except NotEnoughPointsError as exc:
+        _log_playground_event(
+            request,
+            task,
+            endpoint="hint",
+            started_at=started_at,
+            status_code=400,
+            ok=False,
+            hint_index=hint_index,
+            reason="not_enough_points",
+        )
         return JsonResponse({"ok": False, "message": str(exc)}, status=400)
 
     response = JsonResponse(

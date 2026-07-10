@@ -1,4 +1,4 @@
-"""Песочница и связанная логика плейграунда (фасад над подмодулями)."""
+"""Facade over sandbox and learn_ops service modules."""
 
 from .learn_ops import (
     HINT_UNLOCK_COSTS,
@@ -6,8 +6,11 @@ from .learn_ops import (
     HintUnlockResult,
     NotEnoughPointsError,
     can_open_task,
+    ensure_revision_progress,
     get_next_unlockable_task_for_user,
+    hint_ui_state,
     process_hint_request,
+    task_learning_content,
     unlock_hint,
     validate_task,
 )
@@ -24,11 +27,11 @@ from .sandbox_ops import (
     TERMINAL_PROMPT_PREFIX,
     CommandResult,
     audit_playground_repo_file,
+    get_active_session,
     get_or_create_active_session,
     read_text_file_from_repo,
     reset_session,
     run_command,
-    session_log,
     stop_session,
     write_text_file_to_repo,
 )
@@ -51,14 +54,17 @@ __all__ = [
     "CommandResult",
     "audit_playground_repo_file",
     "can_open_task",
+    "ensure_revision_progress",
+    "get_active_session",
     "get_next_unlockable_task_for_user",
+    "hint_ui_state",
     "process_hint_request",
     "get_or_create_active_session",
     "read_text_file_from_repo",
     "reset_session",
     "run_command",
-    "session_log",
     "stop_session",
+    "task_learning_content",
     "unlock_hint",
     "validate_task",
     "write_text_file_to_repo",

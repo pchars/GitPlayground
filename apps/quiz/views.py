@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
-from apps.achievements.services import evaluate_achievements_for_user
+from apps.achievements.services import achievement_toast_payload, evaluate_achievements_for_user
 from .models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 
 SESSION_RECENT = "quiz_recent_ids"
@@ -73,11 +73,7 @@ def _get_or_create_stats(user) -> QuizUserStats:
 
 def _push_achievement_messages(request: HttpRequest, awarded) -> None:
     for ua in awarded:
-        payload = {
-            "icon": ua.achievement.icon_path,
-            "title": ua.achievement.title,
-            "description": ua.achievement.description,
-        }
+        payload = achievement_toast_payload(ua)
         messages.success(request, json.dumps(payload, ensure_ascii=False), extra_tags="achievement")
 
 
