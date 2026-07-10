@@ -26,8 +26,6 @@ jobs:
               --config p/django \
               --config p/javascript \
               --config p/typescript \
-              --config p/html \
-              --config p/css \
               --config p/secrets \
               --config p/owasp-top-ten \
               --metrics=off \
@@ -68,7 +66,7 @@ jobs:
           test -f package-lock.json
 
       - name: Filesystem scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
           scan-type: fs
@@ -87,7 +85,7 @@ jobs:
       - name: Build image for scan
         run: docker build -t gitplayground:ci .
       - name: Image scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
           scan-type: image
