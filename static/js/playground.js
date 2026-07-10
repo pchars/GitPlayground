@@ -1,495 +1,326 @@
-  (function () {
-    const csrfInput = document.querySelector("#csrf-holder input[name=csrfmiddlewaretoken]");
-    const csrf = csrfInput ? csrfInput.value : "";
-    const urls = (window.__GP_PLAYGROUND__ && window.__GP_PLAYGROUND__.urls) || {};
-    const terminalBody = document.getElementById("terminal-body");
-    const xtermHost = document.getElementById("xterm-host");
-    const validateBtn = document.getElementById("validate-btn");
-    const resetBtn = document.getElementById("reset-btn");
-    const hintBtn = document.getElementById("hint-btn");
-    const validateOutput = document.getElementById("validate-output");
-    const hintOutput = document.getElementById("hint-output");
-    const hintsDataNode = document.getElementById("task-hints-data");
-    const hintsData = hintsDataNode ? JSON.parse(hintsDataNode.textContent || "[]") : [];
-    const hintUiStateNode = document.getElementById("hint-ui-state-data");
-    const hintUiState = hintUiStateNode
-      ? JSON.parse(hintUiStateNode.textContent || "{}")
-      : { revealed: [], next_hint_index: 1, exhausted: false, total: 0 };
-    const maxHints = hintsData.length;
-    const commandHistory = [];
-    let historyCursor = 0;
-    let nextHintIndex = hintUiState.next_hint_index || 1;
-    let commandBuffer = "";
-    let cursorPos = 0;
-    let isCommandRunning = false;
-    const promptLabel = "user@gitplayground:~/repo$ ";
-    const PROMPT_ANSI = "\u001b[1;32muser@gitplayground:~/repo$\u001b[0m ";
-    let term = null;
-    let usesAnsiPrompt = false;
-    let lastPasteAt = 0;
+(function () {
+  const csrfInput = document.querySelector("#csrf-holder input[name=csrfmiddlewaretoken]");
+  const csrf = csrfInput ? csrfInput.value : "";
+  const urls = (window.__GP_PLAYGROUND__ && window.__GP_PLAYGROUND__.urls) || {};
+  const terminalBody = document.getElementById("terminal-body");
+  const xtermHost = document.getElementById("xterm-host");
+  const validateBtn = document.getElementById("validate-btn");
+  const resetBtn = document.getElementById("reset-btn");
+  const hintBtn = document.getElementById("hint-btn");
+  const validateOutput = document.getElementById("validate-output");
+  const hintOutput = document.getElementById("hint-output");
+  const hintUiStateNode = document.getElementById("hint-ui-state-data");
+  const hintUiState = hintUiStateNode
+    ? JSON.parse(hintUiStateNode.textContent || "{}")
+    : { revealed: [], next_hint_index: 1, exhausted: false, total: 0 };
+  const maxHints = hintUiState.total != null ? hintUiState.total : 0;
+  const commandHistory = [];
+  let historyCursor = 0;
+  let nextHintIndex = hintUiState.next_hint_index || 1;
+  let commandBuffer = "";
+  let cursorPos = 0;
+  let isCommandRunning = false;
+  const promptLabel = window.GPTerminalPaste.PROMPT;
+  const PROMPT_ANSI = "\u001b[1;32muser@gitplayground:~/repo$\u001b[0m ";
+  let term = null;
+  let fitAddon = null;
+  let lastPasteAt = 0;
 
-    function sanitizePaste(text) {
-      if (window.GPTerminalPaste && typeof window.GPTerminalPaste.sanitizeTerminalPaste === "function") {
-        return window.GPTerminalPaste.sanitizeTerminalPaste(text);
-      }
-      return String(text || "").split(/\r?\n/)[0].trim();
+  function isLikelyPasteChunk(chunk) {
+    const value = String(chunk || "");
+    return value.includes("\n")
+      || value.includes("\r")
+      || value.includes("\x1b")
+      || value.includes(promptLabel);
+  }
+
+  function extractBracketedPaste(chunk) {
+    const match = String(chunk || "").match(/\x1b\[200~([\s\S]*?)\x1b\[201~/);
+    return match ? match[1] : null;
+  }
+
+  function clampCursor() {
+    if (cursorPos < 0) cursorPos = 0;
+    if (cursorPos > commandBuffer.length) cursorPos = commandBuffer.length;
+  }
+
+  function rewriteInputLine() {
+    clampCursor();
+    term.write("\u001b[2K\r" + PROMPT_ANSI + commandBuffer);
+    const back = commandBuffer.length - cursorPos;
+    if (back > 0) {
+      term.write("\u001b[" + back + "D");
     }
+  }
 
-    function isLikelyPasteChunk(chunk) {
-      const value = String(chunk || "");
-      return value.includes("\n")
-        || value.includes("\r")
-        || value.includes("\x1b")
-        || value.includes("user@gitplayground:~/repo$");
+  function insertAtCursor(text) {
+    commandBuffer = commandBuffer.slice(0, cursorPos) + text + commandBuffer.slice(cursorPos);
+    cursorPos += text.length;
+    rewriteInputLine();
+  }
+
+  function applyPaste(raw) {
+    const now = Date.now();
+    if (now - lastPasteAt < 80) {
+      return;
     }
-
-    function extractBracketedPaste(chunk) {
-      const match = String(chunk || "").match(/\x1b\[200~([\s\S]*?)\x1b\[201~/);
-      return match ? match[1] : null;
+    lastPasteAt = now;
+    const chunk = window.GPTerminalPaste.sanitizeTerminalPaste(raw);
+    if (!chunk || isCommandRunning) {
+      return;
     }
+    insertAtCursor(chunk);
+  }
 
-    function clampCursor() {
-      if (cursorPos < 0) cursorPos = 0;
-      if (cursorPos > commandBuffer.length) cursorPos = commandBuffer.length;
-    }
+  function writePrompt() {
+    term.write(`\r\n${PROMPT_ANSI}`);
+  }
 
-    function rewriteInputLine() {
-      clampCursor();
-      if (typeof term._setLiveCommand === "function") {
-        term._setLiveCommand(commandBuffer);
-        return;
-      }
-      term.write("\u001b[2K\r" + (usesAnsiPrompt ? PROMPT_ANSI : promptLabel) + commandBuffer);
-      const back = commandBuffer.length - cursorPos;
-      if (back > 0) {
-        term.write("\u001b[" + back + "D");
-      }
-    }
+  function showTerminalUnavailable() {
+    xtermHost.innerHTML = '<p class="xterm-unavailable muted">Терминал недоступен. Перезагрузите страницу.</p>';
+  }
 
-    function insertAtCursor(text) {
-      commandBuffer = commandBuffer.slice(0, cursorPos) + text + commandBuffer.slice(cursorPos);
-      cursorPos += text.length;
-      rewriteInputLine();
-    }
+  function xtermTheme() {
+    return { background: "#ffffff", foreground: "#24292f", cursor: "#24292f" };
+  }
 
-    function applyPaste(raw) {
-      const now = Date.now();
-      if (now - lastPasteAt < 80) {
-        return;
-      }
-      lastPasteAt = now;
-      const chunk = sanitizePaste(raw);
-      if (!chunk || isCommandRunning) {
-        return;
-      }
-      insertAtCursor(chunk);
-    }
-
-    function writePromptText() {
-      if (usesAnsiPrompt) {
-        term.write(`\r\n${PROMPT_ANSI}`);
-        return;
-      }
-      term.write(`\r\n${promptLabel}`);
-    }
-
-    function createFallbackTerminal() {
-      const output = document.createElement("div");
-      output.className = "terminal-log";
-      const liveLine = document.createElement("div");
-      liveLine.className = "terminal-live-line";
-      liveLine.innerHTML = `<span class="terminal-prompt">${promptLabel}</span><span class="terminal-command"></span><span class="terminal-cursor">█</span>`;
-      xtermHost.innerHTML = "";
-      xtermHost.appendChild(output);
-      xtermHost.appendChild(liveLine);
-      const liveCommand = liveLine.querySelector(".terminal-command");
-      let fallbackOnData = null;
-
-      term = {
-        write: (text) => {
-          const value = String(text || "");
-          if (!value) return;
-          if (value === "\b \b") return;
-          if (value.includes("\u001b[2K")) return;
-          if (value.length === 1 && value >= " ") return;
-          output.textContent += value.replace(/\r/g, "");
-        },
-        writeln: (text) => {
-          const line = document.createElement("div");
-          line.className = "terminal-output-line";
-          line.textContent = String(text || "");
-          output.appendChild(line);
-        },
-        clear: () => {
-          output.replaceChildren();
-        },
-        scrollToBottom: () => {
-          terminalBody.scrollTop = terminalBody.scrollHeight;
-        },
-        focus: () => {
-          terminalBody.focus();
-        },
-        onData: (handler) => {
-          fallbackOnData = handler;
-        },
-        _setLiveCommand: (value) => {
-          if (liveCommand) {
-            liveCommand.textContent = value;
-          }
-        },
-      };
-
-      terminalBody.addEventListener("keydown", (event) => {
-        if (!fallbackOnData) return;
-        if (event.key === "Enter") {
-          event.preventDefault();
-          fallbackOnData("\r");
-          return;
-        }
-        if (event.key === "Backspace") {
-          event.preventDefault();
-          fallbackOnData("\u007F");
-          return;
-        }
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          fallbackOnData("\u001b[A");
-          return;
-        }
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          fallbackOnData("\u001b[B");
-          return;
-        }
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          fallbackOnData("\u001b[D");
-          return;
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          fallbackOnData("\u001b[C");
-          return;
-        }
-        if (event.key === "Home") {
-          event.preventDefault();
-          fallbackOnData("\u001b[H");
-          return;
-        }
-        if (event.key === "End") {
-          event.preventDefault();
-          fallbackOnData("\u001b[F");
-          return;
-        }
-        if (event.key === "Delete") {
-          event.preventDefault();
-          fallbackOnData("\u001b[3~");
-          return;
-        }
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "l") {
-          event.preventDefault();
-          fallbackOnData("\u000c");
-          return;
-        }
-        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-          event.preventDefault();
-          fallbackOnData(event.key);
-        }
-      });
-    }
-
-    function xtermTheme() {
-      return { background: "#ffffff", foreground: "#24292f", cursor: "#24292f" };
-    }
-
-    let fitAddon = null;
-
+  if (typeof window.Terminal === "function") {
     try {
-      if (typeof window.Terminal === "function") {
-        term = new window.Terminal({
-          cursorBlink: true,
-          theme: xtermTheme(),
-          fontFamily: "\"JetBrains Mono\", \"Fira Code\", monospace",
-          fontSize: 13,
-          convertEol: true,
-          scrollback: 2000,
-        });
-        term.open(xtermHost);
-        usesAnsiPrompt = true;
-        term.attachCustomKeyEventHandler((event) => {
-          if (event.type !== "keydown") {
-            return true;
-          }
-          if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "v") {
-            event.preventDefault();
-            if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
-              navigator.clipboard.readText().then(applyPaste).catch(() => {});
-            }
-            return false;
-          }
+      term = new window.Terminal({
+        cursorBlink: true,
+        theme: xtermTheme(),
+        fontFamily: "\"JetBrains Mono\", \"Fira Code\", monospace",
+        fontSize: 13,
+        convertEol: true,
+        scrollback: 2000,
+      });
+      term.open(xtermHost);
+      term.attachCustomKeyEventHandler((event) => {
+        if (event.type !== "keydown") {
           return true;
-        });
-        const FitCtor = window.FitAddon && (window.FitAddon.FitAddon || window.FitAddon);
-        if (typeof FitCtor === "function") {
-          fitAddon = new FitCtor();
-          term.loadAddon(fitAddon);
-          fitAddon.fit();
-          window.addEventListener("resize", () => fitAddon.fit());
         }
-      } else {
-        createFallbackTerminal();
-      }
-    } catch (error) {
-      createFallbackTerminal();
-    }
-    if (!term) {
-      createFallbackTerminal();
-    }
-
-    function writePrompt() {
-      if (typeof term._setLiveCommand === "function") {
-        term._setLiveCommand("");
-        return;
-      }
-      writePromptText();
-    }
-
-    function appendSubmittedCommandLine(command) {
-      if (typeof term._setLiveCommand === "function") {
-        const output = xtermHost.querySelector(".terminal-log");
-        if (output) {
-          const line = document.createElement("div");
-          line.className = "terminal-history-line";
-          line.innerHTML = `<span class="terminal-prompt">${promptLabel}</span><span class="terminal-command">${escapeHtml(command)}</span>`;
-          output.appendChild(line);
-        } else {
-          term.writeln(`${promptLabel}${command}`);
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "v") {
+          event.preventDefault();
+          if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
+            navigator.clipboard.readText().then(applyPaste).catch(() => {});
+          }
+          return false;
         }
-        term._setLiveCommand("");
-        return;
+        return true;
+      });
+      const FitCtor = window.FitAddon && (window.FitAddon.FitAddon || window.FitAddon);
+      if (typeof FitCtor === "function") {
+        fitAddon = new FitCtor();
+        term.loadAddon(fitAddon);
+        fitAddon.fit();
+        window.addEventListener("resize", () => fitAddon.fit());
       }
-      term.writeln(`${promptLabel}${command}`);
-    }
-
-    function escapeHtml(value) {
-      return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    if (typeof term._setLiveCommand === "function") {
-      term._setLiveCommand("");
-    } else {
       writePrompt();
+    } catch (error) {
+      term = null;
     }
+  }
 
-    function scrollTerminalDown() {
+  if (!term) {
+    showTerminalUnavailable();
+  }
+
+  function scrollTerminalDown() {
+    if (term) {
       term.scrollToBottom();
     }
+  }
 
-    function renderHintBlock(index, content, pointsSpent) {
-      const wrap = document.createElement("div");
-      wrap.className = "hint-reveal-block";
-      const title = document.createElement("p");
-      const spent = pointsSpent ? ` (списано ${pointsSpent} баллов)` : "";
-      title.textContent = `Подсказка ${index}${spent}`;
-      const body = document.createElement("p");
-      body.textContent = content;
-      wrap.appendChild(title);
-      wrap.appendChild(body);
-      hintOutput.appendChild(wrap);
+  function renderHintBlock(index, content, pointsSpent) {
+    const wrap = document.createElement("div");
+    wrap.className = "hint-reveal-block";
+    const title = document.createElement("p");
+    const spent = pointsSpent ? ` (списано ${pointsSpent} баллов)` : "";
+    title.textContent = `Подсказка ${index}${spent}`;
+    const body = document.createElement("p");
+    body.textContent = content;
+    wrap.appendChild(title);
+    wrap.appendChild(body);
+    hintOutput.appendChild(wrap);
+  }
+
+  function hydrateHintsFromServer() {
+    hintOutput.innerHTML = "";
+    if (!maxHints) {
+      hintOutput.textContent = "Для этой задачи подсказки не настроены.";
+      return;
     }
-
-    function hydrateHintsFromServer() {
-      hintOutput.innerHTML = "";
-      const total = hintUiState.total != null ? hintUiState.total : maxHints;
-      if (!total) {
-        hintOutput.textContent = "Для этой задачи подсказки не настроены.";
-        return;
-      }
-      const revealed = hintUiState.revealed || [];
-      if (!revealed.length) {
-        hintOutput.textContent = "Подсказки пока не открыты.";
-        return;
-      }
-      revealed.forEach((row) => {
-        renderHintBlock(row.index, row.content, row.points_spent);
-      });
+    const revealed = hintUiState.revealed || [];
+    if (!revealed.length) {
+      hintOutput.textContent = "Подсказки пока не открыты.";
+      return;
     }
+    revealed.forEach((row) => {
+      renderHintBlock(row.index, row.content, row.points_spent);
+    });
+  }
 
-    async function post(url, payload) {
-      const body = new URLSearchParams(payload);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "X-CSRFToken": csrf, "Content-Type": "application/x-www-form-urlencoded" },
-        body,
-      });
-      return response.json();
+  async function post(url, payload) {
+    const body = new URLSearchParams(payload);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrf, "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    return response.json();
+  }
+
+  function renderLocalHelp() {
+    term.writeln("");
+    term.writeln("Справка GitPlayground");
+    term.writeln("----------------");
+    term.writeln("Доступные команды:");
+    term.writeln("  - git <...>");
+    term.writeln("  - touch <file>");
+    term.writeln("  - cat <file>   (только путь, без флагов)");
+    term.writeln("  - type nul > <file>");
+    term.writeln("  - echo <text> > <file>");
+    term.writeln("  - echo <text> >> <file>");
+    term.writeln("  - многострочный текст: блок «Редактор файла» под терминалом");
+    term.writeln("");
+    term.writeln("Горячие клавиши:");
+    term.writeln("  - Enter: выполнить команду");
+    term.writeln("  - ArrowUp / ArrowDown: история команд");
+    term.writeln("  - Ctrl+L: очистить терминал");
+    term.writeln("  - Ctrl+V / Cmd+V: вставить в строку команды");
+    term.writeln("Локальная команда: help (справка)");
+  }
+
+  function handleTerminalPaste(event) {
+    const pasted = event.clipboardData && event.clipboardData.getData("text");
+    if (!pasted) {
+      return;
     }
+    event.preventDefault();
+    applyPaste(pasted);
+  }
 
-    function renderLocalHelp() {
-      term.writeln("");
-      term.writeln("Справка GitPlayground");
-      term.writeln("----------------");
-      term.writeln("Доступные команды:");
-      term.writeln("  - git <...>");
-      term.writeln("  - touch <file>");
-      term.writeln("  - cat <file>   (только путь, без флагов)");
-      term.writeln("  - type nul > <file>");
-      term.writeln("  - echo <text> > <file>");
-      term.writeln("  - echo <text> >> <file>");
-      term.writeln("  - многострочный текст: блок «Редактор файла» под терминалом");
-      term.writeln("");
-      term.writeln("Горячие клавиши:");
-      term.writeln("  - Enter: выполнить команду");
-      term.writeln("  - ArrowUp / ArrowDown: история команд");
-      term.writeln("  - Ctrl+L: очистить терминал");
-      term.writeln("  - Ctrl+V / Cmd+V: вставить в строку команды");
-      term.writeln("Локальная команда: help (справка)");
+  async function submitCommand(command) {
+    if (!term || !command || isCommandRunning) {
+      return;
     }
-
-    function handleTerminalPaste(event) {
-      const pasted = event.clipboardData && event.clipboardData.getData("text");
-      if (!pasted) {
-        return;
-      }
-      event.preventDefault();
-      applyPaste(pasted);
-    }
-
-    async function submitCommand(command) {
-      if (!command || isCommandRunning) {
-        return;
-      }
-      isCommandRunning = true;
-      commandHistory.push(command);
-      historyCursor = commandHistory.length;
-      if (typeof term._setLiveCommand === "function") {
-        appendSubmittedCommandLine(command);
-      }
-      if (typeof term._setLiveCommand !== "function") {
-        term.write("\r\n");
-      }
-      if (command.toLowerCase() === "help") {
-        renderLocalHelp();
-        writePrompt();
-        isCommandRunning = false;
-        scrollTerminalDown();
-        return;
-      }
-      const data = await post(urls.run, { command });
-      if (!data.ok) {
-        validateOutput.textContent = data.message || "Команда не выполнена";
-        validateOutput.className = "hint-box validate-banner validate-failed";
-        term.writeln(`Ошибка: ${data.message || "Команда не выполнена"}`);
-        writePrompt();
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand("");
-        }
-        isCommandRunning = false;
-        return;
-      }
-      if (data.output) {
-        term.writeln(data.output);
-      }
+    isCommandRunning = true;
+    commandHistory.push(command);
+    historyCursor = commandHistory.length;
+    term.write("\r\n");
+    if (command.toLowerCase() === "help") {
+      renderLocalHelp();
       writePrompt();
-      if (typeof term._setLiveCommand === "function") {
-        term._setLiveCommand("");
-      }
       isCommandRunning = false;
       scrollTerminalDown();
+      return;
     }
-
-    validateBtn.addEventListener("click", async function () {
-      validateOutput.textContent = "Проверка...";
-      validateOutput.className = "hint-box validate-banner muted";
-      const data = await post(urls.validate, {});
-      if (!data.ok) {
-        validateOutput.textContent = data.message || "Ошибка проверки";
-        validateOutput.className = "hint-box validate-banner validate-failed";
-        return;
-      }
-      if (data.verdict === "passed") {
-        validateOutput.textContent = "Успешно";
-      } else {
-        const details = data.diagnostics ? `: ${data.diagnostics}` : "";
-        validateOutput.textContent = `Не прошло (попытка #${data.attempt_no})${details}`;
-      }
-      validateOutput.className = data.verdict === "passed"
-        ? "hint-box validate-banner validate-passed"
-        : "hint-box validate-banner validate-failed";
-      if (Array.isArray(data.awarded_achievements) && data.awarded_achievements.length && window.gitplaygroundToast) {
-        data.awarded_achievements.forEach((achievement, index) => {
-          window.setTimeout(() => {
-            window.gitplaygroundToast({ tags: "achievement", achievement });
-          }, index * 180);
-        });
-      }
-      if (data.verdict === "passed" && data.next_task_route_id) {
-        setTimeout(() => {
-          window.location.href = `/playground/${data.next_task_route_id}/`;
-        }, 1200);
-      }
-    });
-
-    resetBtn.addEventListener("click", async function () {
-      const data = await post(urls.reset, {});
-      if (data.ok) {
-        validateOutput.textContent = "Песочница сброшена.";
-        validateOutput.className = "hint-box validate-banner muted";
-        term.clear();
-        term.writeln("Песочница сброшена. Можно снова вводить команды Git.");
-        commandBuffer = "";
-        cursorPos = 0;
-        writePrompt();
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand("");
-        }
-      }
-    });
-
-    hintBtn.addEventListener("click", async function () {
-      if (nextHintIndex > maxHints || hintUiState.exhausted) {
-        hintOutput.textContent = "Подсказки закончились.";
-        hintBtn.disabled = true;
-        return;
-      }
-      const data = await post(urls.hint, { hint_index: nextHintIndex });
-      if (!data.ok) {
-        const msg = data.message || "Не удалось открыть подсказку.";
-        hintOutput.querySelectorAll(".hint-error").forEach((n) => n.remove());
-        const err = document.createElement("p");
-        err.className = "hint-error";
-        err.textContent = msg;
-        hintOutput.appendChild(err);
-        if (data.message && data.message.includes("закончились")) {
-          hintBtn.disabled = true;
-        }
-        return;
-      }
-      if (hintOutput.querySelector(".hint-error")) {
-        hintOutput.querySelectorAll(".hint-error").forEach((n) => n.remove());
-      }
-      if (hintOutput.textContent === "Подсказки пока не открыты.") {
-        hintOutput.innerHTML = "";
-      }
-      if (!data.already_unlocked) {
-        renderHintBlock(data.hint_index, data.content, data.points_spent);
-      }
-      nextHintIndex = data.next_hint_index != null ? data.next_hint_index : nextHintIndex + 1;
-      if (data.hints_exhausted) {
-        hintBtn.disabled = true;
-      }
-    });
-
-    function setBufferFromHistory(value) {
-      commandBuffer = value;
-      cursorPos = commandBuffer.length;
-      rewriteInputLine();
+    const data = await post(urls.run, { command });
+    if (!data.ok) {
+      validateOutput.textContent = data.message || "Команда не выполнена";
+      validateOutput.className = "hint-box validate-banner validate-failed";
+      term.writeln(`Ошибка: ${data.message || "Команда не выполнена"}`);
+      writePrompt();
+      isCommandRunning = false;
+      return;
     }
+    if (data.output) {
+      term.writeln(data.output);
+    }
+    writePrompt();
+    isCommandRunning = false;
+    scrollTerminalDown();
+  }
 
+  validateBtn.addEventListener("click", async function () {
+    validateOutput.textContent = "Проверка...";
+    validateOutput.className = "hint-box validate-banner muted";
+    const data = await post(urls.validate, {});
+    if (!data.ok) {
+      validateOutput.textContent = data.message || "Ошибка проверки";
+      validateOutput.className = "hint-box validate-banner validate-failed";
+      return;
+    }
+    if (data.verdict === "passed") {
+      validateOutput.textContent = "Успешно";
+    } else {
+      const details = data.diagnostics ? `: ${data.diagnostics}` : "";
+      validateOutput.textContent = `Не прошло (попытка #${data.attempt_no})${details}`;
+    }
+    validateOutput.className = data.verdict === "passed"
+      ? "hint-box validate-banner validate-passed"
+      : "hint-box validate-banner validate-failed";
+    if (Array.isArray(data.awarded_achievements) && data.awarded_achievements.length && window.gitplaygroundToast) {
+      data.awarded_achievements.forEach((achievement, index) => {
+        window.setTimeout(() => {
+          window.gitplaygroundToast({ tags: "achievement", achievement });
+        }, index * 180);
+      });
+    }
+    if (data.verdict === "passed" && data.next_task_route_id) {
+      setTimeout(() => {
+        window.location.href = `/playground/${data.next_task_route_id}/`;
+      }, 1200);
+    }
+  });
+
+  resetBtn.addEventListener("click", async function () {
+    const data = await post(urls.reset, {});
+    if (!data.ok) {
+      return;
+    }
+    validateOutput.textContent = "Песочница сброшена.";
+    validateOutput.className = "hint-box validate-banner muted";
+    if (term) {
+      term.clear();
+      term.writeln("Песочница сброшена. Можно снова вводить команды Git.");
+      commandBuffer = "";
+      cursorPos = 0;
+      writePrompt();
+    }
+  });
+
+  hintBtn.addEventListener("click", async function () {
+    if (nextHintIndex > maxHints || hintUiState.exhausted) {
+      hintOutput.textContent = "Подсказки закончились.";
+      hintBtn.disabled = true;
+      return;
+    }
+    const data = await post(urls.hint, { hint_index: nextHintIndex });
+    if (!data.ok) {
+      const msg = data.message || "Не удалось открыть подсказку.";
+      hintOutput.querySelectorAll(".hint-error").forEach((n) => n.remove());
+      const err = document.createElement("p");
+      err.className = "hint-error";
+      err.textContent = msg;
+      hintOutput.appendChild(err);
+      if (data.message && data.message.includes("закончились")) {
+        hintBtn.disabled = true;
+      }
+      return;
+    }
+    if (hintOutput.querySelector(".hint-error")) {
+      hintOutput.querySelectorAll(".hint-error").forEach((n) => n.remove());
+    }
+    if (hintOutput.textContent === "Подсказки пока не открыты.") {
+      hintOutput.innerHTML = "";
+    }
+    if (!data.already_unlocked) {
+      renderHintBlock(data.hint_index, data.content, data.points_spent);
+    }
+    nextHintIndex = data.next_hint_index != null ? data.next_hint_index : nextHintIndex + 1;
+    if (data.hints_exhausted) {
+      hintBtn.disabled = true;
+    }
+  });
+
+  function setBufferFromHistory(value) {
+    commandBuffer = value;
+    cursorPos = commandBuffer.length;
+    rewriteInputLine();
+  }
+
+  if (term) {
     term.onData(async (dataChunk) => {
       if (dataChunk === "\r") {
         const command = commandBuffer.trim();
@@ -558,9 +389,6 @@
         commandBuffer = "";
         cursorPos = 0;
         writePrompt();
-        if (typeof term._setLiveCommand === "function") {
-          term._setLiveCommand("");
-        }
         return;
       }
       if (dataChunk.length > 1) {
@@ -575,99 +403,98 @@
       }
     });
 
-    const tabButtons = document.querySelectorAll(".tab-btn");
-    const tabPanels = document.querySelectorAll(".tab-panel");
-    tabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const target = btn.dataset.tab;
-        tabButtons.forEach((x) => {
-          x.classList.remove("active");
-          x.setAttribute("aria-selected", "false");
-        });
-        tabPanels.forEach((x) => x.classList.remove("active"));
-        btn.classList.add("active");
-        btn.setAttribute("aria-selected", "true");
-        const panel = document.querySelector(`[data-panel="${target}"]`);
-        if (panel) panel.classList.add("active");
-        if (fitAddon && target === "terminal") {
-          requestAnimationFrame(() => fitAddon.fit());
-        }
-      });
-    });
-
-    const fileEditorPath = document.getElementById("file-editor-path");
-    const fileEditorBody = document.getElementById("file-editor-body");
-    const fileEditorLoad = document.getElementById("file-editor-load");
-    const fileEditorSave = document.getElementById("file-editor-save");
-    const fileEditorStatus = document.getElementById("file-editor-status");
-
-    function setFileEditorStatus(text, isError) {
-      if (!fileEditorStatus) {
-        return;
-      }
-      fileEditorStatus.textContent = text || "";
-      fileEditorStatus.style.color = isError ? "var(--danger)" : "";
-    }
-
-    async function loadRepoFile() {
-      const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
-      if (!path) {
-        setFileEditorStatus("Укажите путь к файлу.", true);
-        return;
-      }
-      const url = new URL(urls.readFile, window.location.origin);
-      url.searchParams.set("path", path);
-      const response = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
-      const data = await response.json();
-      if (!data.ok) {
-        setFileEditorStatus(data.message || "Ошибка чтения", true);
-        return;
-      }
-      if (fileEditorBody) {
-        fileEditorBody.value = data.content != null ? data.content : "";
-      }
-      setFileEditorStatus(data.truncated ? "Загружено (файл обрезан по лимиту песочницы)." : "Загружено.");
-    }
-
-    async function saveRepoFile() {
-      const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
-      const body = fileEditorBody ? fileEditorBody.value : "";
-      if (!path) {
-        setFileEditorStatus("Укажите путь к файлу.", true);
-        return;
-      }
-      const data = await post(urls.writeFile, { path, content: body });
-      if (!data.ok) {
-        setFileEditorStatus(data.message || "Ошибка записи", true);
-        return;
-      }
-      setFileEditorStatus(`Сохранено (${data.bytes_written != null ? data.bytes_written : 0} байт).`);
-    }
-
-    if (fileEditorLoad) {
-      fileEditorLoad.addEventListener("click", () => {
-        loadRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
-      });
-    }
-    if (fileEditorSave) {
-      fileEditorSave.addEventListener("click", () => {
-        saveRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
-      });
-    }
-
-    hydrateHintsFromServer();
-    if (maxHints === 0) {
-      hintBtn.disabled = true;
-      if (!hintOutput.textContent) {
-        hintOutput.textContent = "Для этой задачи подсказки не настроены.";
-      }
-    } else if (hintUiState.exhausted) {
-      hintBtn.disabled = true;
-    }
     term.focus();
     terminalBody.addEventListener("click", () => term.focus());
     terminalBody.addEventListener("paste", handleTerminalPaste);
-    if (xtermHost) {
-      xtermHost.addEventListener("paste", handleTerminalPaste);
+  }
+
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabPanels = document.querySelectorAll(".tab-panel");
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      tabButtons.forEach((x) => {
+        x.classList.remove("active");
+        x.setAttribute("aria-selected", "false");
+      });
+      tabPanels.forEach((x) => x.classList.remove("active"));
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      const panel = document.querySelector(`[data-panel="${target}"]`);
+      if (panel) panel.classList.add("active");
+      if (fitAddon && target === "terminal") {
+        requestAnimationFrame(() => fitAddon.fit());
+      }
+    });
+  });
+
+  const fileEditorPath = document.getElementById("file-editor-path");
+  const fileEditorBody = document.getElementById("file-editor-body");
+  const fileEditorLoad = document.getElementById("file-editor-load");
+  const fileEditorSave = document.getElementById("file-editor-save");
+  const fileEditorStatus = document.getElementById("file-editor-status");
+
+  function setFileEditorStatus(text, isError) {
+    if (!fileEditorStatus) {
+      return;
     }
-  })();
+    fileEditorStatus.textContent = text || "";
+    fileEditorStatus.style.color = isError ? "var(--danger)" : "";
+  }
+
+  async function loadRepoFile() {
+    const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
+    if (!path) {
+      setFileEditorStatus("Укажите путь к файлу.", true);
+      return;
+    }
+    const url = new URL(urls.readFile, window.location.origin);
+    url.searchParams.set("path", path);
+    const response = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
+    const data = await response.json();
+    if (!data.ok) {
+      setFileEditorStatus(data.message || "Ошибка чтения", true);
+      return;
+    }
+    if (fileEditorBody) {
+      fileEditorBody.value = data.content != null ? data.content : "";
+    }
+    setFileEditorStatus(data.truncated ? "Загружено (файл обрезан по лимиту песочницы)." : "Загружено.");
+  }
+
+  async function saveRepoFile() {
+    const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
+    const body = fileEditorBody ? fileEditorBody.value : "";
+    if (!path) {
+      setFileEditorStatus("Укажите путь к файлу.", true);
+      return;
+    }
+    const data = await post(urls.writeFile, { path, content: body });
+    if (!data.ok) {
+      setFileEditorStatus(data.message || "Ошибка записи", true);
+      return;
+    }
+    setFileEditorStatus(`Сохранено (${data.bytes_written != null ? data.bytes_written : 0} байт).`);
+  }
+
+  if (fileEditorLoad) {
+    fileEditorLoad.addEventListener("click", () => {
+      loadRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
+    });
+  }
+  if (fileEditorSave) {
+    fileEditorSave.addEventListener("click", () => {
+      saveRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
+    });
+  }
+
+  hydrateHintsFromServer();
+  if (maxHints === 0) {
+    hintBtn.disabled = true;
+    if (!hintOutput.textContent) {
+      hintOutput.textContent = "Для этой задачи подсказки не настроены.";
+    }
+  } else if (hintUiState.exhausted) {
+    hintBtn.disabled = true;
+  }
+})();

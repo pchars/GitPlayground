@@ -16,5 +16,5 @@
     return cleaned.replace(CONTROL_CHARS, "").trim();
   }
 
-  global.GPTerminalPaste = { sanitizeTerminalPaste };
+  global.GPTerminalPaste = { PROMPT, sanitizeTerminalPaste };
 })(typeof window !== "undefined" ? window : globalThis);

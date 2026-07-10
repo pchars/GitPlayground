@@ -49,13 +49,17 @@
     });
   });
 
-  let autoplay = window.setInterval(() => render(index + 1), 7000);
+  function startAutoplay() {
+    window.clearInterval(autoplay);
+    autoplay = window.setInterval(() => render(index + 1), 7000);
+  }
+
+  let autoplay = 0;
+  startAutoplay();
   slider.addEventListener("mouseenter", () => {
     window.clearInterval(autoplay);
   });
-  slider.addEventListener("mouseleave", () => {
-    autoplay = window.setInterval(() => render(index + 1), 7000);
-  });
+  slider.addEventListener("mouseleave", startAutoplay);
 
   render(index);
 })();

@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block title %}GitPlayground | Playground{% endblock %}
+{% block title %}GitPlayground | Плейграунд{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static_v 'css/playground.css' %}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.5.0/css/xterm.min.css">
@@ -19,7 +19,7 @@
     <p class="muted">Уровень {{ task.level.number }} · {{ task.points }} баллов</p>
     <h3>Условие</h3>
     <p>{{ learning_content.objective|default:task.description }}</p>
-    <p class="muted">Подсказок доступно: <span id="hint-total">{{ hints|length }}</span></p>
+    <p class="muted">Подсказок доступно: <span id="hint-total">{{ hint_ui_state.total }}</span></p>
     <button class="btn btn-secondary" id="hint-btn" type="button">Подсказка</button>
     <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
   </article>
@@ -59,7 +59,6 @@
   </article>
 </section>
 
-{{ hints|json_script:"task-hints-data" }}
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
