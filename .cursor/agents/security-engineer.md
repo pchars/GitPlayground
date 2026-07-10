@@ -282,7 +282,7 @@ Recurring rule families in this repo:
 | CodeQL rule | CWE | Required pattern |
 |-------------|-----|------------------|
 | `js/xss-through-dom` | CWE-79 / CWE-116 | Never assign untrusted strings via `innerHTML`. Use `textContent`, `createElement`, `replaceChildren`. Sanitize static asset paths (`toast.js`). |
-| `py/path-injection` | CWE-22+ | User paths must pass `normalize_repo_relative_path()` before `Path` joins (`command_policy.py` → `sandbox_ops._resolve_repo_relative_path`). Reject `..`, absolute, and `~` prefixes. |
+| `py/path-injection` | CWE-22+ | User-influenced paths: `normalize_repo_relative_path()` then `os.path.realpath` + `startswith(root_prefix)` **in the same function** as `open()`/`os.path.*` (`apps/core/services/repo_path_io.py`). Do not use `pathlib.Path.resolve()` on user input — CodeQL does not treat it as a sanitizer. |
 | `py/stack-trace-exposure` | CWE-209 / CWE-497 | Never return `str(exc)` / tracebacks to browsers or JSON APIs. Log with `apps.core.client_errors.log_exception`; return constants from `client_errors.py`. |
 | `py/url-redirection` | CWE-601 | No `redirect(f"...{user_input}")`. Use named routes + in-function allowlist maps (`quiz.views._redirect_quiz_play`) or fixed `redirect("name")`. |
 | `actions/missing-workflow-permissions` | CWE-275 | Every workflow under `.github/workflows/` must declare top-level `permissions:` (minimum `contents: read`). Pin third-party actions to full commit SHAs. |

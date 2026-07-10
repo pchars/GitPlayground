@@ -17,16 +17,24 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from apps.core.client_errors import (
-    FILE_EXISTS_READ_FAILED,
     FILE_READ_FAILED,
     FILE_WRITE_FAILED,
     MKDIR_FAILED,
-    log_exception,
 )
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task
 
-from .command_policy import normalize_repo_relative_path, parse_user_command, relative_path_has_dotdot
+from .command_policy import parse_user_command
+from .repo_path_io import (
+    append_repo_text_line,
+    list_repo_path,
+    mkdir_repo_path,
+    read_repo_file_bytes,
+    restore_or_remove_repo_file,
+    touch_repo_file,
+    write_empty_repo_file,
+    write_repo_file_bytes,
+)
 from .sandbox_git import (
     SANDBOX_ROOT,
     ensure_sandbox_root,
@@ -281,17 +289,6 @@ def _read_log_tail(session: SandboxSession, max_chars: int = 8000) -> str:
     return normalized.rstrip()
 
 
-def _resolve_repo_relative_path(session: SandboxSession, candidate: str) -> Path | None:
-    safe_candidate = normalize_repo_relative_path(candidate)
-    if safe_candidate is None:
-        return None
-    repo_root = Path(session.repo_path).resolve()
-    path = (repo_root / safe_candidate).resolve()
-    if path == repo_root or repo_root in path.parents:
-        return path
-    return None
-
-
 def _repo_size_bytes(path: Path) -> int:
     total = 0
     for item in path.rglob("*"):
@@ -316,62 +313,36 @@ def _repo_quota_violation(session: SandboxSession) -> str | None:
 
 def read_text_file_from_repo(session: SandboxSession, relative_path: str) -> tuple[bool, str, bool]:
     """Read one text file inside the repo. (ok, text or error message, truncated)."""
-    normalized = relative_path.strip().replace("\\", "/")
-    if relative_path_has_dotdot(normalized):
-        return False, "Path must not contain '..'.", False
-    file_path = _resolve_repo_relative_path(session, normalized)
-    if not file_path:
+    status, raw, truncated = read_repo_file_bytes(
+        session.repo_path, relative_path, SANDBOX_TEXT_FILE_READ_MAX_BYTES
+    )
+    if status == "blocked":
         return False, "Path escapes sandbox and is blocked.", False
-    if not file_path.exists():
+    if status == "missing":
         return False, "File does not exist.", False
-    if not file_path.is_file():
+    if status == "not_file":
         return False, "Not a regular file.", False
-    try:
-        raw = file_path.read_bytes()
-    except OSError as exc:
-        log_exception(logging.getLogger(__name__), "sandbox file read failed", exc)
+    if status == "io_error":
         return False, FILE_READ_FAILED, False
-    truncated = len(raw) > SANDBOX_TEXT_FILE_READ_MAX_BYTES
-    raw = raw[:SANDBOX_TEXT_FILE_READ_MAX_BYTES]
     text = raw.decode("utf-8", errors="replace")
     return True, text, truncated
 
 
 def write_text_file_to_repo(session: SandboxSession, relative_path: str, content: str) -> tuple[bool, str]:
     """Write UTF-8 text to a file inside the repo (no shell)."""
-    normalized = relative_path.strip().replace("\\", "/")
-    if relative_path_has_dotdot(normalized):
-        return False, "Path must not contain '..'."
     if "\x00" in content:
         return False, "Null bytes in content are not allowed."
     encoded = content.encode("utf-8")
     if len(encoded) > SANDBOX_TEXT_FILE_WRITE_MAX_BYTES:
         return False, f"Content exceeds limit ({SANDBOX_TEXT_FILE_WRITE_MAX_BYTES} bytes)."
-    file_path = _resolve_repo_relative_path(session, normalized)
-    if not file_path:
+    status, backup = write_repo_file_bytes(session.repo_path, relative_path, encoded)
+    if status == "blocked":
         return False, "Path escapes sandbox and is blocked."
-    backup: bytes | None = None
-    if file_path.exists() and file_path.is_file():
-        try:
-            backup = file_path.read_bytes()[: SANDBOX_TEXT_FILE_WRITE_MAX_BYTES + 1]
-        except OSError as exc:
-            log_exception(logging.getLogger(__name__), "sandbox file read before write failed", exc)
-            return False, FILE_EXISTS_READ_FAILED
-    try:
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_bytes(encoded)
-    except OSError as exc:
-        log_exception(logging.getLogger(__name__), "sandbox file write failed", exc)
+    if status == "io_error":
         return False, FILE_WRITE_FAILED
     violation = _repo_quota_violation(session)
     if violation:
-        try:
-            if backup is not None:
-                file_path.write_bytes(backup)
-            else:
-                file_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        restore_or_remove_repo_file(session.repo_path, relative_path, backup)
         return False, f"{violation} Write was reverted."
     return True, ""
 
@@ -476,77 +447,72 @@ def run_command(
                 env=git_env(),
             )
     elif policy_kind in {"touch", "type_nul_redirect"}:
-        file_path = _resolve_repo_relative_path(session, policy_data["path"])
-        if not file_path:
+        if policy_kind == "touch":
+            ok = touch_repo_file(session.repo_path, policy_data["path"])
+        else:
+            ok = write_empty_repo_file(session.repo_path, policy_data["path"])
+        if not ok:
             return CommandResult(
                 command=command,
                 return_code=1,
                 output="Path escapes sandbox and is blocked.",
                 duration_ms=0,
             )
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        if policy_kind == "touch":
-            file_path.touch(exist_ok=True)
-        else:
-            file_path.write_text("", encoding="utf-8")
         proc = subprocess.CompletedProcess(["policy"], 0, "", "")
     elif policy_kind == "echo_redirect":
-        file_path = _resolve_repo_relative_path(session, policy_data["path"])
-        if not file_path:
+        ok = append_repo_text_line(
+            session.repo_path,
+            policy_data["path"],
+            policy_data["text"],
+            append=policy_data["mode"] == ">>",
+        )
+        if not ok:
             return CommandResult(
                 command=command,
                 return_code=1,
                 output="Path escapes sandbox and is blocked.",
                 duration_ms=0,
             )
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        mode = "a" if policy_data["mode"] == ">>" else "w"
-        with file_path.open(mode, encoding="utf-8") as handle:
-            handle.write(policy_data["text"])
-            handle.write("\n")
         proc = subprocess.CompletedProcess(["policy"], 0, "", "")
     elif policy_kind == "pwd":
         proc = subprocess.CompletedProcess(["policy"], 0, "~/repo", "")
     elif policy_kind == "ls":
-        dir_path = _resolve_repo_relative_path(session, policy_data["path"])
-        if not dir_path:
+        status, payload = list_repo_path(session.repo_path, policy_data["path"])
+        if status == "blocked":
             return CommandResult(
                 command=command,
                 return_code=1,
                 output="Path escapes sandbox and is blocked.",
                 duration_ms=0,
             )
-        if not dir_path.exists():
+        if status == "missing":
             proc = subprocess.CompletedProcess(
                 ["policy"], 1, "", f"ls: нет такого файла или каталога: {policy_data['path']}"
             )
-        elif dir_path.is_dir():
-            entries = sorted(
-                (f"{item.name}/" if item.is_dir() else item.name for item in dir_path.iterdir()),
-                key=str.lower,
-            )
-            proc = subprocess.CompletedProcess(["policy"], 0, "\n".join(entries), "")
         else:
-            proc = subprocess.CompletedProcess(["policy"], 0, dir_path.name, "")
+            proc = subprocess.CompletedProcess(["policy"], 0, payload, "")
     elif policy_kind == "mkdir":
-        dir_path = _resolve_repo_relative_path(session, policy_data["path"])
-        if not dir_path:
+        status, detail = mkdir_repo_path(
+            session.repo_path, policy_data["path"], parents=policy_data["parents"]
+        )
+        if status == "blocked":
             return CommandResult(
                 command=command,
                 return_code=1,
                 output="Path escapes sandbox and is blocked.",
                 duration_ms=0,
             )
-        if dir_path.exists():
-            output = "" if policy_data["parents"] else f"mkdir: каталог уже существует: {policy_data['path']}"
-            proc = subprocess.CompletedProcess(["policy"], 0 if policy_data["parents"] else 1, "", output)
+        if status == "exists":
+            proc = subprocess.CompletedProcess(
+                ["policy"],
+                1,
+                "",
+                f"mkdir: каталог уже существует: {detail}",
+            )
+        elif status == "io_error":
+            proc = subprocess.CompletedProcess(["policy"], 1, "", MKDIR_FAILED)
         else:
-            try:
-                dir_path.mkdir(parents=policy_data["parents"])
-                proc = subprocess.CompletedProcess(["policy"], 0, "", "")
-            except OSError as exc:
-                log_exception(logging.getLogger(__name__), "sandbox mkdir failed", exc)
-                proc = subprocess.CompletedProcess(["policy"], 1, "", MKDIR_FAILED)
+            proc = subprocess.CompletedProcess(["policy"], 0, "", "")
     elif policy_kind == "cat_read":
         ok, payload, truncated = read_text_file_from_repo(session, policy_data["path"])
         if not ok:

@@ -289,7 +289,7 @@ Integration with other agents:
 When triaging **Security and quality** alerts on GitHub, map findings to these families and verify fixes repo-wide (not only the cited line):
 
 1. **DOM XSS** (`js/xss-through-dom`) — `static/js/*.js`: no dynamic `innerHTML`; achievement toasts use DOM APIs.
-2. **Path traversal** (`py/path-injection`) — sandbox file ops: `normalize_repo_relative_path` + root containment in `_resolve_repo_relative_path`.
+2. **Path traversal** (`py/path-injection`) — sandbox file ops in `repo_path_io.py`: `normalize_repo_relative_path`, then `os.path.realpath` + `startswith` guard and filesystem access in one function; no `Path(user_input).resolve()`.
 3. **Exception leakage** (`py/stack-trace-exposure`) — views/APIs: generic `client_errors` strings to clients; details only in logs.
 4. **Open redirect** (`py/url-redirection`) — redirects must use allowlisted URLs or Django named routes without interpolated request data.
 5. **Workflow permissions** (`actions/missing-workflow-permissions`) — `permissions: contents: read` on all workflows; action SHA pins.

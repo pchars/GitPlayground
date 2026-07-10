@@ -139,8 +139,8 @@ rulesets in `security.yml` if coverage gaps appear. See `docs/OPERATIONS.md`. Fo
 **GitHub CodeQL** (Security and quality tab) flags five recurring families in this repo:
 DOM XSS in `static/js/`, sandbox path injection, exception text in JSON/HTML responses,
 quiz-style open redirects, and missing `permissions:` in workflows. Fixes and prevention
-rules live in `apps/core/client_errors.py`, `command_policy.normalize_repo_relative_path`,
-and the CodeQL sections of the security agent playbooks — apply patterns repo-wide, not
+rules live in `apps/core/client_errors.py`, `apps/core/services/repo_path_io.py`,
+`command_policy.normalize_repo_relative_path`, and the CodeQL sections of the security agent playbooks — apply patterns repo-wide, not
 only on the reported line.
 
 `sync_theory_content` updates only the theory blocks in the DB from
@@ -208,7 +208,8 @@ User input is **not** run through a shell. `_parse_user_command` in
 - `echo <text> > <file>` and `echo <text> >> <file>`
 
 Non-`git` verbs are executed in pure Python (no subprocess, no shell) and guarded by
-`_resolve_repo_relative_path` + the `..` check, so they cannot escape the workspace.
+`apps/core/services/repo_path_io.py` (`normalize_repo_relative_path`, `os.path.realpath`,
+`startswith` root check), so they cannot escape the workspace.
 
 Multi-line file content uses the file-editor API (`read_text_file_from_repo` /
 `write_text_file_to_repo`), not shell redirection. When a task needs a capability
