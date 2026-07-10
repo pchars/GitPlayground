@@ -1,5 +1,6 @@
 """Sandbox page and JSON API for terminal, files, and validation."""
 
+import logging
 import time
 from typing import NamedTuple
 
@@ -10,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.achievements.models import UserAchievement
 from apps.achievements.services import achievement_toast_payloads_since
+from apps.core.client_errors import INSUFFICIENT_HINT_POINTS, SANDBOX_UNAVAILABLE, log_exception
 from apps.core.playground_limits import allow_playground_action
 from apps.core.services import (
     HintRequestError,
@@ -33,6 +35,8 @@ from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task
 
 from .helpers import _log_playground_event, _task_from_route
+
+playground_logger = logging.getLogger("apps.core.playground")
 
 
 _RATE_LIMIT_MESSAGES = {
@@ -86,8 +90,13 @@ def _acquire_session(
     try:
         session = get_or_create_active_session(request.user, task)
     except RuntimeError as exc:
-        _log(status_code=503, ok=False, reason="sandbox_unavailable", details=str(exc))
-        return _SessionGuard(task, None, JsonResponse({"ok": False, "message": str(exc)}, status=503))
+        log_exception(playground_logger, "sandbox session unavailable", exc)
+        _log(status_code=503, ok=False, reason="sandbox_unavailable")
+        return _SessionGuard(
+            task,
+            None,
+            JsonResponse({"ok": False, "message": SANDBOX_UNAVAILABLE}, status=503),
+        )
     return _SessionGuard(task, session, None)
 
 
@@ -107,7 +116,8 @@ def playground(request, task_id):
                 reset_session(current)
         get_or_create_active_session(request.user, task)
     except RuntimeError as exc:
-        return HttpResponse(f"Sandbox is temporarily unavailable: {exc}", status=503)
+        log_exception(playground_logger, "sandbox session unavailable", exc)
+        return HttpResponse(SANDBOX_UNAVAILABLE, status=503)
     return render(
         request,
         "core/playground.html",
@@ -324,7 +334,7 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
             hint_exhausted=exc.message == "Подсказки для этой задачи закончились.",
         )
         return JsonResponse({"ok": False, "message": exc.message}, status=exc.status_code)
-    except NotEnoughPointsError as exc:
+    except NotEnoughPointsError:
         _log_playground_event(
             request,
             task,
@@ -335,7 +345,7 @@ def playground_hint(request: HttpRequest, task_id: str) -> JsonResponse:
             hint_index=hint_index,
             reason="not_enough_points",
         )
-        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
+        return JsonResponse({"ok": False, "message": INSUFFICIENT_HINT_POINTS}, status=400)
 
     response = JsonResponse(
         {

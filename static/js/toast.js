@@ -1,4 +1,6 @@
 (function () {
+  var STATIC_ICON_PATH = /^[A-Za-z0-9_./-]+$/;
+
   function ensureToastStack() {
     var stack = document.querySelector("[data-toast-stack]");
     if (stack) return stack;
@@ -10,26 +12,43 @@
     return stack;
   }
 
+  function appendText(parent, tagName, className, text) {
+    var node = document.createElement(tagName);
+    if (className) {
+      node.className = className;
+    }
+    node.textContent = text;
+    parent.appendChild(node);
+    return node;
+  }
+
   function renderAchievementToast(toast, payload) {
     toast.classList.add("achievement");
     var icon = payload.icon || "";
     var title = payload.title || "Новое достижение";
     var description = payload.description || "";
-    toast.innerHTML =
-      ""
-      + '<div class="toast-achievement-layout">'
-      + '<div class="toast-achievement-thumb-wrap">'
-      + (icon ? '<img src="/static/' + icon + '" alt="' + title + '" class="toast-achievement-thumb">' : "")
-      + "</div>"
-      + '<div class="toast-achievement-content">'
-      + '<div class="toast-achievement-title">'
-      + title
-      + "</div>"
-      + '<div class="toast-achievement-desc">'
-      + description
-      + "</div>"
-      + "</div>"
-      + "</div>";
+
+    var layout = document.createElement("div");
+    layout.className = "toast-achievement-layout";
+
+    var thumbWrap = document.createElement("div");
+    thumbWrap.className = "toast-achievement-thumb-wrap";
+    if (icon && STATIC_ICON_PATH.test(icon)) {
+      var img = document.createElement("img");
+      img.src = "/static/" + icon;
+      img.alt = title;
+      img.className = "toast-achievement-thumb";
+      thumbWrap.appendChild(img);
+    }
+    layout.appendChild(thumbWrap);
+
+    var content = document.createElement("div");
+    content.className = "toast-achievement-content";
+    appendText(content, "div", "toast-achievement-title", title);
+    appendText(content, "div", "toast-achievement-desc", description);
+    layout.appendChild(content);
+
+    toast.replaceChildren(layout);
   }
 
   function scheduleHide(toast, index) {

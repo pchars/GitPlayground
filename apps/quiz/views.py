@@ -20,6 +20,17 @@ SESSION_DIFFICULTY = "quiz_difficulty"
 RECENT_MAX = 30
 
 
+def _redirect_quiz_play(difficulty: str) -> HttpResponse:
+    valid = {value for value, _ in QuizQuestion.Difficulty.choices}
+    if difficulty not in valid:
+        difficulty = QuizQuestion.Difficulty.EASY
+    allowlisted = {
+        value: f"{reverse('quiz-play')}?difficulty={value}"
+        for value, _ in QuizQuestion.Difficulty.choices
+    }
+    return redirect(allowlisted[difficulty])
+
+
 def _recent_ids(request: HttpRequest) -> deque[int]:
     raw = request.session.get(SESSION_RECENT, [])
     return deque((int(x) for x in raw), maxlen=RECENT_MAX)
@@ -147,11 +158,11 @@ def quiz_play(request: HttpRequest) -> HttpResponse:
         choice = request.POST.get("choice")
         if not qid or choice is None or not str(choice).isdigit():
             messages.error(request, "Некорректный ответ.")
-            return redirect(f"{reverse('quiz-play')}?difficulty={selected_difficulty}")
+            return _redirect_quiz_play(selected_difficulty)
         q = QuizQuestion.objects.filter(pk=int(qid)).first()
         if not q:
             messages.error(request, "Вопрос не найден.")
-            return redirect(f"{reverse('quiz-play')}?difficulty={selected_difficulty}")
+            return _redirect_quiz_play(selected_difficulty)
         picked = int(choice)
         ok = picked == q.correct_index
         selected_difficulty = q.difficulty

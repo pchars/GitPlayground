@@ -136,6 +136,13 @@ rulesets in `security.yml` if coverage gaps appear. See `docs/OPERATIONS.md`. Fo
 и разбора security CI используй [security-engineer](.cursor/agents/security-engineer.md)
 (implementation) и [security-auditor](.cursor/agents/security-auditor.md) (audit/logs).
 
+**GitHub CodeQL** (Security and quality tab) flags five recurring families in this repo:
+DOM XSS in `static/js/`, sandbox path injection, exception text in JSON/HTML responses,
+quiz-style open redirects, and missing `permissions:` in workflows. Fixes and prevention
+rules live in `apps/core/client_errors.py`, `command_policy.normalize_repo_relative_path`,
+and the CodeQL sections of the security agent playbooks — apply patterns repo-wide, not
+only on the reported line.
+
 `sync_theory_content` updates only the theory blocks in the DB from
 `apps/tasks/theory_content.py` without rebuilding tasks.
 

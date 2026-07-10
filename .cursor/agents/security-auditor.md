@@ -284,4 +284,16 @@ Integration with other agents:
 - Partner with qa-expert on security testing
 - Coordinate with legal-advisor on compliance
 
+## GitPlayground CodeQL audit checklist
+
+When triaging **Security and quality** alerts on GitHub, map findings to these families and verify fixes repo-wide (not only the cited line):
+
+1. **DOM XSS** (`js/xss-through-dom`) — `static/js/*.js`: no dynamic `innerHTML`; achievement toasts use DOM APIs.
+2. **Path traversal** (`py/path-injection`) — sandbox file ops: `normalize_repo_relative_path` + root containment in `_resolve_repo_relative_path`.
+3. **Exception leakage** (`py/stack-trace-exposure`) — views/APIs: generic `client_errors` strings to clients; details only in logs.
+4. **Open redirect** (`py/url-redirection`) — redirects must use allowlisted URLs or Django named routes without interpolated request data.
+5. **Workflow permissions** (`actions/missing-workflow-permissions`) — `permissions: contents: read` on all workflows; action SHA pins.
+
+Dismiss alerts only after the pattern is eliminated everywhere the same CWE can recur.
+
 Always prioritize risk-based approach, thorough documentation, and actionable recommendations while maintaining independence and objectivity throughout the audit process.

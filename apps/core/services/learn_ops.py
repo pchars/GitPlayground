@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import sys
 import time
@@ -10,12 +11,15 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models import Max
 
+from apps.core.client_errors import VALIDATION_INTERNAL_ERROR, log_exception
 from apps.progress.models import HintUsage, TaskAttempt, TaskCompletion, TaskRevisionProgress
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task, TaskAsset
 from apps.users.models import PointLedgerEntry, UserProfile
 
 from .sandbox_ops import is_docker_session, write_session_log, git_env
+
+logger = logging.getLogger(__name__)
 
 
 def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttempt:
@@ -76,7 +80,8 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
         diagnostics.append("Validation timed out.")
         verdict = TaskAttempt.Verdict.ERROR
     except Exception as exc:  # noqa: BLE001
-        diagnostics.append(f"Validation error: {exc}")
+        log_exception(logger, "task validator failed", exc)
+        diagnostics.append(VALIDATION_INTERNAL_ERROR)
         verdict = TaskAttempt.Verdict.ERROR
     finally:
         if validator_written_from_asset:
@@ -143,7 +148,10 @@ HINT_UNLOCK_COSTS: dict[int, int] = {1: 3, 2: 5, 3: 10}
 
 
 class NotEnoughPointsError(Exception):
-    pass
+    message = "Недостаточно баллов для покупки подсказки."
+
+    def __init__(self) -> None:
+        super().__init__(self.message)
 
 
 class HintRequestError(Exception):
@@ -209,7 +217,7 @@ def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int
         if profile is None:
             profile = UserProfile.objects.create(user=user, public_nickname=user.username)
         if cost > 0 and profile.total_points < cost:
-            raise NotEnoughPointsError("Недостаточно баллов для покупки подсказки.")
+            raise NotEnoughPointsError()
         try:
             usage = HintUsage.objects.create(
                 user=user,

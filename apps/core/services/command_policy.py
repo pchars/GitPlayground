@@ -28,6 +28,18 @@ def relative_path_has_dotdot(relative_path: str) -> bool:
     return ".." in norm.split("/")
 
 
+def normalize_repo_relative_path(relative_path: str) -> str | None:
+    """Return a repo-relative path safe to join under a sandbox root, or None."""
+    normalized = relative_path.strip().replace("\\", "/")
+    if not normalized:
+        return None
+    if normalized.startswith(("/", "~")):
+        return None
+    if relative_path_has_dotdot(normalized):
+        return None
+    return normalized
+
+
 def _git_tokens_allowed(tokens: list[str]) -> tuple[bool, str]:
     """Validate a git invocation: no -c/--config and no blocked subcommands."""
     idx = 1

@@ -16,10 +16,17 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from apps.core.client_errors import (
+    FILE_EXISTS_READ_FAILED,
+    FILE_READ_FAILED,
+    FILE_WRITE_FAILED,
+    MKDIR_FAILED,
+    log_exception,
+)
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task
 
-from .command_policy import parse_user_command, relative_path_has_dotdot
+from .command_policy import normalize_repo_relative_path, parse_user_command, relative_path_has_dotdot
 from .sandbox_git import (
     SANDBOX_ROOT,
     ensure_sandbox_root,
@@ -275,8 +282,11 @@ def _read_log_tail(session: SandboxSession, max_chars: int = 8000) -> str:
 
 
 def _resolve_repo_relative_path(session: SandboxSession, candidate: str) -> Path | None:
+    safe_candidate = normalize_repo_relative_path(candidate)
+    if safe_candidate is None:
+        return None
     repo_root = Path(session.repo_path).resolve()
-    path = (repo_root / candidate).resolve()
+    path = (repo_root / safe_candidate).resolve()
     if path == repo_root or repo_root in path.parents:
         return path
     return None
@@ -319,7 +329,8 @@ def read_text_file_from_repo(session: SandboxSession, relative_path: str) -> tup
     try:
         raw = file_path.read_bytes()
     except OSError as exc:
-        return False, f"Cannot read file: {exc}", False
+        log_exception(logging.getLogger(__name__), "sandbox file read failed", exc)
+        return False, FILE_READ_FAILED, False
     truncated = len(raw) > SANDBOX_TEXT_FILE_READ_MAX_BYTES
     raw = raw[:SANDBOX_TEXT_FILE_READ_MAX_BYTES]
     text = raw.decode("utf-8", errors="replace")
@@ -344,12 +355,14 @@ def write_text_file_to_repo(session: SandboxSession, relative_path: str, content
         try:
             backup = file_path.read_bytes()[: SANDBOX_TEXT_FILE_WRITE_MAX_BYTES + 1]
         except OSError as exc:
-            return False, f"Cannot read existing file: {exc}"
+            log_exception(logging.getLogger(__name__), "sandbox file read before write failed", exc)
+            return False, FILE_EXISTS_READ_FAILED
     try:
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_bytes(encoded)
     except OSError as exc:
-        return False, f"Cannot write file: {exc}"
+        log_exception(logging.getLogger(__name__), "sandbox file write failed", exc)
+        return False, FILE_WRITE_FAILED
     violation = _repo_quota_violation(session)
     if violation:
         try:
@@ -532,7 +545,8 @@ def run_command(
                 dir_path.mkdir(parents=policy_data["parents"])
                 proc = subprocess.CompletedProcess(["policy"], 0, "", "")
             except OSError as exc:
-                proc = subprocess.CompletedProcess(["policy"], 1, "", f"mkdir: {exc}")
+                log_exception(logging.getLogger(__name__), "sandbox mkdir failed", exc)
+                proc = subprocess.CompletedProcess(["policy"], 1, "", MKDIR_FAILED)
     elif policy_kind == "cat_read":
         ok, payload, truncated = read_text_file_from_repo(session, policy_data["path"])
         if not ok:
