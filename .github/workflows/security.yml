@@ -4,63 +4,96 @@ on:
   push:
   pull_request:
 
-permissions:
-  contents: read
+env:
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+  TRIVY_VERSION: v0.72.0
 
 jobs:
-  trivy-fs:
-    name: Trivy (deps + secrets)
+  semgrep:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Semgrep SAST
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            returntocorp/semgrep:1.168.0 \
+            semgrep scan \
+              --config p/python \
+              --config p/django \
+              --config p/javascript \
+              --config p/typescript \
+              --config p/html \
+              --config p/css \
+              --config p/secrets \
+              --config p/owasp-top-ten \
+              --metrics=off \
+              --error \
+              --exclude .sandboxes \
+              --exclude .venv \
+              --exclude htmlcov \
+              --exclude node_modules \
+              --exclude .cursor
 
-      - name: Filesystem scan (vulnerabilities + secrets)
-        uses: aquasecurity/trivy-action@v0.36.0
+  trivy-fs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
         with:
+          python-version: "3.12"
+
+      - name: Materialize Python lockfile for Trivy
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip freeze | grep -viE '^(-e |gitplayground==)' > requirements.trivy.txt
+          test -s requirements.trivy.txt
+          grep -qi django requirements.trivy.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure e2e npm lockfile for Trivy
+        working-directory: e2e
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only
+          fi
+          test -f package-lock.json
+
+      - name: Filesystem scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
           scan-type: fs
           scan-ref: .
-          scanners: vuln,secret
-          severity: CRITICAL,HIGH
-          exit-code: "1"
+          trivy-config: trivy.yaml
           format: table
-          skip-dirs: .sandboxes,.venv,htmlcov,node_modules,e2e/node_modules
+          list-all-pkgs: true
+          exit-code: "1"
+          ignore-unfixed: true
+          skip-dirs: .sandboxes,.venv,htmlcov,node_modules,.cursor,.cache
 
   trivy-image:
-    name: Trivy (Docker image)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Build app image
+      - uses: actions/checkout@v5
+      - name: Build image for scan
         run: docker build -t gitplayground:ci .
-
-      - name: Image vulnerability scan
-        uses: aquasecurity/trivy-action@v0.36.0
+      - name: Image scan
+        uses: aquasecurity/trivy-action@0.36.0
         with:
+          version: ${{ env.TRIVY_VERSION }}
           scan-type: image
           image-ref: gitplayground:ci
-          severity: CRITICAL,HIGH
-          exit-code: "1"
+          trivy-config: trivy.yaml
           format: table
+          list-all-pkgs: true
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: os,library
-
-  semgrep:
-    name: Semgrep (SAST + secrets)
-    runs-on: ubuntu-latest
-    container:
-      image: returntocorp/semgrep
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Static analysis and secret detection
-        run: |
-          semgrep scan \
-            --config p/python \
-            --config p/secrets \
-            --error \
-            --exclude .sandboxes \
-            --exclude .venv \
-            --exclude node_modules \
-            --exclude htmlcov \
-            --exclude e2e/node_modules

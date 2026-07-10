@@ -1,0 +1,11 @@
+# Shared Trivy settings for CI (security.yml) and local runs: trivy fs -c trivy.yaml .
+scan:
+  skip-version-check: true
+  scanners:
+    - vuln
+    - secret
+    - misconfig
+  severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
