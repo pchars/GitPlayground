@@ -146,7 +146,7 @@ SIGNUP_REQUIRE_EMAIL_CONFIRMATION = (
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Строгие проверки при DJANGO_DEPLOY_CHECK=1 и DEBUG=false (см. docs/DEPLOY.md).
+# Strict deploy checks when DJANGO_DEPLOY_CHECK=1 and DEBUG=false (see docs/DEPLOY.md).
 if (
     os.getenv("DJANGO_DEPLOY_CHECK", "").lower() in ("1", "true", "yes")
     and not DEBUG

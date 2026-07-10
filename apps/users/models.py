@@ -21,7 +21,7 @@ class UserProfile(models.Model):
 
 
 class PointLedgerEntry(models.Model):
-    """Журнал изменений баллов (источник правды для сверки с UserProfile.total_points)."""
+    """Points change ledger (source of truth to reconcile UserProfile.total_points)."""
 
     class Source(models.TextChoices):
         TASK_COMPLETION = "task_completion", "Задача"

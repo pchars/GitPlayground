@@ -1,4 +1,4 @@
-"""Концептуальные вопросы квиза (единый банк)."""
+"""Quiz concept questions (single consolidated bank)."""
 
 from __future__ import annotations
 

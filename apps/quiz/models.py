@@ -3,7 +3,7 @@ from django.db import models
 
 
 class QuizQuestion(models.Model):
-    """Один вопрос с четырьмя вариантами; correct_index — 0..3."""
+    """Single four-choice question; correct_index is 0..3."""
 
     class Difficulty(models.TextChoices):
         EASY = "easy", "Легкий"

@@ -1,8 +1,7 @@
-"""Учебный контент уровней: теория (markdown), подсказки разделов и mermaid-диаграммы.
+"""Level learning content: theory markdown, section hints, and mermaid diagrams.
 
-Источник правды для первичного наполнения БД (`TheoryBlock`). Импортируется как
-сидером (`seed_initial_data`, `sync_theory_content`), так и представлением теории,
-чтобы данные не приходилось тянуть из модуля management-команды.
+Source of truth for initial TheoryBlock seeding. Imported by seed_initial_data,
+sync_theory_content, and the theory view so data is not tied to a management command module.
 """
 
 THEORY_CONTENT = {

@@ -9,10 +9,13 @@ Role-specific playbooks live in [`.cursor/agents/`](.cursor/agents/). **This fil
 always takes precedence** over generic agent defaults — read the relevant playbook
 *in addition to* the sections below when the task matches.
 
-> **DESIGN.md ≠ ui-designer.** [`DESIGN.md`](DESIGN.md) is the **project design
+**Каталог:** в `.cursor/agents/` ровно **22** playbook — все перечислены в таблицах
+ниже. При добавлении нового агента обновите соответствующую таблицу.
+
+> **docs/DESIGN.md ≠ ui-designer.** [`docs/DESIGN.md`](docs/DESIGN.md) is the **project design
 > specification** (tokens, typography, components). [`ui-designer`](.cursor/agents/ui-designer.md)
 > is a generic design **workflow** agent. For visual work in this repo, read both
-> [`design-system`](.cursor/agents/design-system.md) (pointer to `DESIGN.md`) and
+> [`design-system`](.cursor/agents/design-system.md) (pointer to `docs/DESIGN.md`) and
 > `ui-designer` when you need process guidance.
 
 ### Engineering
@@ -25,12 +28,13 @@ always takes precedence** over generic agent defaults — read the relevant play
 | [javascript-pro](.cursor/agents/javascript-pro.md) | `static/js/` (playground terminal, paste, quiz), vanilla JS patterns, xterm integration |
 | [frontend-developer](.cursor/agents/frontend-developer.md) | Templates, page JS/CSS wiring, terminal UX, quiz/tasks UI behavior |
 | [fullstack-developer](.cursor/agents/fullstack-developer.md) | End-to-end features (e.g. new task flow: seed → API → playground UI) |
+| [git-professional](.cursor/agents/git-professional.md) | Git theory, quiz, tasks; **update playbook after each book read**; GitHub/GitLab workflows |
 
 ### Design & UX
 
 | Playbook | When to use in GitPlayground |
 | --- | --- |
-| [design-system](.cursor/agents/design-system.md) | **Read [`DESIGN.md`](DESIGN.md)** — tokens, layout, components (project spec) |
+| [design-system](.cursor/agents/design-system.md) | **Read [`docs/DESIGN.md`](docs/DESIGN.md)** — tokens, layout, components (project spec) |
 | [ui-designer](.cursor/agents/ui-designer.md) | Visual exploration, component specs, accessibility, SVG assets, design critique |
 | [ui-ux-tester](.cursor/agents/ui-ux-tester.md) | Exhaustive UI flow testing, spacing/visual defects, structured defect reports |
 
@@ -42,20 +46,19 @@ always takes precedence** over generic agent defaults — read the relevant play
 | [test-automator](.cursor/agents/test-automator.md) | Django test suites, regression tests, CI test integration |
 | [code-reviewer](.cursor/agents/code-reviewer.md) | Pre-push review, maintainability, test quality |
 | [refactoring-specialist](.cursor/agents/refactoring-specialist.md) | Large refactors, dead-code cleanup, extracting services without behavior change |
-| [security-auditor](.cursor/agents/security-auditor.md) | Compliance-style audit, risk assessment, evidence-based findings |
-| [security-engineer](.cursor/agents/security-engineer.md) | Sandbox allowlist hardening, secrets, Docker/CI security controls |
+| [security-auditor](.cursor/agents/security-auditor.md) | Аудит CI security, оценка рисков, разбор логов Semgrep/Trivy, evidence-based findings |
+| [security-engineer](.cursor/agents/security-engineer.md) | Sandbox allowlist, secrets, `security.yml`, `trivy.yaml`, materialize lockfile для Trivy FS |
 
 ### Docs, ops & product
 
 | Playbook | When to use in GitPlayground |
 | --- | --- |
-| [documentation-engineer](.cursor/agents/documentation-engineer.md) | `docs/`, `AGENTS.md`, `DESIGN.md`, API docs, README upkeep |
+| [documentation-engineer](.cursor/agents/documentation-engineer.md) | `docs/`, `AGENTS.md`, `docs/DESIGN.md`, README upkeep |
 | [docker-expert](.cursor/agents/docker-expert.md) | `docker-compose.yml`, production images, deploy hardening |
 | [project-manager](.cursor/agents/project-manager.md) | Multi-step initiatives, milestones, risk/dependency tracking |
 | [product-manager](.cursor/agents/product-manager.md) | Feature prioritization, learner UX goals, roadmap trade-offs |
 | [business-analyst](.cursor/agents/business-analyst.md) | Requirements for new learning tracks, metrics, stakeholder needs |
 | [content-marketer](.cursor/agents/content-marketer.md) | Landing copy, learner-facing messaging, SEO for public pages |
-| [git-professional](.cursor/agents/git-professional.md) | Git theory, quiz, tasks; **update playbook after each book read**; GitHub/GitLab workflows |
 
 **How to apply:** at the start of a matching task, read the linked playbook and
 follow its workflow (analysis → implementation → verification). After reading a
@@ -115,13 +118,23 @@ commit or push. Do not push if any step fails.
 ```powershell
 .\.venv\Scripts\python.exe -m ruff check .             # lint first — catches unused imports (F401), etc.
 .\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run   # must report "No changes detected"
-.\.venv\Scripts\python.exe -m coverage run manage.py test
+.\.venv\Scripts\python.exe -m coverage run manage.py test --exclude-tag=slow
+.\.venv\Scripts\python.exe -m coverage run -a manage.py test --tag=slow
 .\.venv\Scripts\python.exe -m coverage report          # must stay >= 52% (pyproject fail_under)
 ```
+
+Для быстрой локальной проверки без golden-solution harness (~90 с):
+`manage.py test --exclude-tag=slow`. Полный прогон как в CI — две команды coverage выше.
 
 `manage.py test` alone is **not** enough before push: CI runs `ruff check .` before
 tests. After refactors that move or delete code, run `ruff check .` explicitly — stale
 imports (e.g. `F401`) will not show up in the test suite.
+
+**Security CI** (`.github/workflows/security.yml`) runs Semgrep (SAST) and Trivy on every
+push/PR — separate from the `test` job. Do not duplicate Semgrep in `ci.yml`; expand
+rulesets in `security.yml` if coverage gaps appear. See `docs/OPERATIONS.md`. For правок
+и разбора security CI используй [security-engineer](.cursor/agents/security-engineer.md)
+(implementation) и [security-auditor](.cursor/agents/security-auditor.md) (audit/logs).
 
 `sync_theory_content` updates only the theory blocks in the DB from
 `apps/tasks/theory_content.py` without rebuilding tasks.
@@ -262,13 +275,19 @@ Tasks are defined in `apps/tasks/management/commands/seed_initial_data.py`:
 
 ## Frontend: CSS, HTML, and design
 
-When adding or changing templates or styles, follow **`DESIGN.md`** at the repository root
+When adding or changing templates or styles, follow **`docs/DESIGN.md`**
 as the source of truth for colors, typography, spacing, components, and responsive
-breakpoints. Read [design-system](.cursor/agents/design-system.md) (pointer to
-`DESIGN.md`) for project tokens; use [ui-designer](.cursor/agents/ui-designer.md)
-for design process; [javascript-pro](.cursor/agents/javascript-pro.md) for
-`static/js/`; [frontend-developer](.cursor/agents/frontend-developer.md) for
-templates and page wiring.
+breakpoints. Recommended agent workflow:
+
+| Этап | Playbook |
+| --- | --- |
+| Токены и компоненты | [design-system](.cursor/agents/design-system.md) → `docs/DESIGN.md` |
+| Визуальная спека, a11y | [ui-designer](.cursor/agents/ui-designer.md) |
+| Рефакторинг CSS без смены UX | [refactoring-specialist](.cursor/agents/refactoring-specialist.md) |
+| Pre-push review стилей | [code-reviewer](.cursor/agents/code-reviewer.md) |
+| Адаптив и визуальные дефекты | [ui-ux-tester](.cursor/agents/ui-ux-tester.md) |
+| Шаблоны и wiring | [frontend-developer](.cursor/agents/frontend-developer.md) |
+| `static/js/` | [javascript-pro](.cursor/agents/javascript-pro.md) |
 
 ### CSS architecture
 
@@ -287,7 +306,7 @@ templates and page wiring.
 ### Inheritance and tokens
 
 - Define colors, spacing, radii, and the type scale once in `:root` inside `common.css`,
-  aligned with token names in `DESIGN.md`. Page CSS must reference `var(--…)` tokens,
+  aligned with token names in `docs/DESIGN.md`. Page CSS must reference `var(--…)` tokens,
   not hard-coded hex values (except documented exceptions such as terminal ANSI colors).
 - Page sheets **extend** common primitives; avoid duplicating reset, button, or card
   definitions. Prefer composing existing classes in HTML before adding new global rules.
@@ -298,12 +317,13 @@ templates and page wiring.
 - Load page CSS in `{% block extra_css %}`; load page JS at the bottom of
   `{% block content %}`.
 - User-facing copy is in Russian; `class` names and file paths are in English.
-- Match semantic structure from `DESIGN.md` (e.g. `hero-band`, `feature-card`, dark
+- **Code comments and docstrings are in English** (see `.cursor/rules/english-comments.mdc`).
+- Match semantic structure from `docs/DESIGN.md` (e.g. `hero-band`, `feature-card`, dark
   `footer`).
 
 ### Responsive behavior
 
-- Breakpoints per `DESIGN.md`: mobile `<768px`, tablet `768–1024px`, desktop
+- Breakpoints per `docs/DESIGN.md`: mobile `<768px`, tablet `768–1024px`, desktop
   `1024–1440px`, wide `>1440px`. All grid collapses and layout shifts belong in
   `responsive.css`.
 
@@ -341,7 +361,7 @@ optionally self-review with [code-reviewer](.cursor/agents/code-reviewer.md):
   `_acquire_session` guard in `playground.py` rather than re-adding lock/rate/session
   boilerplate).
 - Only the GitHub track is seeded.
-- Comments and user-facing strings are in Russian to match the existing codebase; code
-  identifiers are in English.
+- User-facing strings in templates and APIs are in Russian; code identifiers are in English.
+- Code comments and docstrings are in English (`.cursor/rules/english-comments.mdc`).
 - Commit messages: imperative summary line; follow the repo rule of committing and
   pushing each completed unit of work.

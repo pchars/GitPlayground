@@ -1,4 +1,4 @@
-"""Список задач и теория по уровням."""
+"""Task list and per-level theory pages."""
 
 from collections import defaultdict
 
@@ -25,8 +25,8 @@ def tasks_list(request, level_number=None):
         .order_by("level__number", "order")
     )
     all_tasks = list(task_qs)
-    # «Активной» считается первая незавершённая задача в линейном треке — та же логика,
-    # что и при открытии песочницы (см. apps.core.services.get_next_unlockable_task_for_user).
+    # The active task is the first incomplete task in the linear track (same logic as
+    # opening the playground; see apps.core.services.get_next_unlockable_task_for_user).
     next_task = get_next_unlockable_task_for_user(request.user)
     next_unlocked_id = next_task.id if next_task else None
 
@@ -98,7 +98,7 @@ def theory_detail(request, level_id):
 
     level = get_object_or_404(Level.objects.prefetch_related("theory"), number=level_id)
     theory = getattr(level, "theory", None)
-    # DB first: в UI сначала отображаем контент из БД, встроенный словарь только fallback.
+    # DB first: show database content in the UI; built-in dict is fallback only.
     content_md = (theory.content_md if theory else "") or THEORY_CONTENT.get(level.number, "")
     diagram_mermaid = (theory.diagram_mermaid if theory else "") or LEVEL_DIAGRAMS.get(level.number, "")
 

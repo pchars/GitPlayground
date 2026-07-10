@@ -1,4 +1,4 @@
-"""Простое ограничение частоты запросов к API плейграунда (фиксированное окно, django cache)."""
+"""Simple fixed-window rate limiting for playground API (Django cache)."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _cap_for(action: str) -> int:
 
 
 def allow_playground_action(user_id: int, task_id: int, action: str) -> bool:
-    """Возвращает False, если лимит за текущее окно времени исчерпан."""
+    """Return False when the limit for the current time window is exhausted."""
     window = _window_sec()
     cap = _cap_for(action)
     now = int(time.time())

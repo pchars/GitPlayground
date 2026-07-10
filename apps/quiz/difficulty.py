@@ -1,8 +1,8 @@
-"""Классификация сложности вопросов квиза по содержанию (не по позиции в списке)."""
+"""Quiz question difficulty by content (not list position)."""
 
 from __future__ import annotations
 
-# Базовые команды уровня «Git за 80% случаев».
+# Core commands for everyday Git usage.
 EASY_COMMANDS: frozenset[str] = frozenset(
     {
         "git init",
@@ -168,7 +168,7 @@ MEDIUM_COMMAND_MARKERS: tuple[str, ...] = (
     "help -w",
 )
 
-# Темы «уровень 1» — основы Git.
+# Level-1 topics — Git fundamentals.
 EASY_CONCEPT_MARKERS: tuple[str, ...] = (
     "три состоян",
     "три основных состоян",
@@ -322,7 +322,7 @@ def _count_markers(text: str, markers: tuple[str, ...]) -> int:
 
 
 def classify_command_difficulty(cmd: str) -> str:
-    """Сложность вопроса про конкретную git-команду."""
+    """Difficulty for a question about a specific git command."""
     if cmd in EASY_COMMANDS:
         return "easy"
     if any(marker in cmd for marker in HARD_COMMAND_MARKERS):
@@ -333,7 +333,7 @@ def classify_command_difficulty(cmd: str) -> str:
 
 
 def classify_concept_difficulty(prompt: str, correct: str) -> str:
-    """Сложность концептуального вопроса по формулировке и правильному ответу."""
+    """Difficulty for a concept question from prompt and correct answer."""
     text = f"{prompt} {correct}"
     hard = _count_markers(text, HARD_CONCEPT_MARKERS)
     medium = _count_markers(text, MEDIUM_CONCEPT_MARKERS)

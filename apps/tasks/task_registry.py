@@ -1,11 +1,11 @@
-"""Единая точка доступа к контенту задач (условие, подсказки, баллы)."""
+"""Single entry point for task content (conditions, hints, points)."""
 
 from __future__ import annotations
 
 from apps.tasks.task_descriptions import TASK_CONDITIONS
 from apps.tasks.task_hints import TASK_HINTS
 
-# slug → points по уровням (единственный источник для seed и тестов покрытия)
+# slug -> points per level (source of truth for seed and coverage tests)
 LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
     1: [
         ("init_repo", 6),

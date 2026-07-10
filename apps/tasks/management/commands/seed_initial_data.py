@@ -645,7 +645,7 @@ class Command(BaseCommand):
                 },
             )
 
-            # DB data is source of truth: не перетираем уже отредактированную теорию.
+            # DB data is source of truth: do not overwrite manually edited theory.
             TheoryBlock.objects.get_or_create(
                 level=level,
                 defaults={
@@ -655,7 +655,7 @@ class Command(BaseCommand):
                 },
             )
 
-            # Пересобираем github-задачи уровня детерминированно.
+            # Rebuild level tasks deterministically.
             Task.objects.filter(level=level, platform=Task.Platform.GITHUB).delete()
             for order, (slug, description, points) in enumerate(
                 TASK_BLUEPRINTS.get(level_number, []), start=1
@@ -736,7 +736,7 @@ class Command(BaseCommand):
                 created_tasks += 1
                 created_assets += 3
 
-        # Ачивки — глобальные определения; создаём один раз при сидировании, а не на каждый запрос профиля.
+        # Achievements are global definitions; bootstrap once during seed, not per profile request.
         from apps.achievements.services import bootstrap_default_achievements
 
         bootstrap_default_achievements()

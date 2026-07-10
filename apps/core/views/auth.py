@@ -1,4 +1,4 @@
-"""Регистрация и активация аккаунта."""
+"""Signup and account activation."""
 
 import logging
 
@@ -45,7 +45,7 @@ def signup_view(request):
             user = form.save(commit=False)
             user.is_active = not require_confirmation
             user.save()
-        # public_nickname глобально уникален; чужой профиль мог занять строку, совпадающую с username.
+        # public_nickname is globally unique; another profile may already use this username string.
         nickname = (user.username or "user")[:64]
         n = 0
         while UserProfile.objects.filter(public_nickname=nickname).exists():

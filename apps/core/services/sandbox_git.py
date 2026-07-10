@@ -1,4 +1,4 @@
-"""Детерминированное окружение git для песочницы."""
+"""Deterministic git environment for the sandbox."""
 
 from __future__ import annotations
 

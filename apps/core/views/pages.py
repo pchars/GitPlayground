@@ -1,4 +1,4 @@
-"""Публичные страницы и служебные HTTP-эндпоинты."""
+"""Public pages and utility HTTP endpoints."""
 
 from urllib.parse import urlparse
 

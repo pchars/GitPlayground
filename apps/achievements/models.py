@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Achievement(models.Model):
-    """Достижение; критерий выдачи задаётся полями criterion_* (threshold_tasks остаётся для совместимости UI)."""
+    """Achievement; award criteria use criterion_* fields (threshold_tasks kept for UI compatibility)."""
 
     class CriterionKind(models.TextChoices):
         TASKS_COMPLETED = "tasks_completed", "Завершённые задачи"

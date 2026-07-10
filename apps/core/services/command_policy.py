@@ -1,10 +1,10 @@
-"""Политика разрешённых команд песочницы (без shell)."""
+"""Sandbox allowed-command policy (no shell)."""
 
 from __future__ import annotations
 
 import shlex
 
-# Подкоманды git, которые ученик не должен вызывать (сеть, хуки, смена конфига).
+# Git subcommands learners must not invoke (network, hooks, config changes).
 _BLOCKED_GIT_SUBCOMMANDS = frozenset(
     {
         "config",
@@ -29,14 +29,14 @@ def relative_path_has_dotdot(relative_path: str) -> bool:
 
 
 def _git_tokens_allowed(tokens: list[str]) -> tuple[bool, str]:
-    """Проверить git-вызов: без -c/--config и без заблокированных подкоманд."""
+    """Validate a git invocation: no -c/--config and no blocked subcommands."""
     idx = 1
     while idx < len(tokens):
         token = tokens[idx]
         if token in {"-c", "--config"}:
             return False, "git_config_injection"
         if token.startswith("-") and not token.startswith("--"):
-            # короткие флаги вроде -C разрешены только для смены каталога в учебных сценариях
+            # short flags like -C are allowed only for directory-change teaching scenarios
             if token == "-C" and idx + 1 < len(tokens):
                 idx += 2
                 continue

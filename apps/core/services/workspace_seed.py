@@ -1,4 +1,4 @@
-"""Начальное состояние рабочей папки песочницы."""
+"""Initial sandbox workspace seeding."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from .sandbox_git import SANDBOX_GIT_USER_EMAIL, SANDBOX_GIT_USER_NAME, git_env
 
 
 def safe_extract_zip(archive: zipfile.ZipFile, dest: Path) -> None:
-    """Распаковать zip только внутрь dest (защита от zip-slip)."""
+    """Extract zip only inside dest (zip-slip protection)."""
     dest_resolved = dest.resolve()
     for member in archive.namelist():
         if member.endswith("/"):

@@ -1,12 +1,12 @@
-"""Автоматический cache-busting для статики.
+"""Automatic cache-busting for static files.
 
-Тег ``static_v`` работает как встроенный ``static``, но добавляет к URL
-короткий хэш содержимого файла (``?v=<hash>``). Хэш пересчитывается только
-при изменении файла (ключ кэша — путь + mtime), поэтому браузер всегда
-получает свежую версию CSS/JS без ручного бампа версии в шаблонах.
+The ``static_v`` tag works like built-in ``static`` but appends a short content
+hash to the URL (``?v=<hash>``). The hash is recomputed only when the file
+changes (cache key: path + mtime), so browsers get fresh CSS/JS without manual
+version bumps in templates.
 
-Тег подключён как builtin (см. ``TEMPLATES`` в settings), так что
-``{% load %}`` в шаблонах не нужен.
+Registered as a template builtin (see ``TEMPLATES`` in settings), so no
+``{% load %}`` is required.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ register = template.Library()
 
 
 def _resolve_source_path(path: str) -> str | None:
-    """Абсолютный путь к исходному статическому файлу или None."""
+    """Absolute path to the source static file, or None."""
     found = finders.find(path)
     if found:
         return found if isinstance(found, str) else found[0]
@@ -46,7 +46,7 @@ def _current_mtime(source: str | None) -> float:
 
 @lru_cache(maxsize=256)
 def _content_hash(source: str, _mtime: float) -> str | None:
-    """SHA-256 (первые 8 символов) содержимого файла; кэшируется по mtime."""
+    """SHA-256 (first 8 hex chars) of file content; cached by mtime."""
     try:
         with open(source, "rb") as handle:
             digest = hashlib.sha256(handle.read()).hexdigest()
@@ -57,7 +57,7 @@ def _content_hash(source: str, _mtime: float) -> str | None:
 
 @register.simple_tag
 def static_v(path: str) -> str:
-    """Вернуть URL статики с автоматическим ``?v=<hash>``."""
+    """Return static URL with automatic ``?v=<hash>``."""
     url = static(path)
     source = _resolve_source_path(path)
     version = _content_hash(source, _current_mtime(source)) if source else None

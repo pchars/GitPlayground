@@ -1,4 +1,4 @@
-"""HTTP-представления core-приложения (точка входа для urls)."""
+"""Core HTTP views (entry point for URL routing)."""
 
 from .auth import activate_account, signup_view
 from .leaderboard import leaderboard

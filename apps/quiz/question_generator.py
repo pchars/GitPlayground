@@ -1,4 +1,4 @@
-"""Генерация большого набора вопросов про Git (без разделов в UI)."""
+"""Generate a large bank of Git questions (no sections in the UI)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 from apps.quiz.concept_questions import CONCEPT_QUESTIONS
 from apps.quiz.difficulty import classify_command_difficulty, classify_concept_difficulty
 
-# Команда → короткое верное описание (по смыслу, для учебного квиза).
+# Command -> short correct description (for the learning quiz).
 CMD_TO_DESC: dict[str, str] = {
     "git add": "добавляет изменения рабочей копии в индекс (staging)",
     "git status": "показывает состояние файлов: индекс, неотслеживаемые, изменённые",
@@ -204,14 +204,14 @@ def _normalize_prompt(text: str) -> str:
 
 
 def _semantic_dedup_key(row: dict[str, Any]) -> str:
-    """Ключ для сбалансированной дедупликации: одна идея — один вопрос."""
+    """Dedup key for balanced bank: one idea -> one question."""
     prompt = _normalize_prompt(row["prompt"])
     correct = _normalize_prompt(row[f"choice_{row['correct_index']}"])
     if prompt.startswith("нужно выполнить действие") or "какую команду выбрать" in prompt:
         return f"scenario:{correct}"
     if prompt.startswith("что делает команда") or prompt.startswith("за что отвечает команда"):
         return f"direct:{correct}"
-    # Концепт-вопросы с одним фактом (detached HEAD, staging, rerere…) — один ответ.
+    # Single-fact concept questions (detached HEAD, staging, rerere…) — one answer.
     if any(
         marker in prompt
         for marker in (
@@ -249,8 +249,8 @@ def iter_packed_questions() -> list[dict[str, Any]]:
 
     for cmd, desc in CMD_TO_DESC.items():
         wrong_pool = [d for d in all_descs if d != desc]
-        # Для каждого действия оставляем один вопрос на смысл + один сценарный вопрос,
-        # чтобы не размножать почти одинаковые формулировки.
+        # Per action keep one meaning question + one scenario question,
+        # to avoid near-duplicate phrasing.
         direct_tmpl = QUESTION_TEMPLATES[abs(hash(cmd)) % len(QUESTION_TEMPLATES)]
         rng = random.Random((hash(cmd) ^ hash(direct_tmpl)) & 0xFFFFFFFF)
         shuffled_wrong = wrong_pool[:]

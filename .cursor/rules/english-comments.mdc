@@ -1,0 +1,19 @@
+---
+description: Code comments and docstrings must be in English.
+globs:
+alwaysApply: true
+---
+
+# English comments in code
+
+All **developer-facing** annotations in source files must be written in **English**:
+
+- Line comments (`#`, `//`, `/* … */`)
+- Module, class, and function **docstrings**
+- Inline developer notes above blocks of logic
+
+**User-facing copy stays in Russian** (per `AGENTS.md`): templates, error messages shown to learners, quiz/task theory text, achievement titles, CLI `help=` strings for management commands, and seeded content in `task_hints.py` / `task_descriptions.py` / `theory_content.py`.
+
+Identifiers (names of variables, functions, files, CSS classes) remain in English.
+
+When editing a file that still has Russian comments, translate them in the same change.
