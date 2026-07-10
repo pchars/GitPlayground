@@ -33,6 +33,16 @@ class ResolveTrustedPathTests(SimpleTestCase):
             resolved = resolve_trusted_path_under_root(str(root), "notes/todo.txt")
             self.assertEqual(resolved, str(target.resolve()))
 
+    def test_resolves_dot_as_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            resolved = resolve_trusted_path_under_root(tmp, ".")
+            self.assertEqual(resolved, str(Path(tmp).resolve()))
+
+    def test_read_blocks_dotdot_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            status, _payload, _truncated = read_repo_file_bytes(tmp, "../outside.txt", 1024)
+            self.assertEqual(status, "blocked")
+
     def test_rejects_escape_via_realpath(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

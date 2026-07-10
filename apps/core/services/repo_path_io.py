@@ -1,13 +1,16 @@
 """Trusted repo-relative file I/O (CodeQL py/path-injection safe).
 
-Learner file paths are joined under a fixed sandbox root. CodeQL requires
-``realpath(join(root, user_input))``, ``startswith(root_prefix)``, and the
-filesystem call in the same function with no intervening checks on the path.
+Learner file paths are joined under a fixed sandbox root. CodeQL's
+``py/path-injection`` query requires ``realpath(join(root, rel))``, a plain
+``startswith(root_prefix)`` guard (no compound conditions), and the filesystem
+call in the same function — parent dirs are resolved via ``join(base, dirname(rel))``.
 """
 
 from __future__ import annotations
 
 import os
+
+from apps.core.services.command_policy import normalize_repo_relative_path
 
 FIND_MAX_ENTRIES = 500
 HEAD_TAIL_MAX_LINES = 1000
@@ -27,24 +30,35 @@ def _root_prefix(base_path: str) -> str:
     return base_path if base_path.endswith(os.sep) else f"{base_path}{os.sep}"
 
 
-def _candidate_relative_path(relative_path: str) -> str | None:
-    rel = relative_path.strip().replace("\\", "/")
-    if not rel or rel.startswith(("/", "~")):
-        return None
-    return rel
-
-
 def _trusted_path_or_none(root_dir: str, relative_path: str) -> str | None:
     """Resolve a repo-relative path without touching the filesystem (tests/helpers)."""
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return None
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    if rel == ".":
+        return base_path
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return None
     return fullpath
+
+
+def _ensure_parent_dir(base_path: str, rel: str) -> bool:
+    """Create parent directories for a repo-relative file path (CodeQL-safe)."""
+    parent_rel = os.path.dirname(rel)
+    if not parent_rel or parent_rel == ".":
+        return True
+    root_prefix = _root_prefix(base_path)
+    parent_abs = os.path.realpath(os.path.join(base_path, parent_rel))
+    if not parent_abs.startswith(root_prefix):
+        return False
+    try:
+        os.makedirs(parent_abs, exist_ok=True)
+    except OSError:
+        return False
+    return True
 
 
 def resolve_trusted_path_under_root(root_dir: str, relative_path: str) -> str | None:
@@ -59,13 +73,13 @@ def read_repo_file_bytes(
 
     Status is one of: ``ok``, ``blocked``, ``missing``, ``not_file``, ``io_error``.
     """
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", b"", False
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return "blocked", b"", False
     try:
         with open(fullpath, "rb") as handle:
@@ -82,13 +96,13 @@ def read_repo_file_bytes(
 
 def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> tuple[str, bytes | None]:
     """Write bytes. Status is ``ok``, ``blocked``, or ``io_error``."""
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", None
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return "blocked", None
     backup: bytes | None = None
     try:
@@ -97,9 +111,8 @@ def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> 
                 backup = handle.read(len(payload) + 1)
         except FileNotFoundError:
             backup = None
-        parent_dir = os.path.dirname(fullpath)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, rel):
+            return "blocked", backup
         with open(fullpath, "wb") as handle:
             handle.write(payload)
     except OSError:
@@ -108,13 +121,13 @@ def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> 
 
 
 def restore_or_remove_repo_file(root_dir: str, relative_path: str, backup: bytes | None) -> None:
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return
     try:
         if backup is not None:
@@ -127,18 +140,17 @@ def restore_or_remove_repo_file(root_dir: str, relative_path: str, backup: bytes
 
 
 def touch_repo_file(root_dir: str, relative_path: str) -> bool:
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return False
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return False
     try:
-        parent_dir = os.path.dirname(fullpath)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, rel):
+            return False
         open(fullpath, "a", encoding="utf-8").close()
     except OSError:
         return False
@@ -146,18 +158,17 @@ def touch_repo_file(root_dir: str, relative_path: str) -> bool:
 
 
 def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return False
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return False
     try:
-        parent_dir = os.path.dirname(fullpath)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, rel):
+            return False
         with open(fullpath, "w", encoding="utf-8"):
             pass
     except OSError:
@@ -166,18 +177,17 @@ def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
 
 
 def append_repo_text_line(root_dir: str, relative_path: str, text: str, *, append: bool) -> bool:
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return False
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return False
     try:
-        parent_dir = os.path.dirname(fullpath)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, rel):
+            return False
         mode = "a" if append else "w"
         with open(fullpath, mode, encoding="utf-8") as handle:
             handle.write(text)
@@ -189,14 +199,17 @@ def append_repo_text_line(root_dir: str, relative_path: str, text: str, *, appen
 
 def list_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
     """Return (status, payload): status is ok|missing|blocked; payload is listing or message."""
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
-        return "blocked", ""
+    if rel == ".":
+        fullpath = base_path
+    else:
+        fullpath = os.path.realpath(os.path.join(base_path, rel))
+        if not fullpath.startswith(root_prefix):
+            return "blocked", ""
     try:
         entries = sorted(os.listdir(fullpath), key=str.lower)
     except FileNotFoundError:
@@ -213,14 +226,17 @@ def list_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
 
 def mkdir_repo_path(root_dir: str, relative_path: str, *, parents: bool) -> tuple[str, str]:
     """Return (status, message). Status: ``ok``, ``blocked``, ``exists``, ``io_error``."""
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
-        return "blocked", ""
+    if rel == ".":
+        fullpath = base_path
+    else:
+        fullpath = os.path.realpath(os.path.join(base_path, rel))
+        if not fullpath.startswith(root_prefix):
+            return "blocked", ""
     try:
         os.makedirs(fullpath, exist_ok=parents)
     except FileExistsError:
@@ -269,24 +285,23 @@ def wc_repo_file(root_dir: str, relative_path: str, *, lines_only: bool) -> tupl
 def cp_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(src_path) or path_touches_git_metadata(dst_path):
         return "git_protected", ""
-    src_rel = _candidate_relative_path(src_path)
-    dst_rel = _candidate_relative_path(dst_path)
+    src_rel = normalize_repo_relative_path(src_path)
+    dst_rel = normalize_repo_relative_path(dst_path)
     if src_rel is None or dst_rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
     src_abs = os.path.realpath(os.path.join(base_path, src_rel))
-    if src_abs != base_path and not src_abs.startswith(root_prefix):
+    if not src_abs.startswith(root_prefix):
         return "blocked", ""
     dst_abs = os.path.realpath(os.path.join(base_path, dst_rel))
-    if dst_abs != base_path and not dst_abs.startswith(root_prefix):
+    if not dst_abs.startswith(root_prefix):
         return "blocked", ""
     try:
         with open(src_abs, "rb") as src_handle:
             payload = src_handle.read()
-        parent_dir = os.path.dirname(dst_abs)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, dst_rel):
+            return "blocked", ""
         with open(dst_abs, "wb") as dst_handle:
             dst_handle.write(payload)
     except FileNotFoundError:
@@ -301,22 +316,21 @@ def cp_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]
 def mv_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(src_path) or path_touches_git_metadata(dst_path):
         return "git_protected", ""
-    src_rel = _candidate_relative_path(src_path)
-    dst_rel = _candidate_relative_path(dst_path)
+    src_rel = normalize_repo_relative_path(src_path)
+    dst_rel = normalize_repo_relative_path(dst_path)
     if src_rel is None or dst_rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
     src_abs = os.path.realpath(os.path.join(base_path, src_rel))
-    if src_abs != base_path and not src_abs.startswith(root_prefix):
+    if not src_abs.startswith(root_prefix):
         return "blocked", ""
     dst_abs = os.path.realpath(os.path.join(base_path, dst_rel))
-    if dst_abs != base_path and not dst_abs.startswith(root_prefix):
+    if not dst_abs.startswith(root_prefix):
         return "blocked", ""
     try:
-        parent_dir = os.path.dirname(dst_abs)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if not _ensure_parent_dir(base_path, dst_rel):
+            return "blocked", ""
         os.replace(src_abs, dst_abs)
     except FileNotFoundError:
         return "missing", src_path
@@ -328,13 +342,13 @@ def mv_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]
 def rm_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(relative_path):
         return "git_protected", ""
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
+    if not fullpath.startswith(root_prefix):
         return "blocked", ""
     try:
         os.unlink(fullpath)
@@ -348,14 +362,17 @@ def rm_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
 
 
 def find_repo_paths(root_dir: str, relative_path: str) -> tuple[str, str]:
-    rel = _candidate_relative_path(relative_path)
+    rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", ""
     base_path = os.path.realpath(root_dir)
-    start_abs = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
-    if start_abs != base_path and not start_abs.startswith(root_prefix):
-        return "blocked", ""
+    if rel == ".":
+        start_abs = base_path
+    else:
+        start_abs = os.path.realpath(os.path.join(base_path, rel))
+        if not start_abs.startswith(root_prefix):
+            return "blocked", ""
     entries: list[str] = []
     truncated = False
     try:
