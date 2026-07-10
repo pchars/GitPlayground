@@ -6,10 +6,7 @@
 
   const track = slider.querySelector(".learning-slider-track");
   const slides = Array.from(slider.querySelectorAll(".learning-slide"));
-  const prevBtn = slider.querySelector("[data-learning-prev]");
-  const nextBtn = slider.querySelector("[data-learning-next]");
-  const currentNode = slider.querySelector("[data-learning-current]");
-  const dots = Array.from(slider.querySelectorAll("[data-learning-dot]"));
+  const flowSteps = Array.from(slider.querySelectorAll("[data-flow-step]"));
   if (!track || !slides.length) {
     return;
   }
@@ -25,24 +22,16 @@
     slides.forEach((slide, slideIndex) => {
       slide.classList.toggle("is-active", slideIndex === index);
     });
-    dots.forEach((dot, dotIndex) => {
-      dot.classList.toggle("is-active", dotIndex === index);
-      dot.setAttribute("aria-selected", dotIndex === index ? "true" : "false");
+    flowSteps.forEach((step, stepIndex) => {
+      step.classList.toggle("is-active", stepIndex === index);
+      step.classList.toggle("is-complete", stepIndex < index);
+      step.setAttribute("aria-selected", stepIndex === index ? "true" : "false");
     });
-    if (currentNode) {
-      currentNode.textContent = String(index + 1);
-    }
   }
 
-  if (prevBtn) {
-    prevBtn.addEventListener("click", () => render(index - 1));
-  }
-  if (nextBtn) {
-    nextBtn.addEventListener("click", () => render(index + 1));
-  }
-  dots.forEach((dot) => {
-    dot.addEventListener("click", () => {
-      const target = Number(dot.dataset.learningDot);
+  flowSteps.forEach((step) => {
+    step.addEventListener("click", () => {
+      const target = Number(step.dataset.flowStep);
       if (!Number.isNaN(target)) {
         render(target);
       }

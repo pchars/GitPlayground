@@ -1,0 +1,53 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Поддержать проект{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/legal.css' %}">{% endblock %}
+
+{% block content %}
+<article class="card support-page">
+  <h1>Поддержать проект</h1>
+  <p class="muted">GitPlayground — бесплатная платформа для обучения Git</p>
+
+  <p class="support-lead">
+    Если GitPlayground помогает вам в учёбе, можно поддержать развитие проекта добровольным переводом
+    в криптовалюте. Это не даёт дополнительных функций в сервисе — только помогает оплачивать хостинг
+    и выпускать новый контент.
+  </p>
+
+  <h2>Криптокошелёк</h2>
+  <div class="support-wallet">
+    <p class="support-wallet-label">{{ wallet_label }}</p>
+    <div class="support-wallet-row">
+      <code class="support-wallet-address" id="donation-wallet">{{ wallet_address }}</code>
+      <button class="btn btn-secondary support-copy-btn" type="button" data-copy-wallet>Скопировать адрес</button>
+    </div>
+  </div>
+
+  <p class="support-note">
+    Перед переводом проверьте сеть и адрес. GitPlayground не обрабатывает платежи на сайте —
+    перевод выполняется напрямую из вашего кошелька.
+  </p>
+</article>
+<script>
+  (function () {
+    const button = document.querySelector("[data-copy-wallet]");
+    const wallet = document.getElementById("donation-wallet");
+    if (!button || !wallet) {
+      return;
+    }
+    button.addEventListener("click", async () => {
+      const text = wallet.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Скопировано";
+        window.setTimeout(() => {
+          button.textContent = "Скопировать адрес";
+        }, 2000);
+      } catch {
+        button.textContent = "Не удалось скопировать";
+      }
+    });
+  })();
+</script>
+{% endblock %}

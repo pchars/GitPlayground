@@ -23,14 +23,14 @@ def leaderboard(request):
         )
         uid_list = [s.user_id for s in snapshots]
         profile_map = {
-            p.user_id: p.public_nickname
-            for p in UserProfile.objects.filter(user_id__in=uid_list).only("user_id", "public_nickname")
+            p.user_id: p.pseudonym
+            for p in UserProfile.objects.filter(user_id__in=uid_list).only("user_id", "pseudonym")
         }
         top_users = [
             {
                 "rank": row.rank,
                 "user_id": row.user_id,
-                "public_nickname": profile_map.get(row.user_id, row.user.username),
+                "pseudonym": profile_map.get(row.user_id, "—"),
                 "total_points": row.total_points,
             }
             for row in snapshots
@@ -41,7 +41,7 @@ def leaderboard(request):
             {
                 "rank": idx + 1,
                 "user_id": profile.user_id,
-                "public_nickname": profile.public_nickname,
+                "pseudonym": profile.pseudonym,
                 "total_points": profile.total_points,
             }
             for idx, profile in enumerate(profiles)

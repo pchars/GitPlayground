@@ -15,7 +15,6 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from apps.core.forms import SignUpForm
-from apps.users.models import UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +44,7 @@ def signup_view(request):
             user = form.save(commit=False)
             user.is_active = not require_confirmation
             user.save()
-        # public_nickname is globally unique; another profile may already use this username string.
-        nickname = (user.username or "user")[:64]
-        n = 0
-        while UserProfile.objects.filter(public_nickname=nickname).exists():
-            n += 1
-            suffix = f"_{user.pk}_{n}"
-            base = (user.username or "user")[: max(1, 64 - len(suffix))]
-            nickname = (base + suffix)[:64]
-        UserProfile.objects.create(user=user, public_nickname=nickname)
+            form.save_profile(user)
         if require_confirmation:
             try:
                 _send_activation_email(request, user)

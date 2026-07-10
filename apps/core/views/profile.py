@@ -1,24 +1,23 @@
 """User profile and related learning statistics."""
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 
 from apps.achievements.models import Achievement, UserAchievement
 from apps.achievements.services import achievement_gallery_sort_key, quiz_streak_flawless_status
+from apps.core.forms import ProfileEditForm
 from apps.progress.models import TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
-from apps.users.models import UserProfile
+from apps.users.services import ensure_user_profile
 
 K = Achievement.CriterionKind
 
 
-def _profile_learning_stats(user: User) -> dict:
-    profile, _ = UserProfile.objects.get_or_create(
-        user=user,
-        defaults={"public_nickname": user.username},
-    )
+def _profile_learning_stats(user) -> dict:
+    profile = ensure_user_profile(user)
     completed_task_ids = set(
         TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True)
     )
@@ -88,24 +87,42 @@ def _profile_learning_stats(user: User) -> dict:
         "available_achievements": available_achievements,
         "completed_tasks_count": completed_tasks_count,
         "theory_dropoff": theory_dropoff,
+        "quiz_stats": quiz_stats,
+        "solved_total": solved_total,
+        "total_quiz": total_quiz,
     }
 
 
-def public_profile(request, username):
-    user = get_object_or_404(User, username=username)
+def _render_profile(request: HttpRequest, user) -> HttpResponse:
     stats = _profile_learning_stats(user)
-    profile = stats["profile"]
     return render(
         request,
         "core/profile.html",
         {
             "profile_user": user,
-            "profile": profile,
             **stats,
         },
     )
 
 
 @login_required
-def profile_self(request):
-    return redirect("public-profile", username=request.user.username)
+def profile_self(request: HttpRequest) -> HttpResponse:
+    return _render_profile(request, request.user)
+
+
+def public_profile(request: HttpRequest, username: str) -> HttpResponse:
+    """Legacy URL — профиль доступен только владельцу."""
+    if not request.user.is_authenticated or request.user.username != username:
+        raise Http404
+    return _render_profile(request, request.user)
+
+
+@login_required
+def profile_edit(request: HttpRequest) -> HttpResponse:
+    profile = ensure_user_profile(request.user)
+    form = ProfileEditForm(request.POST or None, user=request.user, profile=profile)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Профиль обновлён.")
+        return redirect("profile-self")
+    return render(request, "core/profile_edit.html", {"form": form, "profile": profile})

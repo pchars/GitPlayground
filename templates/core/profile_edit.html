@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Редактирование профиля{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static_v 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static_v 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-wrap auth-wrap-signup">
+  <form method="post" class="card auth-card signup-card profile-edit-card">
+    {% csrf_token %}
+    <header class="signup-header">
+      <h2>Редактирование профиля</h2>
+    </header>
+    {{ form.non_field_errors }}
+
+    <div class="signup-section">
+      <div class="signup-grid">
+        <div class="signup-field signup-field-required signup-field-full">
+          <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+          {{ form.email }}
+          {{ form.email.errors }}
+        </div>
+        <div class="signup-field signup-field-required">
+          <label for="{{ form.certificate_name.id_for_label }}">{{ form.certificate_name.label }}</label>
+          {{ form.certificate_name }}
+          {{ form.certificate_name.errors }}
+        </div>
+        <div class="signup-field signup-field-required">
+          <label for="{{ form.pseudonym.id_for_label }}">{{ form.pseudonym.label }}</label>
+          {{ form.pseudonym }}
+          {{ form.pseudonym.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-grid">
+        <div class="signup-field signup-field-required">
+          <label for="{{ form.learning_goal.id_for_label }}">{{ form.learning_goal.label }}</label>
+          {{ form.learning_goal }}
+          {{ form.learning_goal.errors }}
+        </div>
+        <div class="signup-field signup-field-required">
+          <label for="{{ form.knowledge_level.id_for_label }}">{{ form.knowledge_level.label }}</label>
+          {{ form.knowledge_level }}
+          {{ form.knowledge_level.errors }}
+        </div>
+        <div class="signup-field">
+          <label for="{{ form.job_role.id_for_label }}">{{ form.job_role.label }}</label>
+          {{ form.job_role }}
+          {{ form.job_role.errors }}
+        </div>
+        <div class="signup-field">
+          <label for="{{ form.company_name.id_for_label }}">{{ form.company_name.label }}</label>
+          {{ form.company_name }}
+          {{ form.company_name.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="signup-section signup-section-consent">
+      <div class="signup-consent-list">
+        <label class="signup-consent-item">
+          {{ form.marketing_opt_in }}
+          <a class="signup-consent-link" href="{% url 'marketing-consent' %}" target="_blank" rel="noopener">Получать новости и советы по email</a>
+        </label>
+      </div>
+    </div>
+
+    <div class="signup-actions profile-edit-actions">
+      <button class="btn btn-primary" type="submit">Сохранить</button>
+      <a class="btn btn-secondary" href="{% url 'profile-self' %}">Отмена</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

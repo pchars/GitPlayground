@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="200" viewBox="0 0 280 200" fill="none" aria-hidden="true">
+  <rect x="40" y="36" width="200" height="128" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="56" y="52" width="88" height="10" rx="5" fill="#e5e7eb"/>
+  <rect x="56" y="72" width="168" height="8" rx="4" fill="#f5f5f5"/>
+  <rect x="56" y="72" width="112" height="8" rx="4" fill="#111111"/>
+  <rect x="56" y="92" width="168" height="8" rx="4" fill="#f5f5f5"/>
+  <rect x="56" y="92" width="84" height="8" rx="4" fill="#111111"/>
+  <rect x="56" y="112" width="168" height="8" rx="4" fill="#f5f5f5"/>
+  <rect x="56" y="112" width="140" height="8" rx="4" fill="#111111"/>
+  <rect x="56" y="136" width="56" height="20" rx="10" fill="#f5f5f5" stroke="#e5e7eb"/>
+  <rect x="120" y="136" width="56" height="20" rx="10" fill="#f5f5f5" stroke="#e5e7eb"/>
+  <rect x="184" y="136" width="40" height="20" rx="10" fill="#111111"/>
+  <circle cx="204" cy="146" r="6" stroke="#ffffff" stroke-width="2"/>
+  <path d="M201 146l2 2 4-5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

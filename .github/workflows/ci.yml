@@ -70,7 +70,7 @@ jobs:
           python manage.py migrate
           python manage.py seed_initial_data
           python manage.py seed_quiz_questions
-          python manage.py shell -c "from django.contrib.auth.models import User; User.objects.filter(username='e2e_smoke').delete(); User.objects.create_user('e2e_smoke', password='e2e-smoke-pass-2026')"
+          python manage.py shell -c "from django.contrib.auth.models import User; User.objects.filter(email='e2e_smoke@example.com').delete(); User.objects.create_user('e2e_smoke@example.com', email='e2e_smoke@example.com', password='e2e-smoke-pass-2026')"
       - name: Install Playwright
         working-directory: e2e
         run: |

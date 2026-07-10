@@ -144,6 +144,12 @@ SIGNUP_REQUIRE_EMAIL_CONFIRMATION = (
     os.getenv("SIGNUP_REQUIRE_EMAIL_CONFIRMATION", "false" if DEBUG else "true").lower() == "true"
 )
 
+DONATION_CRYPTO_WALLET_LABEL = os.getenv("DONATION_CRYPTO_WALLET_LABEL", "USDT (TRC-20)")
+DONATION_CRYPTO_WALLET = os.getenv(
+    "DONATION_CRYPTO_WALLET",
+    "TExampleGitPlaygroundWalletAddress000000000",
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Strict deploy checks when DJANGO_DEPLOY_CHECK=1 and DEBUG=false (see docs/DEPLOY.md).

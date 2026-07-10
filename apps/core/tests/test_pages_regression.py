@@ -1,7 +1,10 @@
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
+from django.utils import timezone
 
+from apps.core.tests.helpers import make_user
 from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock
+from apps.users.legal import PRIVACY_CONSENT_SNAPSHOT, PRIVACY_POLICY_VERSION
 from apps.users.models import UserProfile
 from apps.quiz.models import QuizQuestion
 
@@ -10,7 +13,17 @@ class PagesRegressionTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="Mikhail", password="password123", email="mikhail@example.com")
-        UserProfile.objects.create(user=self.user, public_nickname="Mikhail", total_points=10)
+        UserProfile.objects.create(
+            user=self.user,
+            pseudonym="Mikhail",
+            certificate_name="Mikhail Example",
+            learning_goal=UserProfile.LearningGoal.WORK,
+            knowledge_level=UserProfile.KnowledgeLevel.BASIC,
+            total_points=10,
+            privacy_consent_at=timezone.now(),
+            privacy_consent_version=PRIVACY_POLICY_VERSION,
+            privacy_consent_text=PRIVACY_CONSENT_SNAPSHOT,
+        )
         self.level = Level.objects.create(number=1, title="Основы", slug="osnovy", description="d")
         TheoryBlock.objects.create(level=self.level, title="Теория", content_md="## Раздел\nТекст", diagram_mermaid="")
         self.task = Task.objects.create(
@@ -41,7 +54,7 @@ class PagesRegressionTests(TestCase):
         )
 
     def test_public_pages_do_not_error(self):
-        for url in ("/", "/login/", "/signup/", "/healthz/", "/admin/login/?next=/admin/"):
+        for url in ("/", "/login/", "/signup/", "/healthz/", "/admin/login/?next=/admin/", "/legal/privacy/", "/support/donate/"):
             response = self.client.get(url)
             self.assertNotEqual(response.status_code, 500, url)
 
@@ -50,9 +63,15 @@ class PagesRegressionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertIn("landing-hero-full", html)
-        self.assertIn("Что такое Git", html)
-        self.assertIn("Почему важно учить Git", html)
-        self.assertIn("Где используется Git", html)
+        self.assertNotIn("Что такое Git", html)
+        self.assertIn("Git в реальной работе", html)
+        self.assertIn("Командная работа", html)
+        self.assertIn("Infrastructure as Code", html)
+        self.assertNotIn("Четыре шага от теории", html)
+        self.assertNotIn("data-learning-prev", html)
+        self.assertIn("learning-flow", html)
+        self.assertIn('role="tablist"', html)
+        self.assertNotIn("learning-slider-dot", html)
         self.assertIn("вопросов для закрепления", html)
         self.assertNotIn("учеников уже решили хотя бы одну задачу", html)
         self.assertNotIn("пользователей на платформе", html)
@@ -66,12 +85,12 @@ class PagesRegressionTests(TestCase):
         self.client.force_login(self.user)
         urls = (
             "/profile/",
+            "/profile/edit/",
             "/tasks/",
             "/theory/1/",
             "/quiz/",
             "/quiz/play/?difficulty=easy",
             "/leaderboard/",
-            f"/profile/{self.user.username}/",
             "/playground/gh-1_1/",
         )
         for url in urls:
@@ -79,11 +98,24 @@ class PagesRegressionTests(TestCase):
             self.assertNotEqual(response.status_code, 500, url)
             self.assertNotIn("manage.py", response.content.decode("utf-8"))
 
-    def test_profile_self_redirects_to_public_profile(self):
-        self.client.force_login(self.user)
+    def test_profile_is_private_for_guests_and_other_users(self):
         response = self.client.get("/profile/")
         self.assertEqual(response.status_code, 302)
-        self.assertIn(f"/profile/{self.user.username}/", response["Location"])
+        self.assertIn("/login/", response["Location"])
+
+        other = make_user(username="other_user", pseudonym="other")
+        self.client.force_login(other)
+        response = self.client.get(f"/profile/{self.user.username}/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_profile_self_renders_for_owner(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/profile/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Информация о пользователе", html)
+        self.assertIn("Mikhail Example", html)
+        self.assertIn("mikhail@example.com", html)
 
     def test_header_uses_my_profile_and_sidebar_has_no_profile_link(self):
         self.client.force_login(self.user)
@@ -100,15 +132,14 @@ class PagesRegressionTests(TestCase):
 
     def test_profile_contains_learning_sections_without_top10(self):
         self.client.force_login(self.user)
-        response = self.client.get(f"/profile/{self.user.username}/")
+        response = self.client.get("/profile/")
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertIn("Информация о пользователе", html)
         self.assertIn("Прогресс по обучению", html)
         self.assertIn("profile-level-list", html)
         self.assertIn("Достижения", html)
-        self.assertIn("Имя пользователя", html)
-        self.assertIn("Баллы", html)
+        self.assertIn("Редактировать профиль", html)
         self.assertNotIn("Ср. попыток", html)
         self.assertNotIn("<h3>Профиль</h3>", html)
         self.assertNotIn("Учебная аналитика", html)
@@ -137,3 +168,17 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("validator.py", html)
         self.assertNotIn("terminal-log-data", html)
         self.assertIn("terminal_paste.js", html)
+
+    def test_footer_contains_privacy_policy_link(self):
+        response = self.client.get("/")
+        html = response.content.decode("utf-8")
+        self.assertIn("Политика конфиденциальности", html)
+        self.assertIn("Поддержать проект", html)
+
+    def test_support_donate_page_shows_wallet(self):
+        response = self.client.get("/support/donate/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Поддержать проект", html)
+        self.assertIn("donation-wallet", html)
+        self.assertIn("legal.css", html)

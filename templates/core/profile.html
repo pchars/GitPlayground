@@ -7,23 +7,53 @@
 {% block content %}
 <section class="grid two profile-grid">
   <article class="card profile-card">
-    <h3>Информация о пользователе</h3>
-    <dl class="profile-stats">
-      <div>
-        <dt>Имя пользователя</dt>
-        <dd>{{ profile_user.username }}</dd>
+    <div class="profile-card-top">
+      <h3>Информация о пользователе</h3>
+      <a class="btn btn-secondary profile-edit-link" href="{% url 'profile-edit' %}">Редактировать профиль</a>
+    </div>
+
+    <div class="profile-identity">
+      <div class="profile-avatar profile-avatar-sm" aria-hidden="true">{{ profile.certificate_name|slice:":1"|upper }}</div>
+      <div class="profile-identity-text">
+        <p class="profile-identity-name">{{ profile.certificate_name }}</p>
+        <p class="profile-identity-meta muted">{{ profile.pseudonym }} · {{ profile.total_points }} баллов</p>
       </div>
-      <div>
+    </div>
+
+    <dl class="profile-details">
+      <div class="profile-details-row">
         <dt>Электронная почта</dt>
         <dd>{{ profile_user.email|default:"—" }}</dd>
       </div>
-      <div>
-        <dt>Имя</dt>
-        <dd>{{ profile.public_nickname }}</dd>
+      <div class="profile-details-row">
+        <dt>Цель обучения</dt>
+        <dd>{{ profile.get_learning_goal_display }}</dd>
       </div>
-      <div>
-        <dt>Баллы</dt>
-        <dd>{{ profile.total_points }}</dd>
+      <div class="profile-details-row">
+        <dt>Уровень Git</dt>
+        <dd>{{ profile.get_knowledge_level_display }}</dd>
+      </div>
+      <div class="profile-details-row">
+        <dt>С нами с</dt>
+        <dd>{{ profile_user.date_joined|date:"d.m.Y" }}</dd>
+      </div>
+      <div class="profile-details-row">
+        <dt>Должность</dt>
+        <dd>{{ profile.job_role|default:"—" }}</dd>
+      </div>
+      <div class="profile-details-row">
+        <dt>Компания</dt>
+        <dd>{{ profile.company_name|default:"—" }}</dd>
+      </div>
+      <div class="profile-details-row">
+        <dt>Рассылка</dt>
+        <dd>
+          {% if profile.marketing_opt_in %}
+            Подключена{% if profile.marketing_consent_at %} · с {{ profile.marketing_consent_at|date:"d.m.Y" }}{% endif %}
+          {% else %}
+            Отключена
+          {% endif %}
+        </dd>
       </div>
     </dl>
   </article>
@@ -38,6 +68,10 @@
     <div class="progress profile-progress-overall" aria-hidden="true">
       <span style="width: {{ progress_pct }}%;"></span>
     </div>
+    <ul class="profile-mini-stats profile-mini-stats-compact">
+      <li><span class="muted">Квиз</span><strong>{{ solved_total }}/{{ total_quiz }}</strong></li>
+      <li><span class="muted">Лучшая серия</span><strong>{{ quiz_stats.best_streak }}</strong></li>
+    </ul>
     <ul class="profile-level-list">
       {% for row in level_progress %}
         <li class="profile-level-row">

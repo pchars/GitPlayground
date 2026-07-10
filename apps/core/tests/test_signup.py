@@ -2,8 +2,11 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.core import mail
 from django.test.utils import override_settings
+from django.utils import timezone
 from unittest.mock import patch
 
+from apps.core.forms import PASSWORD_POLICY_MESSAGE
+from apps.core.tests.helpers import signup_form_payload
 from apps.users.models import UserProfile
 
 
@@ -17,58 +20,80 @@ class SignupViewTests(TestCase):
         password = "x3$QwertySignup9zUnique"
         response = client.post(
             "/signup/",
-            {
-                "username": "signup_new_user",
-                "email": "signup_new_user@example.com",
-                "password1": password,
-                "password2": password,
-            },
+            signup_form_payload(
+                email="signup_new_user@example.com",
+                password=password,
+            ),
         )
         self.assertEqual(response.status_code, 200, response.content.decode("utf-8")[:500])
-        user = User.objects.get(username="signup_new_user")
+        user = User.objects.get(email="signup_new_user@example.com")
+        self.assertEqual(user.username, "signup_new_user@example.com")
         self.assertTrue(user.check_password(password))
         self.assertFalse(user.is_active)
-        self.assertTrue(UserProfile.objects.filter(user=user).exists())
+        profile = UserProfile.objects.get(user=user)
+        self.assertEqual(profile.certificate_name, "Иван Иванов")
+        self.assertEqual(profile.pseudonym, "ivan_dev")
+        self.assertFalse(profile.marketing_opt_in)
+        self.assertTrue(profile.privacy_consent_at)
         self.assertEqual(len(mail.outbox), 1)
 
     def test_signup_shows_field_errors_when_passwords_mismatch(self):
         client = Client()
-        response = client.post(
-            "/signup/",
-            {
-                "username": "bad_signup_user",
-                "email": "bad@example.com",
-                "password1": "x3$QwertySignup9zUnique",
-                "password2": "other-password-9z",
-            },
+        payload = signup_form_payload(
+            email="bad@example.com",
+            password="x3$QwertySignup9zUnique",
         )
+        payload["password2"] = "other-password-9z"
+        response = client.post("/signup/", payload)
         self.assertEqual(response.status_code, 200)
         body = response.content.decode("utf-8")
         self.assertIn("errorlist", body)
+
+    def test_signup_shows_password_policy_message_for_weak_password(self):
+        client = Client()
+        response = client.post(
+            "/signup/",
+            signup_form_payload(
+                email="weak@example.com",
+                password="12345678",
+                pseudonym="weak_user",
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(PASSWORD_POLICY_MESSAGE, response.content.decode("utf-8"))
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
         SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True,
     )
-    def test_signup_public_nickname_avoids_collision_with_existing_profile(self):
-        existing = User.objects.create_user(username="u1", password="x3$Pw9zUnique1")
-        UserProfile.objects.create(user=existing, public_nickname="wanted_name", total_points=0)
+    def test_signup_rejects_duplicate_pseudonym(self):
+        existing = User.objects.create_user(
+            username="existing@example.com",
+            password="x3$Pw9zUnique1",
+            email="existing@example.com",
+        )
+        UserProfile.objects.create(
+            user=existing,
+            pseudonym="wanted",
+            certificate_name="Existing User",
+            learning_goal=UserProfile.LearningGoal.WORK,
+            knowledge_level=UserProfile.KnowledgeLevel.BASIC,
+            privacy_consent_at=timezone.now(),
+            privacy_consent_version="2026-07-10",
+            privacy_consent_text="ok",
+        )
         client = Client()
         password = "x3$QwertySignup9zUnique"
         response = client.post(
             "/signup/",
-            {
-                "username": "wanted_name",
-                "email": "wanted_name@example.com",
-                "password1": password,
-                "password2": password,
-            },
+            signup_form_payload(
+                email="wanted_name@example.com",
+                password=password,
+                pseudonym="wanted",
+            ),
         )
-        self.assertEqual(response.status_code, 200, response.content.decode("utf-8")[:500])
-        newbie = User.objects.get(username="wanted_name")
-        profile = UserProfile.objects.get(user=newbie)
-        self.assertNotEqual(profile.public_nickname, "wanted_name")
-        self.assertIn(str(newbie.pk), profile.public_nickname)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(email="wanted_name@example.com").exists())
 
     @override_settings(SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True)
     @patch("apps.core.views.auth.send_mail", side_effect=RuntimeError("smtp down"))
@@ -77,15 +102,13 @@ class SignupViewTests(TestCase):
         password = "x3$QwertySignup9zUnique"
         response = client.post(
             "/signup/",
-            {
-                "username": "signup_mail_fail_user",
-                "email": "signup_mail_fail_user@example.com",
-                "password1": password,
-                "password2": password,
-            },
+            signup_form_payload(
+                email="signup_mail_fail_user@example.com",
+                password=password,
+            ),
         )
         self.assertEqual(response.status_code, 200, response.content.decode("utf-8")[:500])
-        user = User.objects.get(username="signup_mail_fail_user")
+        user = User.objects.get(email="signup_mail_fail_user@example.com")
         self.assertFalse(user.is_active)
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
 
@@ -95,16 +118,31 @@ class SignupViewTests(TestCase):
         password = "x3$QwertySignup9zUnique"
         response = client.post(
             "/signup/",
-            {
-                "username": "signup_no_confirm_user",
-                "email": "signup_no_confirm_user@example.com",
-                "password1": password,
-                "password2": password,
-            },
+            signup_form_payload(
+                email="signup_no_confirm_user@example.com",
+                password=password,
+            ),
             follow=False,
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/profile/")
-        user = User.objects.get(username="signup_no_confirm_user")
+        user = User.objects.get(email="signup_no_confirm_user@example.com")
         self.assertTrue(user.is_active)
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
+
+    @override_settings(SIGNUP_REQUIRE_EMAIL_CONFIRMATION=False)
+    def test_signup_stores_marketing_consent_when_opted_in(self):
+        client = Client()
+        password = "x3$QwertySignup9zUnique"
+        client.post(
+            "/signup/",
+            signup_form_payload(
+                email="marketing_user@example.com",
+                password=password,
+                marketing_opt_in=True,
+            ),
+        )
+        profile = UserProfile.objects.get(user__email="marketing_user@example.com")
+        self.assertTrue(profile.marketing_opt_in)
+        self.assertIsNotNone(profile.marketing_consent_at)
+        self.assertTrue(profile.marketing_consent_text)

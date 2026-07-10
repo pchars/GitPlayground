@@ -16,6 +16,7 @@ from apps.progress.models import HintUsage, TaskAttempt, TaskCompletion, TaskRev
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task, TaskAsset
 from apps.users.models import PointLedgerEntry, UserProfile
+from apps.users.services import ensure_user_profile
 
 from .sandbox_ops import is_docker_session, write_session_log, git_env
 
@@ -109,10 +110,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
                 defaults={"points_awarded": task.points},
             )
             if created:
-                profile, _ = UserProfile.objects.get_or_create(
-                    user=user,
-                    defaults={"public_nickname": user.username},
-                )
+                profile = ensure_user_profile(user)
                 profile.total_points += completion.points_awarded
                 profile.save(update_fields=["total_points", "updated_at"])
                 PointLedgerEntry.objects.get_or_create(
@@ -215,7 +213,7 @@ def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int
     with transaction.atomic():
         profile = UserProfile.objects.select_for_update().filter(user=user).first()
         if profile is None:
-            profile = UserProfile.objects.create(user=user, public_nickname=user.username)
+            profile = ensure_user_profile(user)
         if cost > 0 and profile.total_points < cost:
             raise NotEnoughPointsError()
         try:

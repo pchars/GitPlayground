@@ -132,7 +132,37 @@
 }
 
 .diagram {
-  min-height: 160px;
+  min-height: 120px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.theory-content-card {
+  margin-bottom: 0;
+}
+
+.theory-visualization {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.theory-visualization h3 {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.theory-diagram-wrap {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: var(--color-surface-soft);
+  overflow-x: auto;
 }
 
 .theory-visualization .diagram {
@@ -144,6 +174,7 @@
 
 .theory-visualization .diagram svg {
   max-width: 100%;
+  height: auto;
 }
 
 .theory-pager {

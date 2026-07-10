@@ -1,0 +1,89 @@
+/* ——— Legal & support pages (width matches .main via .card) ——— */
+.legal-doc h1,
+.support-page h1 {
+  margin: 0 0 var(--spacing-xs);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.legal-doc h2,
+.support-page h2 {
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  font-size: 1rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.legal-doc p,
+.support-page p {
+  margin: 0 0 var(--spacing-sm);
+  line-height: 1.55;
+}
+
+.legal-doc ul,
+.support-page ul {
+  margin: 0 0 var(--spacing-sm);
+  padding-left: 1.2rem;
+  line-height: 1.55;
+}
+
+.legal-doc .muted,
+.support-page .muted {
+  margin-bottom: var(--spacing-md);
+}
+
+.support-lead {
+  margin: 0 0 var(--spacing-lg);
+  color: var(--color-body);
+  line-height: 1.55;
+}
+
+.support-wallet {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: var(--color-surface-soft);
+}
+
+.support-wallet-label {
+  margin: 0 0 var(--spacing-xs);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.support-wallet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.support-wallet-address {
+  flex: 1 1 200px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: var(--color-canvas);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  word-break: break-all;
+  color: var(--color-ink);
+}
+
+.support-copy-btn {
+  flex: 0 0 auto;
+}
+
+.support-note {
+  margin: var(--spacing-md) 0 0;
+  font-size: 0.88rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+}

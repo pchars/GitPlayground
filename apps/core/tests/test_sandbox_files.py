@@ -9,7 +9,7 @@ from apps.core.services import (
     write_text_file_to_repo,
 )
 from apps.tasks.models import Level, Task, TaskRevision
-from apps.users.models import UserProfile
+from apps.core.tests.helpers import make_user
 
 
 class SandboxFileToolsTests(TestCase):
@@ -17,7 +17,7 @@ class SandboxFileToolsTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="bob", password="password123")
+        self.user = make_user(username="bob", pseudonym="bob", points=20)
         self.level = Level.objects.create(number=1, title="L1", slug="l1", description="d")
         self.task1 = Task.objects.create(
             external_id="1.1",
@@ -37,7 +37,6 @@ class SandboxFileToolsTests(TestCase):
             expected_state="",
             validator_notes="",
         )
-        UserProfile.objects.create(user=self.user, public_nickname="bob", total_points=20)
         self.client.force_login(self.user)
         self.session = get_or_create_active_session(self.user, self.task1)
 

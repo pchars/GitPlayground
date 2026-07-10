@@ -11,12 +11,12 @@ from apps.achievements.services import (
 from apps.progress.models import TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level, Task
-from apps.users.models import UserProfile
+from apps.core.tests.helpers import make_user
 
 
 class ProgressAndAchievementsTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="achiever", password="password123")
+        self.user = make_user(username="achiever", pseudonym="achiever", points=10)
         self.level = Level.objects.create(number=1, title="L1", slug="l1", description="d")
         self.task1 = Task.objects.create(
             external_id="1.1",
@@ -27,7 +27,6 @@ class ProgressAndAchievementsTests(TestCase):
             order=1,
             points=5,
         )
-        UserProfile.objects.create(user=self.user, public_nickname="achiever", total_points=10)
 
     def test_bootstrap_default_achievements_is_idempotent(self):
         bootstrap_default_achievements()

@@ -18,7 +18,7 @@
     <div class="hero-actions">
       {% if request.user.is_authenticated %}
         <a class="btn btn-primary" href="{% url 'tasks' %}">Перейти к задачам</a>
-        <a class="btn btn-secondary" href="{% url 'public-profile' request.user.username %}">Мой профиль</a>
+        <a class="btn btn-secondary" href="{% url 'profile-self' %}">Мой профиль</a>
       {% else %}
         <a class="btn btn-primary" href="{% url 'signup' %}">Начать обучение</a>
         <a class="btn btn-secondary" href="{% url 'login' %}">У меня уже есть аккаунт</a>
@@ -44,71 +44,119 @@
       <h3>{{ levels_total }}</h3>
       <p>уровней обучения — от основ до продвинутых сценариев</p>
     </article>
-    <article class="feature-band-item">
-      <p class="feature-band-title">РЕЗУЛЬТАТ</p>
-      <h3>{{ completions_total }}</h3>
-      <p>успешных прохождений задач в системе</p>
-    </article>
   </section>
 
-  <section class="landing-section landing-section-single">
-    <h2 class="landing-what-title">Что такое Git</h2>
-    <p>
-      Git — это распределённая система контроля версий. Она хранит историю изменений проекта, помогает
-      безопасно экспериментировать в ветках и синхронизировать работу команды без потери кода.
-    </p>
-  </section>
+  <section class="landing-git-value">
+    <div class="landing-git-value-panel">
+      <header class="landing-git-value-header">
+        <h2 class="landing-git-value-title">Git в реальной работе</h2>
+        <p class="landing-git-value-intro">
+          Git нужен каждый день: от первого коммита до выкладки в продакшен —
+          в продуктовых командах, стартапах и крупных компаниях.
+        </p>
+      </header>
 
-  <section class="landing-section learning-band" data-learning-slider>
-    <h2 class="learning-band-title">Как устроено обучение</h2>
-    <div class="learning-slider-viewport">
-      <div class="learning-slider-track">
-        <article class="learning-slide is-active">
-          <h3>Теория по уровням</h3>
-          <p>Короткие структурированные материалы с последовательным переходом между уровнями.</p>
+      <div class="landing-git-value-grid">
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">История и откаты</h3>
+          <p>Полная история изменений и быстрый возврат к рабочей версии без потери кода.</p>
         </article>
-        <article class="learning-slide">
-          <h3>Практика в песочнице</h3>
-          <p>Реальные команды Git в изолированном окружении с проверкой результата.</p>
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">Командная работа</h3>
+          <p>Ветки, merge и code review в одной общей кодовой базе.</p>
         </article>
-        <article class="learning-slide">
-          <h3>Прогресс и достижения</h3>
-          <p>Отслеживание прогресса, очков и достижений, чтобы видеть рост навыков по шагам.</p>
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">CI/CD и релизы</h3>
+          <p>Автоматизация сборки и deploy в production от коммита до релиза.</p>
         </article>
-        <article class="learning-slide">
-          <h3>Квиз и повторение</h3>
-          <p>Тренировка терминов и сценариев на разных уровнях сложности.</p>
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">Web и приложения</h3>
+          <p>Backend, frontend, mobile и desktop — один workflow на всех платформах.</p>
+        </article>
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">DevOps и IaC</h3>
+          <p>Infrastructure as Code: конфиги и скрипты рядом с кодом продукта.</p>
+        </article>
+        <article class="landing-git-value-item">
+          <h3 class="landing-git-value-item-title">Data, ML и QA</h3>
+          <p>Пайплайны, эксперименты и автотесты в одном репозитории с продуктом.</p>
         </article>
       </div>
     </div>
-    <div class="learning-slider-dots" role="tablist" aria-label="Слайды обучения">
-      <button class="learning-slider-dot is-active" type="button" data-learning-dot="0" aria-label="Слайд 1" aria-selected="true"></button>
-      <button class="learning-slider-dot" type="button" data-learning-dot="1" aria-label="Слайд 2" aria-selected="false"></button>
-      <button class="learning-slider-dot" type="button" data-learning-dot="2" aria-label="Слайд 3" aria-selected="false"></button>
-      <button class="learning-slider-dot" type="button" data-learning-dot="3" aria-label="Слайд 4" aria-selected="false"></button>
-    </div>
   </section>
 
-  <section class="grid two landing-grid-info">
-    <article class="landing-section">
-      <h2>Почему важно учить Git</h2>
-      <ul class="list">
-        <li>Git — базовый инструмент в ежедневной работе разработчика.</li>
-        <li>Позволяет откатывать ошибки и восстанавливать историю изменений.</li>
-        <li>Упрощает командную разработку через ветки, запросы на слияние и ревью кода.</li>
-        <li>Нужен для непрерывной интеграции и доставки, релизов и сопровождения проектов в продакшене.</li>
-      </ul>
-    </article>
-    <article class="landing-section">
-      <h2>Где используется Git</h2>
-      <ul class="list">
-        <li>Серверная и клиентская разработка.</li>
-        <li>Эксплуатация и автоматизация, инфраструктура как код.</li>
-        <li>Наука о данных и машинное обучение (код, пайплайны, эксперименты).</li>
-        <li>Мобильная и настольная разработка.</li>
-        <li>Тестирование и автотесты, когда тесты хранятся вместе с кодом.</li>
-      </ul>
-    </article>
+  <section class="learning-band" data-learning-slider>
+    <div class="learning-band-panel">
+      <header class="learning-band-header">
+        <h2 class="learning-band-title">Как устроено обучение</h2>
+      </header>
+
+      <div class="learning-flow" role="tablist" aria-label="Шаги обучения">
+        <button type="button" class="learning-flow-step is-active" role="tab" data-flow-step="0" aria-selected="true" aria-label="Шаг 1: Теория">
+          <span class="learning-flow-num">1</span>
+          <span class="learning-flow-label">Теория</span>
+        </button>
+        <button type="button" class="learning-flow-step" role="tab" data-flow-step="1" aria-selected="false" aria-label="Шаг 2: Песочница">
+          <span class="learning-flow-num">2</span>
+          <span class="learning-flow-label">Песочница</span>
+        </button>
+        <button type="button" class="learning-flow-step" role="tab" data-flow-step="2" aria-selected="false" aria-label="Шаг 3: Прогресс">
+          <span class="learning-flow-num">3</span>
+          <span class="learning-flow-label">Прогресс</span>
+        </button>
+        <button type="button" class="learning-flow-step" role="tab" data-flow-step="3" aria-selected="false" aria-label="Шаг 4: Квиз">
+          <span class="learning-flow-num">4</span>
+          <span class="learning-flow-label">Квиз</span>
+        </button>
+      </div>
+
+      <div class="learning-slider-shell">
+        <div class="learning-slider-viewport">
+          <div class="learning-slider-track">
+            <article class="learning-slide is-active">
+              <div class="learning-slide-visual">
+                <img src="{% static_v 'img/landing/learning-theory.svg' %}" alt="" width="280" height="200" loading="lazy">
+              </div>
+              <div class="learning-slide-copy">
+                <p class="learning-slide-kicker">Шаг 1</p>
+                <h3>Теория по уровням</h3>
+                <p>Короткие материалы с понятной последовательностью: от базовых команд к сложным сценариям.</p>
+              </div>
+            </article>
+            <article class="learning-slide">
+              <div class="learning-slide-visual">
+                <img src="{% static_v 'img/landing/learning-sandbox.svg' %}" alt="" width="280" height="200" loading="lazy">
+              </div>
+              <div class="learning-slide-copy">
+                <p class="learning-slide-kicker">Шаг 2</p>
+                <h3>Практика в песочнице</h3>
+                <p>Реальные команды Git в изолированном окружении — платформа сразу проверяет результат.</p>
+              </div>
+            </article>
+            <article class="learning-slide">
+              <div class="learning-slide-visual">
+                <img src="{% static_v 'img/landing/learning-progress.svg' %}" alt="" width="280" height="200" loading="lazy">
+              </div>
+              <div class="learning-slide-copy">
+                <p class="learning-slide-kicker">Шаг 3</p>
+                <h3>Прогресс и достижения</h3>
+                <p>Очки, уровни и бейджи показывают, как растут навыки от задачи к задаче.</p>
+              </div>
+            </article>
+            <article class="learning-slide">
+              <div class="learning-slide-visual">
+                <img src="{% static_v 'img/landing/learning-quiz.svg' %}" alt="" width="280" height="200" loading="lazy">
+              </div>
+              <div class="learning-slide-copy">
+                <p class="learning-slide-kicker">Шаг 4</p>
+                <h3>Квиз и повторение</h3>
+                <p>Вопросы на разной сложности закрепляют термины и типовые ситуации из практики.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="landing-cta-strip">

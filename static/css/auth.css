@@ -4,6 +4,248 @@
   margin: var(--spacing-section) auto var(--spacing-xxl);
 }
 
+.auth-wrap-signup {
+  max-width: 860px;
+  margin: var(--spacing-lg) auto var(--spacing-xxl);
+  padding: 0 var(--spacing-sm);
+}
+
+.signup-card {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.signup-header h2 {
+  margin: 0 0 var(--spacing-xs);
+}
+
+.signup-header .muted {
+  margin: 0;
+}
+
+.signup-section {
+  border: none;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.signup-field-full {
+  grid-column: 1 / -1;
+}
+
+.signup-section legend {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.signup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.signup-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.signup-field label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  margin-bottom: 6px;
+}
+
+.signup-field-required > label::after,
+.label-required {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.signup-field-required > label::after {
+  content: " *";
+}
+
+.signup-card .signup-field input:not([type="checkbox"]),
+.signup-card .signup-field select {
+  width: 100%;
+  margin: 0;
+  padding: 10px 14px;
+  min-height: 42px;
+  border-radius: var(--rounded-md);
+  border: 1px solid var(--color-hairline);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.signup-card .signup-field select {
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23667085' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  cursor: pointer;
+}
+
+.signup-card .signup-field input:not([type="checkbox"]):focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-ink) 55%, var(--color-hairline));
+}
+
+.signup-card .signup-field select:focus,
+.signup-card .signup-field select:focus-visible,
+.signup-card .signup-consent-item input[type="checkbox"]:focus,
+.signup-card .signup-consent-item input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.signup-card .signup-field select:focus {
+  border-color: color-mix(in srgb, var(--color-ink) 55%, var(--color-hairline));
+}
+
+.signup-card .password-field-wrap {
+  margin: 0;
+}
+
+.signup-card .password-field-wrap input {
+  margin: 0;
+}
+
+.field-help {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+.field-help-block {
+  margin-top: var(--spacing-xs);
+}
+
+.password-rules {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: color-mix(in srgb, var(--color-surface-soft) 45%, var(--color-canvas));
+}
+
+.password-rules-title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.password-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.password-rules-sub {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.password-rules ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.password-rules code {
+  font-size: 0.78rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-hairline) 40%, transparent);
+  color: var(--color-ink);
+}
+
+.signup-consent-list {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.signup-consent-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  background: color-mix(in srgb, var(--color-surface-soft) 55%, var(--color-canvas));
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.signup-consent-item:hover {
+  border-color: color-mix(in srgb, var(--color-ink) 20%, var(--color-hairline));
+}
+
+.signup-consent-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  flex: 0 0 18px;
+  accent-color: var(--color-ink);
+  cursor: pointer;
+}
+
+.signup-actions {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.signup-login-link {
+  margin: var(--spacing-sm) 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.signup-card ul.errorlist,
+.signup-card .signup-field ul.errorlist {
+  margin: 4px 0 0;
+  color: var(--color-error);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.signup-consent-link {
+  color: var(--color-ink);
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+}
+
+.signup-consent-link:hover {
+  text-decoration-color: var(--color-ink);
+}
+
 .auth-card ul.errorlist {
   list-style: none;
   padding: 0;

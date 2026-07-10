@@ -10,7 +10,7 @@
     {% csrf_token %}
     <h2>Вход</h2>
     {{ form.non_field_errors }}
-    <label for="{{ form.username.id_for_label }}">Имя пользователя</label>
+    <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
     {{ form.username }}
     {{ form.username.errors }}
     <label for="{{ form.password.id_for_label }}">Пароль</label>

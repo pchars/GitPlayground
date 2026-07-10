@@ -363,7 +363,7 @@ class CoreFlowTests(TestCase):
         old_session.refresh_from_db()
         self.assertEqual(old_session.status, SandboxSession.Status.STOPPED)
 
-    def test_public_profile_renders_achievement_images(self):
+    def test_profile_renders_achievement_images_for_owner(self):
         achievement = Achievement.objects.create(
             slug="first_commit",
             title="Первый коммит",
@@ -373,7 +373,8 @@ class CoreFlowTests(TestCase):
             threshold_tasks=1,
         )
         UserAchievement.objects.create(user=self.user, achievement=achievement)
-        response = self.client.get(f"/profile/{self.user.username}/")
+        self.client.force_login(self.user)
+        response = self.client.get("/profile/")
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")
         self.assertIn("Первый коммит", content)

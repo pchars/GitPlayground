@@ -13,7 +13,8 @@ from .playground import (
     playground_validate,
     playground_write_file,
 )
-from .profile import profile_self, public_profile
+from .legal import marketing_consent_info, privacy_policy, support_donate
+from .profile import profile_edit, profile_self, public_profile
 
 __all__ = [
     "activate_account",
@@ -27,6 +28,10 @@ __all__ = [
     "playground_run_command",
     "playground_validate",
     "playground_write_file",
+    "profile_edit",
+    "privacy_policy",
+    "marketing_consent_info",
+    "support_donate",
     "profile_self",
     "public_profile",
     "signup_view",

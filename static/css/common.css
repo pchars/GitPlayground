@@ -71,6 +71,9 @@ body {
   color: var(--color-body);
   max-width: 100%;
   overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -238,10 +241,13 @@ p { color: var(--color-body); }
 }
 
 /* ——— Layout ——— */
-.layout { min-height: calc(100vh - 64px); }
+.layout {
+  flex: 1 0 auto;
+  min-height: calc(100vh - 64px);
+}
 
 .main {
-  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-section);
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-xxl);
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -250,6 +256,7 @@ p { color: var(--color-body); }
 
 /* ——— Dark footer ——— */
 .site-footer {
+  flex-shrink: 0;
   background: var(--color-surface-dark);
   color: var(--color-on-dark-soft);
   padding: 64px var(--spacing-lg) var(--spacing-lg);

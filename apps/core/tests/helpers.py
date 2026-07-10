@@ -3,15 +3,68 @@
 from __future__ import annotations
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from apps.tasks.models import Level, Task, TaskAsset, TaskRevision
+from apps.users.legal import PRIVACY_CONSENT_SNAPSHOT, PRIVACY_POLICY_VERSION
 from apps.users.models import UserProfile
 
 
-def make_user(*, username: str = "alice", password: str = "password123", points: int = 20) -> User:
-    user = User.objects.create_user(username=username, password=password)
-    UserProfile.objects.create(user=user, public_nickname=username, total_points=points)
+def make_user(
+    *,
+    username: str = "alice",
+    password: str = "password123",
+    points: int = 20,
+    pseudonym: str | None = None,
+    certificate_name: str = "Alice Example",
+    learning_goal: str = UserProfile.LearningGoal.INTEREST,
+    knowledge_level: str = UserProfile.KnowledgeLevel.BASIC,
+) -> User:
+    email = username if "@" in username else f"{username}@example.com"
+    user = User.objects.create_user(username=email, password=password, email=email)
+    UserProfile.objects.create(
+        user=user,
+        pseudonym=pseudonym or username[:10],
+        certificate_name=certificate_name,
+        learning_goal=learning_goal,
+        knowledge_level=knowledge_level,
+        total_points=points,
+        privacy_consent_at=timezone.now(),
+        privacy_consent_version=PRIVACY_POLICY_VERSION,
+        privacy_consent_text=PRIVACY_CONSENT_SNAPSHOT,
+    )
     return user
+
+
+def signup_form_payload(
+    *,
+    email: str,
+    password: str,
+    certificate_name: str = "Иван Иванов",
+    pseudonym: str = "ivan_dev",
+    learning_goal: str = UserProfile.LearningGoal.INTEREST,
+    knowledge_level: str = UserProfile.KnowledgeLevel.BASIC,
+    job_role: str = "",
+    company_name: str = "",
+    marketing_opt_in: bool = False,
+    privacy_policy_accepted: bool = True,
+) -> dict[str, str]:
+    payload = {
+        "email": email,
+        "password1": password,
+        "password2": password,
+        "certificate_name": certificate_name,
+        "pseudonym": pseudonym,
+        "learning_goal": learning_goal,
+        "knowledge_level": knowledge_level,
+        "job_role": job_role,
+        "company_name": company_name,
+    }
+    if marketing_opt_in:
+        payload["marketing_opt_in"] = "on"
+    if privacy_policy_accepted:
+        payload["privacy_policy_accepted"] = "on"
+    return payload
 
 
 def make_level(*, number: int = 1, title: str = "L1", slug: str = "l1") -> Level:

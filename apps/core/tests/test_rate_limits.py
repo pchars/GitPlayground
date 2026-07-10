@@ -6,14 +6,14 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 
 from apps.tasks.models import Level, Task, TaskRevision
-from apps.users.models import UserProfile
+from apps.core.tests.helpers import make_user
 
 
 class PlaygroundRateLimitTests(TestCase):
     def setUp(self):
         cache.clear()
         self.client = Client()
-        self.user = User.objects.create_user(username="rluser", password="password123")
+        self.user = make_user(username="rluser", pseudonym="rluser", points=20)
         self.level = Level.objects.create(number=1, title="L1", slug="l1", description="d")
         self.task1 = Task.objects.create(
             external_id="1.1",
@@ -33,7 +33,6 @@ class PlaygroundRateLimitTests(TestCase):
             expected_state="",
             validator_notes="",
         )
-        UserProfile.objects.create(user=self.user, public_nickname="rluser", total_points=20)
         self.client.force_login(self.user)
 
     def test_run_endpoint_returns_429_when_over_limit(self):

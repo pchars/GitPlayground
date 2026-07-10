@@ -23,7 +23,7 @@
         <article class="podium-card podium-second {% if request.user.id == rows.1.user_id %}podium-self{% endif %}">
           <div class="podium-rank">2</div>
           <div class="podium-medal" aria-hidden="true">🥈</div>
-          <div class="podium-name">{{ rows.1.public_nickname }}</div>
+          <div class="podium-name">{{ rows.1.pseudonym }}</div>
           <div class="podium-points">{{ rows.1.total_points }} <span class="podium-pts-label">баллов</span></div>
         </article>
       {% endif %}
@@ -31,7 +31,7 @@
         <article class="podium-card podium-first {% if request.user.id == rows.0.user_id %}podium-self{% endif %}">
           <div class="podium-rank">1</div>
           <div class="podium-medal" aria-hidden="true">🥇</div>
-          <div class="podium-name">{{ rows.0.public_nickname }}</div>
+          <div class="podium-name">{{ rows.0.pseudonym }}</div>
           <div class="podium-points">{{ rows.0.total_points }} <span class="podium-pts-label">баллов</span></div>
         </article>
       {% endif %}
@@ -39,7 +39,7 @@
         <article class="podium-card podium-third {% if request.user.id == rows.2.user_id %}podium-self{% endif %}">
           <div class="podium-rank">3</div>
           <div class="podium-medal" aria-hidden="true">🥉</div>
-          <div class="podium-name">{{ rows.2.public_nickname }}</div>
+          <div class="podium-name">{{ rows.2.pseudonym }}</div>
           <div class="podium-points">{{ rows.2.total_points }} <span class="podium-pts-label">баллов</span></div>
         </article>
       {% endif %}
@@ -61,7 +61,7 @@
               <td class="lb-col-rank">
                 <span class="lb-rank-badge">{{ row.rank }}</span>
               </td>
-              <td class="lb-col-name">{{ row.public_nickname }}</td>
+              <td class="lb-col-name">{{ row.pseudonym }}</td>
               <td class="lb-col-points"><span class="lb-points">{{ row.total_points }}</span></td>
             </tr>
           {% endfor %}

@@ -137,6 +137,20 @@
     gap: var(--spacing-lg);
   }
 
+  .profile-details-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding: 8px 0;
+  }
+
+  .profile-details dd {
+    text-align: left;
+  }
+
+  .profile-mini-stats {
+    grid-template-columns: 1fr;
+  }
+
   .profile-progress-remaining {
     margin-left: 0;
     width: 100%;
@@ -213,9 +227,37 @@
     padding: var(--spacing-lg) var(--spacing-md);
   }
 
+  .learning-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--spacing-md);
+  }
+
+  .learning-flow-step:nth-child(2n)::after {
+    display: none;
+  }
+
   .learning-slide {
-    padding: var(--spacing-xl) var(--spacing-md);
-    min-height: 140px;
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: var(--spacing-md);
+  }
+
+  .learning-slide-visual {
+    min-height: 160px;
+  }
+
+  .landing-git-value-header {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    align-items: start;
+  }
+
+  .landing-git-value-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-git-value-item-wide {
+    grid-column: auto;
   }
 
   .landing-cta-strip {
@@ -224,10 +266,23 @@
     padding: var(--spacing-lg);
   }
 
-  .auth-wrap {
-    margin-top: var(--spacing-xl);
+  .auth-wrap,
+  .auth-wrap-signup {
+    margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
     padding: 0 var(--spacing-xs);
+  }
+
+  .signup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .password-rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .signup-card {
+    padding: var(--spacing-lg);
   }
 
   .toast-stack {

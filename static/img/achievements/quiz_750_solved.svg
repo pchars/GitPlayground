@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Почти всё">
+  <rect x="1" y="1" width="62" height="62" rx="14" fill="#f5f5f5" stroke="#e5e7eb"/>
+  <circle cx="32" cy="30" r="16" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+  <circle
+    cx="32"
+    cy="30"
+    r="16"
+    fill="none"
+    stroke="#111111"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-dasharray="90.2 11.3"
+    transform="rotate(-90 32 30)"
+  />
+  <text x="32" y="57" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700" fill="#111111">750</text>
+</svg>
