@@ -1,0 +1,8 @@
+name: GitPlayground CodeQL
+
+paths-ignore:
+  - .sandboxes
+  - .venv
+  - htmlcov
+  - node_modules
+  - .cursor

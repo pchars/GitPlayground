@@ -5,11 +5,11 @@ extensions:
     data:
       - [
           "apps.core.services.repo_path_io",
-          "Member[_resolve_under_root].ReturnValue",
+          "Member[resolve_trusted_path_under_root].ReturnValue",
           "path-injection",
         ]
       - [
           "apps.core.services.repo_path_io",
-          "Member[resolve_trusted_path_under_root].ReturnValue",
+          "Member[_trusted_path_or_none].ReturnValue",
           "path-injection",
         ]
