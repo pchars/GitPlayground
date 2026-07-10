@@ -1,14 +1,13 @@
 """Trusted repo-relative file I/O (CodeQL py/path-injection safe).
 
-Guards (``os.path.realpath`` + ``startswith``) and filesystem access must live in
-the same function so GitHub CodeQL can prove the path is confined under the root.
+User paths from the sandbox terminal are joined under a fixed workspace root.
+CodeQL expects ``os.path.join(root, user_input)`` → ``os.path.realpath`` →
+``startswith(root_prefix)`` in the same function that calls ``open()`` / ``os.*``.
 """
 
 from __future__ import annotations
 
 import os
-
-from .command_policy import normalize_repo_relative_path
 
 FIND_MAX_ENTRIES = 500
 HEAD_TAIL_MAX_LINES = 1000
@@ -28,13 +27,13 @@ def _root_prefix(base_path: str) -> str:
     return base_path if base_path.endswith(os.sep) else f"{base_path}{os.sep}"
 
 
-def _path_blocked(root_dir: str, relative_path: str) -> str | None:
-    """Return trusted absolute path, or None when user input must be rejected."""
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
+def _resolve_under_root(root_dir: str, relative_path: str) -> str | None:
+    """Map learner-supplied repo-relative path to a trusted absolute path."""
+    rel = relative_path.strip().replace("\\", "/")
+    if not rel or rel.startswith(("/", "~")):
         return None
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
     if fullpath != base_path and not fullpath.startswith(root_prefix):
         return None
@@ -43,7 +42,7 @@ def _path_blocked(root_dir: str, relative_path: str) -> str | None:
 
 def resolve_trusted_path_under_root(root_dir: str, relative_path: str) -> str | None:
     """Return an absolute path under ``root_dir``, or None if rejected."""
-    return _path_blocked(root_dir, relative_path)
+    return _resolve_under_root(root_dir, relative_path)
 
 
 def read_repo_file_bytes(
@@ -53,11 +52,11 @@ def read_repo_file_bytes(
 
     Status is one of: ``ok``, ``blocked``, ``missing``, ``not_file``, ``io_error``.
     """
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
+    rel = relative_path.strip().replace("\\", "/")
+    if not rel or rel.startswith(("/", "~")):
         return "blocked", b"", False
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
     if fullpath != base_path and not fullpath.startswith(root_prefix):
         return "blocked", b"", False
@@ -76,11 +75,11 @@ def read_repo_file_bytes(
 
 def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> tuple[str, bytes | None]:
     """Write bytes. Status is ``ok``, ``blocked``, or ``io_error``."""
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
+    rel = relative_path.strip().replace("\\", "/")
+    if not rel or rel.startswith(("/", "~")):
         return "blocked", None
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
     if fullpath != base_path and not fullpath.startswith(root_prefix):
         return "blocked", None
@@ -100,11 +99,11 @@ def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> 
 
 
 def restore_or_remove_repo_file(root_dir: str, relative_path: str, backup: bytes | None) -> None:
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
+    rel = relative_path.strip().replace("\\", "/")
+    if not rel or rel.startswith(("/", "~")):
         return
     base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
+    fullpath = os.path.realpath(os.path.join(base_path, rel))
     root_prefix = _root_prefix(base_path)
     if fullpath != base_path and not fullpath.startswith(root_prefix):
         return
@@ -119,13 +118,8 @@ def restore_or_remove_repo_file(root_dir: str, relative_path: str, backup: bytes
 
 
 def touch_repo_file(root_dir: str, relative_path: str) -> bool:
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
-        return False
-    base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
-    root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = _resolve_under_root(root_dir, relative_path)
+    if fullpath is None:
         return False
     parent_dir = os.path.dirname(fullpath)
     if parent_dir:
@@ -135,13 +129,8 @@ def touch_repo_file(root_dir: str, relative_path: str) -> bool:
 
 
 def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
-        return False
-    base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
-    root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = _resolve_under_root(root_dir, relative_path)
+    if fullpath is None:
         return False
     parent_dir = os.path.dirname(fullpath)
     if parent_dir:
@@ -152,13 +141,8 @@ def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
 
 
 def append_repo_text_line(root_dir: str, relative_path: str, text: str, *, append: bool) -> bool:
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
-        return False
-    base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
-    root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = _resolve_under_root(root_dir, relative_path)
+    if fullpath is None:
         return False
     parent_dir = os.path.dirname(fullpath)
     if parent_dir:
@@ -172,13 +156,8 @@ def append_repo_text_line(root_dir: str, relative_path: str, text: str, *, appen
 
 def list_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
     """Return (status, payload): status is ok|missing|blocked; payload is listing or message."""
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
-        return "blocked", ""
-    base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
-    root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = _resolve_under_root(root_dir, relative_path)
+    if fullpath is None:
         return "blocked", ""
     if not os.path.exists(fullpath):
         return "missing", ""
@@ -196,13 +175,8 @@ def list_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
 
 def mkdir_repo_path(root_dir: str, relative_path: str, *, parents: bool) -> tuple[str, str]:
     """Return (status, message). Status: ``ok``, ``blocked``, ``exists``, ``io_error``."""
-    safe_relative = normalize_repo_relative_path(relative_path)
-    if safe_relative is None:
-        return "blocked", ""
-    base_path = os.path.realpath(root_dir)
-    fullpath = os.path.realpath(os.path.join(base_path, safe_relative))
-    root_prefix = _root_prefix(base_path)
-    if fullpath != base_path and not fullpath.startswith(root_prefix):
+    fullpath = _resolve_under_root(root_dir, relative_path)
+    if fullpath is None:
         return "blocked", ""
     if os.path.exists(fullpath):
         if parents:
@@ -252,8 +226,8 @@ def wc_repo_file(root_dir: str, relative_path: str, *, lines_only: bool) -> tupl
 def cp_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(src_path) or path_touches_git_metadata(dst_path):
         return "git_protected", ""
-    src_abs = _path_blocked(root_dir, src_path)
-    dst_abs = _path_blocked(root_dir, dst_path)
+    src_abs = _resolve_under_root(root_dir, src_path)
+    dst_abs = _resolve_under_root(root_dir, dst_path)
     if src_abs is None or dst_abs is None:
         return "blocked", ""
     if not os.path.isfile(src_abs):
@@ -276,8 +250,8 @@ def cp_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]
 def mv_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(src_path) or path_touches_git_metadata(dst_path):
         return "git_protected", ""
-    src_abs = _path_blocked(root_dir, src_path)
-    dst_abs = _path_blocked(root_dir, dst_path)
+    src_abs = _resolve_under_root(root_dir, src_path)
+    dst_abs = _resolve_under_root(root_dir, dst_path)
     if src_abs is None or dst_abs is None:
         return "blocked", ""
     if not os.path.exists(src_abs):
@@ -295,7 +269,7 @@ def mv_repo_file(root_dir: str, src_path: str, dst_path: str) -> tuple[str, str]
 def rm_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
     if path_touches_git_metadata(relative_path):
         return "git_protected", ""
-    fullpath = _path_blocked(root_dir, relative_path)
+    fullpath = _resolve_under_root(root_dir, relative_path)
     if fullpath is None:
         return "blocked", ""
     if not os.path.exists(fullpath):
@@ -310,7 +284,7 @@ def rm_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
 
 
 def find_repo_paths(root_dir: str, relative_path: str) -> tuple[str, str]:
-    start_abs = _path_blocked(root_dir, relative_path)
+    start_abs = _resolve_under_root(root_dir, relative_path)
     if start_abs is None:
         return "blocked", ""
     if not os.path.exists(start_abs):

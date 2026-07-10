@@ -33,7 +33,7 @@ class ResolveTrustedPathTests(SimpleTestCase):
             resolved = resolve_trusted_path_under_root(str(root), "notes/todo.txt")
             self.assertEqual(resolved, str(target.resolve()))
 
-    def test_rejects_escape(self):
+    def test_rejects_escape_via_realpath(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             outside = root.parent / "outside.txt"

@@ -203,6 +203,35 @@ class PagesRegressionTests(TestCase):
         html = response.content.decode("utf-8")
         self.assertIn("Страница не найдена", html)
         self.assertIn("error.css", html)
+        self.assertIn("common.css", html)
+        self.assertIn("site-footer", html)
+        self.assertIn("page-error", html)
+
+    def test_error_handlers_render_full_chrome(self):
+        from apps.core.views.errors import bad_request, page_not_found, permission_denied, server_error
+
+        cases = [
+            (bad_request, 400, "Некорректный запрос", True),
+            (permission_denied, 403, "Доступ запрещён", True),
+            (page_not_found, 404, "Страница не найдена", True),
+            (server_error, 500, "Что-то пошло не так", False),
+        ]
+        for handler, status, title, passes_exception in cases:
+            with self.subTest(status=status):
+                request = self.client.get("/").wsgi_request
+                if passes_exception:
+                    response = handler(request, Exception("probe"))
+                else:
+                    response = handler(request)
+                self.assertEqual(response.status_code, status)
+                html = response.content.decode("utf-8")
+                self.assertIn(title, html)
+                self.assertIn("error.css", html)
+                self.assertIn("common.css", html)
+                self.assertIn("responsive.css", html)
+                self.assertIn("site-footer", html)
+                self.assertIn("GitPlayground", html)
+                self.assertIn("page-error", html)
 
     def test_playground_sandbox_unavailable_returns_styled_503(self):
         self.client.force_login(self.user)
