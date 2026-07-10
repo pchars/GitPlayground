@@ -14,7 +14,7 @@ jobs:
   semgrep:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Semgrep SAST
         run: |
           docker run --rm \
@@ -39,9 +39,9 @@ jobs:
   trivy-fs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
@@ -53,7 +53,7 @@ jobs:
           test -s requirements.trivy.txt
           grep -qi django requirements.trivy.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
 
@@ -66,7 +66,7 @@ jobs:
           test -f package-lock.json
 
       - name: Filesystem scan
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
           scan-type: fs
@@ -81,11 +81,11 @@ jobs:
   trivy-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Build image for scan
         run: docker build -t gitplayground:ci .
       - name: Image scan
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
           scan-type: image
