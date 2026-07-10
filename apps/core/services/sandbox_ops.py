@@ -24,14 +24,21 @@ from apps.core.client_errors import (
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task
 
-from .command_policy import parse_user_command
+from .command_policy import SANDBOX_ALLOWED_COMMANDS_SUMMARY, parse_user_command
 from .repo_path_io import (
     append_repo_text_line,
+    cp_repo_file,
+    find_repo_paths,
+    head_repo_file,
     list_repo_path,
     mkdir_repo_path,
+    mv_repo_file,
     read_repo_file_bytes,
     restore_or_remove_repo_file,
+    rm_repo_path,
+    tail_repo_file,
     touch_repo_file,
+    wc_repo_file,
     write_empty_repo_file,
     write_repo_file_bytes,
 )
@@ -400,6 +407,32 @@ def get_or_create_active_session(user: User, task: Task) -> SandboxSession:
     return session
 
 
+def _repo_io_status_proc(verb: str, status: str, payload: str, path: str) -> subprocess.CompletedProcess:
+    if status == "ok":
+        return subprocess.CompletedProcess(["policy"], 0, payload, "")
+    if status == "blocked":
+        return subprocess.CompletedProcess(
+            ["policy"], 1, "", "Path escapes sandbox and is blocked."
+        )
+    if status == "git_protected":
+        return subprocess.CompletedProcess(
+            ["policy"], 1, "", f"{verb}: нельзя изменять каталог `.git`."
+        )
+    if status == "missing":
+        return subprocess.CompletedProcess(
+            ["policy"], 1, "", f"{verb}: нет такого файла или каталога: {path}"
+        )
+    if status == "not_file":
+        return subprocess.CompletedProcess(["policy"], 1, "", f"{verb}: не файл: {path}")
+    if status == "not_dir":
+        return subprocess.CompletedProcess(["policy"], 1, "", f"find: не каталог: {path}")
+    if status == "is_dir":
+        return subprocess.CompletedProcess(
+            ["policy"], 1, "", f"rm: это каталог, а не файл: {path}"
+        )
+    return subprocess.CompletedProcess(["policy"], 1, "", f"{verb}: операция не удалась.")
+
+
 def run_command(
     session: SandboxSession,
     command: str,
@@ -418,10 +451,9 @@ def run_command(
             command=command,
             return_code=126,
             output=(
-                "Команда запрещена политикой песочницы. Разрешено: git, "
-                "ls [путь], pwd, mkdir [-p] <папка>, touch <файл>, cat <файл>, "
-                "type nul > <файл>, echo <текст> > <файл>, echo <текст> >> <файл>. "
-                "Многострочный текст — через блок «Редактор файла» на странице (без shell)."
+                "Команда запрещена политикой песочницы. Разрешено: "
+                f"{SANDBOX_ALLOWED_COMMANDS_SUMMARY}. "
+                "Многострочный текст — команда `nano путь` в терминале."
             ),
             duration_ms=0,
         )
@@ -520,6 +552,51 @@ def run_command(
         else:
             suffix = "\n[Output truncated to sandbox read limit.]" if truncated else ""
             proc = subprocess.CompletedProcess(["policy"], 0, f"{payload}{suffix}", "")
+    elif policy_kind == "nano_open":
+        path = policy_data["path"]
+        proc = subprocess.CompletedProcess(
+            ["policy"],
+            0,
+            f"Редактор: {path} (Ctrl+S — сохранить, Ctrl+X — выйти)",
+            "",
+        )
+    elif policy_kind == "echo_print":
+        proc = subprocess.CompletedProcess(["policy"], 0, policy_data["text"], "")
+    elif policy_kind == "head_read":
+        status, payload = head_repo_file(
+            session.repo_path, policy_data["path"], lines=policy_data["lines"]
+        )
+        proc = _repo_io_status_proc("head", status, payload, policy_data["path"])
+    elif policy_kind == "tail_read":
+        status, payload = tail_repo_file(
+            session.repo_path, policy_data["path"], lines=policy_data["lines"]
+        )
+        proc = _repo_io_status_proc("tail", status, payload, policy_data["path"])
+    elif policy_kind == "wc_read":
+        status, payload = wc_repo_file(
+            session.repo_path, policy_data["path"], lines_only=policy_data["lines_only"]
+        )
+        proc = _repo_io_status_proc("wc", status, payload, policy_data["path"])
+    elif policy_kind == "cp_file":
+        status, detail = cp_repo_file(
+            session.repo_path, policy_data["src"], policy_data["dst"]
+        )
+        proc = _repo_io_status_proc("cp", status, detail, policy_data["src"])
+    elif policy_kind == "mv_file":
+        status, detail = mv_repo_file(
+            session.repo_path, policy_data["src"], policy_data["dst"]
+        )
+        proc = _repo_io_status_proc("mv", status, detail, policy_data["src"])
+    elif policy_kind == "rm_file":
+        status, detail = rm_repo_path(session.repo_path, policy_data["path"])
+        proc = _repo_io_status_proc("rm", status, detail, policy_data["path"])
+    elif policy_kind == "find_paths":
+        status, payload = find_repo_paths(session.repo_path, policy_data["path"])
+        proc = _repo_io_status_proc("find", status, payload, policy_data["path"])
+    elif policy_kind == "whoami":
+        proc = subprocess.CompletedProcess(["policy"], 0, "gitplayground", "")
+    elif policy_kind == "clear":
+        proc = subprocess.CompletedProcess(["policy"], 0, "", "")
     else:
         return CommandResult(command=command, return_code=1, output="Unsupported policy command.", duration_ms=0)
     duration_ms = int((time.perf_counter() - started) * 1000)

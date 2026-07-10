@@ -5,7 +5,7 @@ import time
 from typing import NamedTuple
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -117,7 +117,12 @@ def playground(request, task_id):
         get_or_create_active_session(request.user, task)
     except RuntimeError as exc:
         log_exception(playground_logger, "sandbox session unavailable", exc)
-        return HttpResponse(SANDBOX_UNAVAILABLE, status=503)
+        return render(
+            request,
+            "core/errors/503.html",
+            {"message": SANDBOX_UNAVAILABLE},
+            status=503,
+        )
     return render(
         request,
         "core/playground.html",

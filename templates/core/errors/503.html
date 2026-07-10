@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}GitPlayground | Сервис недоступен{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/error.css' %}">{% endblock %}
+{% block content %}
+<section class="error-wrap">
+  <article class="card error-card">
+    <p class="error-code">503</p>
+    <h1>Песочница недоступна</h1>
+    <p class="muted">{{ message }}</p>
+    <div class="error-actions">
+      <a class="btn btn-primary" href="{% url 'tasks' %}">К задачам</a>
+      <a class="btn btn-secondary" href="{% url 'landing' %}">На главную</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

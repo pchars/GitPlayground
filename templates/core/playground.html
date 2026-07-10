@@ -32,6 +32,21 @@
       </div>
       <div id="terminal-body" class="terminal-body" tabindex="0">
         <div id="xterm-host" class="xterm-host"></div>
+        <div id="nano-overlay" class="nano-overlay" hidden aria-hidden="true">
+          <div class="nano-overlay__header">
+            <span class="nano-overlay__brand">GNU nano (GitPlayground)</span>
+            <span id="nano-overlay-path" class="nano-overlay__path"></span>
+          </div>
+          <textarea
+            id="nano-overlay-body"
+            class="nano-overlay__body"
+            spellcheck="false"
+            aria-label="Содержимое файла"
+          ></textarea>
+          <div id="nano-overlay-status" class="nano-overlay__status" aria-live="polite">
+            ^S сохранить · ^O записать · ^X выйти
+          </div>
+        </div>
       </div>
     </div>
     <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
@@ -40,22 +55,6 @@
       <button class="btn btn-primary" id="validate-btn" type="button">Проверить</button>
       <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
     </div>
-    <details class="file-editor-panel file-editor-panel--featured" open>
-      <summary>Редактор файла</summary>
-      <p class="file-editor-intro">
-        Нужен текст из нескольких строк? Напишите его здесь и нажмите «Сохранить» — файл появится в репозитории.
-        Посмотреть содержимое в терминале: <code>cat имя_файла</code>.
-      </p>
-      <label for="file-editor-path">Путь от корня репозитория</label>
-      <input id="file-editor-path" class="file-editor-path" type="text" placeholder="notes/idea.txt" autocomplete="off" />
-      <label for="file-editor-body">Содержимое (UTF-8)</label>
-      <textarea id="file-editor-body" class="file-editor-body" spellcheck="false"></textarea>
-      <div class="file-editor-actions">
-        <button class="btn btn-primary" id="file-editor-save" type="button">Сохранить</button>
-        <button class="btn btn-secondary" id="file-editor-load" type="button">Загрузить</button>
-      </div>
-      <p id="file-editor-status" class="muted" aria-live="polite"></p>
-    </details>
   </article>
 </section>
 

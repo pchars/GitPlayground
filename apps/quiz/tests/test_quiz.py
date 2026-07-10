@@ -65,7 +65,8 @@ class QuizViewsTests(TestCase):
         q = self.q1
         r = c.post(reverse("quiz-play"), {"question_id": str(q.id), "choice": "0"})
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Неверно. Этот вариант описывает другое действие.")
+        self.assertEqual(r.context["feedback_text"], "Неверно.")
+        self.assertNotContains(r, "Этот вариант описывает другое действие.")
         stats = QuizUserStats.objects.get(user=self.user)
         self.assertEqual(stats.answered_total, 2)
         self.assertEqual(stats.correct_total, 1)

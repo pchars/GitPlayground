@@ -6,7 +6,8 @@
 
 - Python 3.12+
 - Git (команды в задачах)
-- Опционально: Docker и Docker Compose (web + Celery + Redis)
+- БД: **SQLite** (`db.sqlite3` в корне проекта, путь — `SQLITE_DB_PATH`)
+- Опционально: Docker и Docker Compose (песочница + Celery + Redis)
 
 ## Быстрый старт (Windows)
 
@@ -14,13 +15,27 @@
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -U pip
 .\.venv\Scripts\python.exe -m pip install -e .
+Copy-Item .env.example .env   # DJANGO_DEBUG=true — нужен для локальной песочницы без Docker
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py seed_initial_data
 .\.venv\Scripts\python.exe manage.py seed_quiz_questions
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
+В `.env` для локалки оставьте `DJANGO_DEBUG=true`. Статику (CSS/JS) отдаёт WhiteNoise — при `DEBUG=false` перезапустите сервер после `pip install -e .`.
+
 Откройте [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+
+### Перезапуск после обновления кода
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e .
+if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Item -Recurse -Force }
+.\.venv\Scripts\python.exe manage.py shell -c "from apps.sandbox.models import SandboxSession; SandboxSession.objects.exclude(status=SandboxSession.Status.STOPPED).update(status=SandboxSession.Status.STOPPED)"
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+Перед первым деплоем с `DJANGO_DEBUG=false`: `manage.py collectstatic --noinput` (см. [docs/DEPLOY.md](docs/DEPLOY.md)).
 
 ## Быстрый старт (macOS / Linux)
 
@@ -29,11 +44,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
 python -m pip install -e .
+cp .env.example .env
 python manage.py migrate
 python manage.py seed_initial_data
 python manage.py seed_quiz_questions
 python manage.py runserver
 ```
+
+В `.env` для локалки: `DJANGO_DEBUG=true`. После обновления зависимостей: `pip install -e .`, очистка `.sandboxes/`, перезапуск `runserver` (см. блок выше в Windows-разделе).
 
 ## Контент: теория и квиз
 

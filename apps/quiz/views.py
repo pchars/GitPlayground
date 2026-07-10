@@ -203,14 +203,10 @@ def quiz_play(request: HttpRequest) -> HttpResponse:
             (2, q.choice_2),
             (3, q.choice_3),
         ]
-        correct_label = [q.choice_0, q.choice_1, q.choice_2, q.choice_3][q.correct_index]
         if ok:
             feedback_text = "Верно"
         else:
-            picked_explanation = getattr(q, f"explanation_{picked}", "") or ""
-            feedback_text = picked_explanation or (
-                f"Неверно, потому что правильный вариант: {correct_label}."
-            )
+            feedback_text = "Неверно."
         return render(
             request,
             "quiz/play.html",
@@ -221,7 +217,6 @@ def quiz_play(request: HttpRequest) -> HttpResponse:
                 "submitted": True,
                 "is_correct": ok,
                 "feedback_text": feedback_text,
-                "correct_label": correct_label,
                 "selected_difficulty": selected_difficulty,
                 "difficulty_label": dict(QuizQuestion.Difficulty.choices).get(selected_difficulty, ""),
             },

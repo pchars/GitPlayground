@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}GitPlayground | Ошибка сервера{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/error.css' %}">{% endblock %}
+{% block content %}
+<section class="error-wrap">
+  <article class="card error-card">
+    <p class="error-code">500</p>
+    <h1>Что-то пошло не так</h1>
+    <p class="muted">Мы уже видим сбой в логах. Попробуйте обновить страницу через минуту или вернитесь на главную.</p>
+    <div class="error-actions">
+      <a class="btn btn-primary" href="{% url 'landing' %}">На главную</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

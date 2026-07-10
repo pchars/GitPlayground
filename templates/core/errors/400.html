@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}GitPlayground | Некорректный запрос{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/error.css' %}">{% endblock %}
+{% block content %}
+<section class="error-wrap">
+  <article class="card error-card">
+    <p class="error-code">400</p>
+    <h1>Некорректный запрос</h1>
+    <p class="muted">Сервер не смог обработать запрос. Обновите страницу и попробуйте снова.</p>
+    <div class="error-actions">
+      <a class="btn btn-primary" href="{% url 'landing' %}">На главную</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

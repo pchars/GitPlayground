@@ -31,8 +31,9 @@
   }
 
   .terminal-shell .terminal-body {
-    height: clamp(280px, 52vh, 560px);
-    max-height: 52vh;
+    min-height: 360px;
+    height: clamp(360px, 62vh, 680px);
+    max-height: 62vh;
   }
 
   .theory-layout {
@@ -360,9 +361,6 @@
     min-width: 0;
   }
 
-  .file-editor-panel textarea.file-editor-body {
-    min-height: 120px;
-  }
 }
 
 /* Wide */

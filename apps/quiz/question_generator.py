@@ -161,10 +161,7 @@ def _explanation_map_for_command_question(cmd: str, choices: list[str], correct_
                 f"Верно. `{cmd}` действительно {correct_desc}."
             )
         else:
-            explanations[f"explanation_{idx}"] = (
-                f"Неверно. Этот вариант описывает другое действие: «{label}». "
-                f"На самом деле `{cmd}` {correct_desc}."
-            )
+            explanations[f"explanation_{idx}"] = "Неверно."
     return explanations
 
 
@@ -176,10 +173,7 @@ def _explanation_map_for_inverse_question(correct_cmd: str, choices: list[str], 
                 f"Верно. Именно `{correct_cmd}` {CMD_TO_DESC[correct_cmd]}."
             )
         else:
-            explanations[f"explanation_{idx}"] = (
-                f"Неверно. `{label}` {CMD_TO_DESC.get(label, 'делает другое действие')}. "
-                f"Правильный ответ: `{correct_cmd}`, потому что он {CMD_TO_DESC[correct_cmd]}."
-            )
+            explanations[f"explanation_{idx}"] = "Неверно."
     return explanations
 
 
@@ -189,10 +183,7 @@ def _explanation_map_for_concept_question(correct_text: str, choices: list[str],
         if idx == correct_index:
             explanations[f"explanation_{idx}"] = f"Верно. Это точное определение: {correct_text}."
         else:
-            explanations[f"explanation_{idx}"] = (
-                f"Неверно. Вариант «{label}» не отражает смысл вопроса. "
-                f"Правильное утверждение: {correct_text}."
-            )
+            explanations[f"explanation_{idx}"] = "Неверно."
     return explanations
 
 

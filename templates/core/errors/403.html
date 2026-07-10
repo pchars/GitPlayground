@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}GitPlayground | Доступ запрещён{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/error.css' %}">{% endblock %}
+{% block content %}
+<section class="error-wrap">
+  <article class="card error-card">
+    <p class="error-code">403</p>
+    <h1>Доступ запрещён</h1>
+    <p class="muted">У вас нет прав на это действие. Войдите под нужным аккаунтом или вернитесь к обучению.</p>
+    <div class="error-actions">
+      {% if request.user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'tasks' %}">К задачам</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'login' %}">Войти</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{% url 'landing' %}">На главную</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

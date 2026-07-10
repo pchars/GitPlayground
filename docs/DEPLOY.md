@@ -26,17 +26,21 @@
 
 ## Статика
 
-После выкладки кода:
+Статику отдаёт **WhiteNoise** (работает и при `DJANGO_DEBUG=false`). Исходники — каталог `static/`.
+
+Рекомендуется перед выкладкой:
 
 ```bash
 python manage.py collectstatic --noinput
 ```
 
-Статические файлы лежат в `static/`; после collect — в `staticfiles/`. CSS организован по страницам (см. [FRONTEND.md](FRONTEND.md)).
+После collect можно выставить `WHITENOISE_USE_FINDERS=false` (файлы берутся только из `staticfiles/`).
 
 Каталог `docs/` **не** публикуйте как веб-статику — это документация репозитория, не часть продукта.
 
 ## База данных и сиды
+
+БД — **SQLite** (`db.sqlite3` или `SQLITE_DB_PATH`). Других движков не предусмотрено.
 
 На чистой БД:
 
@@ -62,6 +66,19 @@ python manage.py makemigrations --check --dry-run
 ```
 
 При `DJANGO_DEPLOY_CHECK=1` и `DEBUG=false` приложение дополнительно проверит: `SECRET_KEY`, `ALLOWED_HOSTS`, `SANDBOX_ENGINE=docker`, отсутствие явного `SANDBOX_ALLOW_LOCAL_FALLBACK`.
+
+## Страницы ошибок
+
+При `DJANGO_DEBUG=false` Django отдаёт пользовательские шаблоны (без технических деталей):
+
+| Код | Шаблон |
+| --- | --- |
+| 400 | `templates/core/errors/400.html` |
+| 403 | `templates/core/errors/403.html` |
+| 404 | `templates/core/errors/404.html` |
+| 500 | `templates/core/errors/500.html` |
+
+Обработчики: `gitplayground/urls.py` (`handler400` … `handler500`). При `DEBUG=true` для 404 Django показывает отладочную страницу — это нормально для локальной разработки.
 
 ## Docker Compose (dev / staging)
 

@@ -7,7 +7,74 @@
 
 from __future__ import annotations
 
-TASK_CONDITIONS: dict[str, str] = {
+FILE_CREATE_HINT = (
+    " Файлы: одна строка — `echo текст > имя` или `touch имя`; несколько строк — "
+    "`nano имя` (Ctrl+S — сохранить, Ctrl+X — выйти)."
+)
+
+FILE_EDIT_HINT = (
+    " Правка файла: `nano имя` (Ctrl+S — сохранить, Ctrl+X — выйти)."
+)
+
+_FILE_CREATE_SLUGS = frozenset(
+    {
+        "first_commit",
+        "amend_commit",
+        "grep_in_repo",
+        "stage_tracked_only",
+        "diff_cached_staged",
+        "commit_on_branch",
+        "branch_without_checkout",
+        "rescue_detached_head",
+        "merge_base_ready",
+        "save_symbolic_head",
+        "tree_list_root",
+        "attach_git_note",
+        "rev_parse_head_sha",
+        "log_double_dot_range",
+        "pickaxe_log_search",
+        "triple_dot_log_range",
+        "setup_ignore",
+        "ignore_node_modules",
+        "ignore_exceptions",
+        "keep_empty_dir",
+        "clean_untracked",
+        "readme_first",
+        "gh_pages_branch",
+        "jekyll_post_front_matter",
+        "write_git_blob",
+        "mr_feature_branch",
+        "add_gitlab_ci_yaml",
+        "gitlab_md_issue_ref",
+    }
+)
+
+_FILE_EDIT_SLUGS = frozenset(
+    {
+        "check_status",
+        "stage_unstage",
+        "view_diff",
+        "commit_second",
+        "reset_head_unstage",
+        "resolve_conflict",
+        "edit_commit",
+    }
+)
+
+
+def _with_file_hints(conditions: dict[str, str]) -> dict[str, str]:
+    enriched: dict[str, str] = {}
+    for slug, text in conditions.items():
+        suffix = ""
+        if slug in _FILE_CREATE_SLUGS:
+            suffix = FILE_CREATE_HINT
+        elif slug in _FILE_EDIT_SLUGS:
+            suffix = FILE_EDIT_HINT
+        enriched[slug] = text + suffix
+    return enriched
+
+
+_RAW_TASK_CONDITIONS: dict[str, str] = {
     # Level 1 — basics
     "init_repo": (
         "Преврати текущую папку в Git-репозиторий. После этого в ней должен "
@@ -312,3 +379,5 @@ TASK_CONDITIONS: dict[str, str] = {
         "`issue #3`), и закоммить файл."
     ),
 }
+
+TASK_CONDITIONS: dict[str, str] = _with_file_hints(_RAW_TASK_CONDITIONS)

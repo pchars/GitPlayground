@@ -20,6 +20,7 @@
   let commandBuffer = "";
   let cursorPos = 0;
   let isCommandRunning = false;
+  let isNanoOpen = false;
   const promptLabel = window.GPTerminalPaste.PROMPT;
   const PROMPT_ANSI = "\u001b[1;32muser@gitplayground:~/repo$\u001b[0m ";
   let term = null;
@@ -76,6 +77,38 @@
     term.write(`\r\n${PROMPT_ANSI}`);
   }
 
+  function renderLocalHelp() {
+    term.writeln("");
+    term.writeln("Справка GitPlayground");
+    term.writeln("----------------");
+    term.writeln("Доступные команды:");
+    term.writeln("  - git <...>");
+    term.writeln("  - ls [путь], pwd, mkdir [-p] <папка>, find [путь]");
+    term.writeln("  - touch <файл>, cat/head/tail/wc <файл>, cp/mv <откуда> <куда>, rm <файл>");
+    term.writeln("  - echo <текст>  |  echo <текст> > <файл>  |  echo <текст> >> <файл>");
+    term.writeln("  - type nul > <файл>");
+    term.writeln("  - nano <файл>  |  edit <файл>  — редактор поверх терминала");
+    term.writeln("  - whoami, clear");
+    term.writeln("");
+    term.writeln("Режим nano/edit:");
+    term.writeln("  - Ctrl+S / Ctrl+O — сохранить");
+    term.writeln("  - Ctrl+X — выйти в командную строку");
+    term.writeln("");
+    term.writeln("Терминал:");
+    term.writeln("  - Enter — выполнить команду");
+    term.writeln("  - ArrowUp / ArrowDown — история");
+    term.writeln("  - Ctrl+L / clear — очистить экран");
+    term.writeln("  - Ctrl+V / Cmd+V — вставить в строку");
+    term.writeln("Локальная команда: help");
+  }
+
+  function showInitialTerminalWelcome() {
+    term.write(PROMPT_ANSI + "help");
+    renderLocalHelp();
+    writePrompt();
+    scrollTerminalDown();
+  }
+
   function showTerminalUnavailable() {
     xtermHost.innerHTML = '<p class="xterm-unavailable muted">Терминал недоступен. Перезагрузите страницу.</p>';
   }
@@ -118,7 +151,7 @@
         fitAddon.fit();
         window.addEventListener("resize", () => fitAddon.fit());
       }
-      writePrompt();
+      showInitialTerminalWelcome();
     } catch (error) {
       term = null;
     }
@@ -173,25 +206,135 @@
     return response.json();
   }
 
-  function renderLocalHelp() {
-    term.writeln("");
-    term.writeln("Справка GitPlayground");
-    term.writeln("----------------");
-    term.writeln("Доступные команды:");
-    term.writeln("  - git <...>");
-    term.writeln("  - touch <file>");
-    term.writeln("  - cat <file>   (только путь, без флагов)");
-    term.writeln("  - type nul > <file>");
-    term.writeln("  - echo <text> > <file>");
-    term.writeln("  - echo <text> >> <file>");
-    term.writeln("  - многострочный текст: блок «Редактор файла» под терминалом");
-    term.writeln("");
-    term.writeln("Горячие клавиши:");
-    term.writeln("  - Enter: выполнить команду");
-    term.writeln("  - ArrowUp / ArrowDown: история команд");
-    term.writeln("  - Ctrl+L: очистить терминал");
-    term.writeln("  - Ctrl+V / Cmd+V: вставить в строку команды");
-    term.writeln("Локальная команда: help (справка)");
+  const nanoOverlay = document.getElementById("nano-overlay");
+  const nanoPathEl = document.getElementById("nano-overlay-path");
+  const nanoBody = document.getElementById("nano-overlay-body");
+  const nanoStatus = document.getElementById("nano-overlay-status");
+  let nanoCurrentPath = "";
+
+  function focusWithoutScroll(node) {
+    if (!node || typeof node.focus !== "function") {
+      return;
+    }
+    try {
+      node.focus({ preventScroll: true });
+    } catch (_error) {
+      node.focus();
+    }
+  }
+
+  function setNanoStatus(text, isError) {
+    if (!nanoStatus) {
+      return;
+    }
+    nanoStatus.textContent = text || "";
+    nanoStatus.classList.toggle("nano-overlay__status--error", Boolean(isError));
+  }
+
+  function ensureTerminalTabVisible() {
+    const terminalTab = document.querySelector('.tab-btn[data-tab="terminal"]');
+    if (terminalTab && !terminalTab.classList.contains("active")) {
+      terminalTab.click();
+    }
+  }
+
+  function closeNanoEditor(message) {
+    isNanoOpen = false;
+    nanoCurrentPath = "";
+    if (nanoOverlay) {
+      nanoOverlay.classList.remove("nano-overlay--open");
+      nanoOverlay.hidden = true;
+      nanoOverlay.setAttribute("aria-hidden", "true");
+    }
+    if (term) {
+      if (message) {
+        term.writeln(message);
+        writePrompt();
+        scrollTerminalDown();
+      }
+      focusWithoutScroll(term.element || term.textarea || terminalBody);
+    }
+  }
+
+  async function readRepoFileContent(path) {
+    const url = new URL(urls.readFile, window.location.origin);
+    url.searchParams.set("path", path);
+    const response = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
+    return response.json();
+  }
+
+  async function saveNanoFile() {
+    const path = nanoCurrentPath;
+    const content = nanoBody ? nanoBody.value : "";
+    if (!path) {
+      setNanoStatus("Не указан путь к файлу.", true);
+      return false;
+    }
+    const data = await post(urls.writeFile, { path, content });
+    if (!data.ok) {
+      setNanoStatus(data.message || "Ошибка записи", true);
+      return false;
+    }
+    setNanoStatus(`Записано ${data.bytes_written != null ? data.bytes_written : 0} байт. ^X — выйти`);
+    return true;
+  }
+
+  async function openNanoEditor(path) {
+    if (!nanoOverlay || !nanoBody) {
+      return;
+    }
+    ensureTerminalTabVisible();
+    isNanoOpen = true;
+    nanoCurrentPath = path;
+    if (nanoPathEl) {
+      nanoPathEl.textContent = path;
+    }
+    nanoOverlay.hidden = false;
+    nanoOverlay.setAttribute("aria-hidden", "false");
+    nanoOverlay.classList.add("nano-overlay--open");
+    setNanoStatus("Загрузка…");
+    try {
+      const data = await readRepoFileContent(path);
+      if (data.ok) {
+        nanoBody.value = data.content != null ? data.content : "";
+        setNanoStatus(
+          data.truncated
+            ? "Файл обрезан по лимиту. ^S сохранить · ^X выйти"
+            : "^S сохранить · ^O записать · ^X выйти"
+        );
+      } else {
+        nanoBody.value = "";
+        setNanoStatus("Новый файл. ^S сохранить · ^X выйти");
+      }
+    } catch (_error) {
+      nanoBody.value = "";
+      setNanoStatus("Не удалось загрузить файл.", true);
+    }
+    focusWithoutScroll(nanoBody);
+  }
+
+  function handleNanoShortcuts(event) {
+    if (!isNanoOpen) {
+      return;
+    }
+    if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (key === "s" || key === "o") {
+      event.preventDefault();
+      saveNanoFile().catch(() => setNanoStatus("Сбой сети.", true));
+      return;
+    }
+    if (key === "x") {
+      event.preventDefault();
+      closeNanoEditor(`[ Закрыт редактор: ${nanoCurrentPath} ]`);
+    }
+  }
+
+  function parseEditorCommand(command) {
+    const match = /^(nano|edit)\s+(\S+)$/i.exec(String(command || "").trim());
+    return match ? match[2] : null;
   }
 
   function handleTerminalPaste(event) {
@@ -218,6 +361,14 @@
       scrollTerminalDown();
       return;
     }
+    if (command.trim().toLowerCase() === "clear") {
+      term.clear();
+      writePrompt();
+      isCommandRunning = false;
+      scrollTerminalDown();
+      return;
+    }
+    const editorPath = parseEditorCommand(command);
     const data = await post(urls.run, { command });
     if (!data.ok) {
       validateOutput.textContent = data.message || "Команда не выполнена";
@@ -225,6 +376,13 @@
       term.writeln(`Ошибка: ${data.message || "Команда не выполнена"}`);
       writePrompt();
       isCommandRunning = false;
+      return;
+    }
+    if (editorPath) {
+      term.writeln(`[ Открыт редактор: ${editorPath} ]`);
+      await openNanoEditor(editorPath);
+      isCommandRunning = false;
+      scrollTerminalDown();
       return;
     }
     if (data.output) {
@@ -275,6 +433,7 @@
     validateOutput.textContent = "Песочница сброшена.";
     validateOutput.className = "hint-box validate-banner muted";
     if (term) {
+      closeNanoEditor();
       term.clear();
       term.writeln("Песочница сброшена. Можно снова вводить команды Git.");
       commandBuffer = "";
@@ -325,6 +484,9 @@
 
   if (term) {
     term.onData(async (dataChunk) => {
+      if (isNanoOpen) {
+        return;
+      }
       if (dataChunk === "\r") {
         const command = commandBuffer.trim();
         commandBuffer = "";
@@ -407,8 +569,18 @@
     });
 
     term.focus();
-    terminalBody.addEventListener("click", () => term.focus());
+    terminalBody.addEventListener("click", () => {
+      if (isNanoOpen) {
+        focusWithoutScroll(nanoBody);
+        return;
+      }
+      term.focus();
+    });
     terminalBody.addEventListener("paste", handleTerminalPaste);
+  }
+
+  if (nanoBody) {
+    nanoBody.addEventListener("keydown", handleNanoShortcuts);
   }
 
   const tabButtons = document.querySelectorAll(".tab-btn");
@@ -430,66 +602,6 @@
       }
     });
   });
-
-  const fileEditorPath = document.getElementById("file-editor-path");
-  const fileEditorBody = document.getElementById("file-editor-body");
-  const fileEditorLoad = document.getElementById("file-editor-load");
-  const fileEditorSave = document.getElementById("file-editor-save");
-  const fileEditorStatus = document.getElementById("file-editor-status");
-
-  function setFileEditorStatus(text, isError) {
-    if (!fileEditorStatus) {
-      return;
-    }
-    fileEditorStatus.textContent = text || "";
-    fileEditorStatus.style.color = isError ? "var(--danger)" : "";
-  }
-
-  async function loadRepoFile() {
-    const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
-    if (!path) {
-      setFileEditorStatus("Укажите путь к файлу.", true);
-      return;
-    }
-    const url = new URL(urls.readFile, window.location.origin);
-    url.searchParams.set("path", path);
-    const response = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
-    const data = await response.json();
-    if (!data.ok) {
-      setFileEditorStatus(data.message || "Ошибка чтения", true);
-      return;
-    }
-    if (fileEditorBody) {
-      fileEditorBody.value = data.content != null ? data.content : "";
-    }
-    setFileEditorStatus(data.truncated ? "Загружено (файл обрезан по лимиту песочницы)." : "Загружено.");
-  }
-
-  async function saveRepoFile() {
-    const path = (fileEditorPath && fileEditorPath.value) ? fileEditorPath.value.trim() : "";
-    const body = fileEditorBody ? fileEditorBody.value : "";
-    if (!path) {
-      setFileEditorStatus("Укажите путь к файлу.", true);
-      return;
-    }
-    const data = await post(urls.writeFile, { path, content: body });
-    if (!data.ok) {
-      setFileEditorStatus(data.message || "Ошибка записи", true);
-      return;
-    }
-    setFileEditorStatus(`Сохранено (${data.bytes_written != null ? data.bytes_written : 0} байт).`);
-  }
-
-  if (fileEditorLoad) {
-    fileEditorLoad.addEventListener("click", () => {
-      loadRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
-    });
-  }
-  if (fileEditorSave) {
-    fileEditorSave.addEventListener("click", () => {
-      saveRepoFile().catch(() => setFileEditorStatus("Сбой сети.", true));
-    });
-  }
 
   hydrateHintsFromServer();
   if (maxHints === 0) {

@@ -46,7 +46,7 @@ class SandboxFileToolsTests(TestCase):
         body = page.content.decode("utf-8")
         self.assertIn('readFile: "/playground/1_1/file/read/"', body)
         self.assertIn('writeFile: "/playground/1_1/file/write/"', body)
-        self.assertIn("file-editor-path", body)
+        self.assertIn("nano-overlay", body)
 
     def test_cat_reads_text_file(self):
         ok, _msg = write_text_file_to_repo(self.session, "notes/x.txt", "line1\nline2")

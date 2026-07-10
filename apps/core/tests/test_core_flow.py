@@ -108,6 +108,7 @@ class CoreFlowTests(TestCase):
         js = (Path(settings.BASE_DIR) / "static" / "js" / "playground.js").read_text(encoding="utf-8")
         self.assertIn("Справка GitPlayground", js)
         self.assertIn("Локальная команда: help", js)
+        self.assertIn("showInitialTerminalWelcome", js)
 
     def test_tasks_by_level_page_renders(self):
         self.client.force_login(self.user)
@@ -222,6 +223,24 @@ class CoreFlowTests(TestCase):
         # Path traversal outside the sandbox is blocked for all new verbs.
         self.assertEqual(run_command(session, "ls ../..").return_code, 126)
         self.assertEqual(run_command(session, "mkdir ../escape").return_code, 126)
+
+        self.assertEqual(run_command(session, 'echo "hello sandbox"').output, "hello sandbox")
+        run_command(session, 'echo "line one" > sample.txt')
+        self.assertIn("line one", run_command(session, "cat sample.txt").output)
+        self.assertIn("line one", run_command(session, "head -n 1 sample.txt").output)
+        self.assertEqual(run_command(session, "wc -l sample.txt").output, "1")
+
+        self.assertEqual(run_command(session, "cp sample.txt sample-copy.txt").return_code, 0)
+        self.assertIn("line one", run_command(session, "cat sample-copy.txt").output)
+
+        self.assertEqual(run_command(session, "nano sample.txt").return_code, 0)
+        self.assertIn("Редактор:", run_command(session, "edit sample.txt").output)
+
+        self.assertEqual(run_command(session, "find .").return_code, 0)
+        self.assertIn("sample.txt", run_command(session, "find .").output)
+
+        self.assertEqual(run_command(session, "rm sample-copy.txt").return_code, 0)
+        self.assertNotEqual(run_command(session, "cat sample-copy.txt").return_code, 0)
 
     def test_paste_appended_to_git_init_runs_as_unknown_git_command(self):
         # Regression: user types "git init", clipboard has "ls", paste appends

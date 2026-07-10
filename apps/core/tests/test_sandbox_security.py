@@ -68,10 +68,66 @@ class CommandPolicySecurityTests(SimpleTestCase):
         self.assertEqual(data["path"], "file.txt")
 
     def test_blocks_unknown_shell_verb(self):
-        allowed, reason, data = parse_user_command("rm -rf .")
+        allowed, reason, data = parse_user_command("bash -c ls")
         self.assertFalse(allowed)
         self.assertEqual(reason, "command_not_allowed")
-        self.assertEqual(data["command_root"], "rm")
+        self.assertEqual(data["command_root"], "bash")
+
+    def test_allows_nano_and_edit_alias(self):
+        for cmd in ("nano notes.txt", "edit notes.txt"):
+            allowed, reason, data = parse_user_command(cmd)
+            self.assertTrue(allowed, msg=cmd)
+            self.assertEqual(reason, "nano_open")
+            self.assertEqual(data["path"], "notes.txt")
+
+    def test_allows_echo_without_redirect(self):
+        allowed, reason, data = parse_user_command("echo hello world")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "echo_print")
+        self.assertEqual(data["text"], "hello world")
+
+    def test_allows_head_tail_wc(self):
+        allowed, reason, data = parse_user_command("head -n 3 hello.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "head_read")
+        self.assertEqual(data, {"path": "hello.txt", "lines": 3})
+
+        allowed, reason, data = parse_user_command("tail hello.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "tail_read")
+        self.assertEqual(data, {"path": "hello.txt", "lines": 10})
+
+        allowed, reason, data = parse_user_command("wc -l hello.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "wc_read")
+        self.assertEqual(data, {"path": "hello.txt", "lines_only": True})
+
+    def test_allows_cp_mv_rm_find(self):
+        allowed, reason, data = parse_user_command("cp a.txt b.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "cp_file")
+
+        allowed, reason, data = parse_user_command("mv a.txt b.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "mv_file")
+
+        allowed, reason, data = parse_user_command("rm -f temp.txt")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "rm_file")
+        self.assertEqual(data["path"], "temp.txt")
+
+        allowed, reason, data = parse_user_command("find .")
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "find_paths")
+
+    def test_blocks_rm_recursive_flag(self):
+        allowed, reason, _ = parse_user_command("rm -r folder")
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "rm_flag_not_allowed")
+
+    def test_allows_whoami_and_clear(self):
+        self.assertTrue(parse_user_command("whoami")[0])
+        self.assertTrue(parse_user_command("clear")[0])
 
 
 class SafeZipExtractTests(SimpleTestCase):

@@ -36,7 +36,7 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 
 ## База данных
 
-- SQLite по умолчанию; Postgres через `DB_*` (см. `settings.py`).
+- **SQLite** — единственный движок БД (dev и prod). Файл по умолчанию: `db.sqlite3` в корне проекта (`SQLITE_DB_PATH` для другого пути).
 - После миграций на чистой БД: `seed_initial_data`, `seed_quiz_questions`.
 - Только теория: `sync_theory_content`.
 
@@ -52,7 +52,8 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 
 ## Статика и кэш
 
-- `collectstatic` перед выкладкой.
+- Статику отдаёт **WhiteNoise** (в т.ч. при `DJANGO_DEBUG=false`).
+- `collectstatic` перед выкладкой — рекомендуется; затем `WHITENOISE_USE_FINDERS=false`.
 - Версионирование URL: тег `{% static_v 'path' %}` (хэш содержимого). После деплоя CSS/JS обновляются без ручного `?v=`.
 
 ## Мониторинг (рекомендации)

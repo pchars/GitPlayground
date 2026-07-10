@@ -1,5 +1,6 @@
+import unittest.mock
 from django.contrib.auth.models import User
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from apps.core.tests.helpers import make_user
@@ -182,3 +183,37 @@ class PagesRegressionTests(TestCase):
         self.assertIn("Поддержать проект", html)
         self.assertIn("donation-wallet", html)
         self.assertIn("legal.css", html)
+
+    def test_base_template_includes_favicon_links(self):
+        response = self.client.get("/")
+        html = response.content.decode("utf-8")
+        self.assertIn("favicon.ico", html)
+        self.assertIn("logo.svg", html)
+
+    @override_settings(DEBUG=False)
+    def test_static_assets_served_when_debug_disabled(self):
+        response = self.client.get("/static/css/common.css")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/css", response["Content-Type"])
+
+    @override_settings(DEBUG=False)
+    def test_custom_404_page_when_debug_disabled(self):
+        response = self.client.get("/this-route-does-not-exist/")
+        self.assertEqual(response.status_code, 404)
+        html = response.content.decode("utf-8")
+        self.assertIn("Страница не найдена", html)
+        self.assertIn("error.css", html)
+
+    def test_playground_sandbox_unavailable_returns_styled_503(self):
+        self.client.force_login(self.user)
+        with unittest.mock.patch(
+            "apps.core.views.playground.get_or_create_active_session",
+            side_effect=RuntimeError("Docker sandbox runtime is required but unavailable."),
+        ):
+            response = self.client.get("/playground/gh-1_1/")
+        self.assertEqual(response.status_code, 503)
+        html = response.content.decode("utf-8")
+        self.assertIn("Песочница недоступна", html)
+        self.assertIn("Песочница временно недоступна", html)
+        self.assertIn("error.css", html)
+        self.assertIn("common.css", html)

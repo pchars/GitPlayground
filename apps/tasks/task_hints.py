@@ -10,11 +10,11 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Проверь результат: `git status` должен показать пустой репозиторий на ветке `main`.",
     ),
     "first_commit": (
-        "Создай файл `hello.txt` с текстом `Hello, Git!`, затем добавь его в индекс: `git add hello.txt`.",
+        "Создай `hello.txt` с текстом `Hello, Git!` (`echo \"Hello, Git!\" > hello.txt` или `nano hello.txt`), затем `git add hello.txt`.",
         "Зафиксируй изменение коммитом: `git commit -m \"Add hello\"`. Сообщение должно совпасть с условием.",
     ),
     "check_status": (
-        "Измени `hello.txt` (добавь строку), но не выполняй `git add` — файл должен остаться только в рабочей копии.",
+        "Измени `hello.txt` (`nano hello.txt` или `echo \"...\" >> hello.txt`), но не выполняй `git add` — файл должен остаться только в рабочей копии.",
         "Выполни `git status --short`: для изменённого, но не застейдженного файла ожидается префикс ` M`.",
     ),
     "stage_unstage": (
@@ -232,7 +232,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
     ),
     # Level 7 — hygiene
     "setup_ignore": (
-        "Создай `.gitignore` и добавь строки: `*.log`, `.env`, `__pycache__/` (по одной на строку).",
+        "Создай `.gitignore` через `nano .gitignore` и добавь строки: `*.log`, `.env`, `__pycache__/` (по одной на строку).",
         "Проверь `git status` — перечисленные файлы не должны появляться как неотслеживаемые, если они подпадают под маски.",
     ),
     "ignore_node_modules": (
@@ -294,7 +294,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Версия в тексте: `git describe --tags` — должно содержать `v1.0.0`.",
     ),
     "readme_first": (
-        "Создай README: `echo \"# GitPlayground Demo\" > README.md` (или свой заголовок с `#`).",
+        "Создай README через `nano README.md` со строкой-заголовком `# ...` (или `echo \"# GitPlayground Demo\" > README.md`).",
         "Добавь и закоммить: `git add README.md`, `git commit -m \"Add README\"`.",
     ),
     "issue_close_message": (
@@ -303,11 +303,11 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
     ),
     "gh_pages_branch": (
         "Новая ветка: `git checkout -b gh-pages`.",
-        "Файл и коммит: `echo \"<h1>Pages</h1>\" > index.html`, `git add index.html`, `git commit -m \"Add pages stub\"`.",
+        "Создай `index.html` (`nano index.html` или `echo \"<h1>Pages</h1>\" > index.html`), затем `git add index.html`, `git commit -m \"Add pages stub\"`.",
     ),
     "jekyll_post_front_matter": (
-        "Каталог: `mkdir _posts`. В файле между `---` укажи `title:` и `layout: post`.",
-        "Пример: `echo --- > _posts/welcome.md`, строки метаданных, `echo --- >> ...`, тело, `git add`, `git commit`.",
+        "Каталог: `mkdir -p _posts`. Файл поста удобно набрать через `nano _posts/welcome.md`: YAML между `---`, поля `title:` и `layout: post`, затем тело.",
+        "После сохранения (Ctrl+S в редакторе): `git add _posts/welcome.md`, `git commit -m \"Add welcome post\"`.",
     ),
     "write_git_blob": (
         "Создай файл: `echo api > api.txt`.",
@@ -318,7 +318,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Измени `hello.txt`, commit с `Feature for MR`, запиши `echo awesome-feature > mr-branch.txt`.",
     ),
     "add_gitlab_ci_yaml": (
-        "Минимальный CI: job `test` с `script:` и `echo ok` в `.gitlab-ci.yml`.",
+        "Минимальный CI в `.gitlab-ci.yml` удобно набрать через `nano .gitlab-ci.yml`: job `test` с `script:` и `echo ok`.",
         "Не забудь `git add` и `git commit` — файл должен быть в истории.",
     ),
     "closes_issue_gitlab": (

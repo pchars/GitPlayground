@@ -72,7 +72,7 @@ GitPlayground is a Django web app for learning Git: theory modules, an interacti
 quiz, and hands-on tasks solved in a **sandboxed terminal** that runs real `git`
 commands and grades the result with a per-task `validator.py`.
 
-- **Stack:** Django 5+, Python 3.11+, SQLite by default (Postgres via `DB_*` env vars),
+- **Stack:** Django 5+, Python 3.11+, SQLite (dev and production),
   Celery + Redis for background work, `markdown` + Mermaid for theory rendering.
 - **Entry point:** `manage.py`; project settings in `gitplayground/settings.py`;
   root URLConf in `gitplayground/urls.py`.
@@ -174,7 +174,8 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 ```
 
 Only after this full cycle should the user be asked to reload the page / verify behavior.
-The playground page always opens with an **empty terminal** (only the prompt). Session logs
+The playground page opens with a pre-run `help` command in the terminal (welcome
+summary + prompt). Session logs
 still persist on disk for debugging, but they are not replayed on page load.
 
 ## User-reported bugs
@@ -203,18 +204,22 @@ User input is **not** run through a shell. `_parse_user_command` in
 - `pwd`
 - `mkdir <dir>` / `mkdir -p <dir>`
 - `touch <file>`
-- `cat <file>`
+- `cat <file>` / `head` / `tail` / `wc -l <file>`
+- `cp <src> <dst>` / `mv <src> <dst>` / `rm <file>` (paths guarded; `.git` is protected)
+- `find [path]` (recursive listing, skips `.git`)
+- `echo <text>` (stdout) and `echo <text> > <file>` / `echo <text> >> <file>`
 - `type nul > <file>`
-- `echo <text> > <file>` and `echo <text> >> <file>`
+- `nano <file>` / `edit <file>` (opens the in-terminal overlay editor; not a real TTY editor)
+- `whoami`, `clear`
 
 Non-`git` verbs are executed in pure Python (no subprocess, no shell) and guarded by
 `apps/core/services/repo_path_io.py` (`normalize_repo_relative_path`, `os.path.realpath`,
 `startswith` root check), so they cannot escape the workspace.
 
-Multi-line file content uses the file-editor API (`read_text_file_from_repo` /
-`write_text_file_to_repo`), not shell redirection. When a task needs a capability
-that isn't allowed, prefer rewriting the task to use `git` / the editor over widening
-the allowlist; only extend `_parse_user_command` when genuinely required, and keep the
+Multi-line file content uses `nano` / `edit` in the terminal (in-terminal overlay backed by
+`read_text_file_from_repo` / `write_text_file_to_repo`), not shell redirection. When a task
+needs a capability that isn't allowed, prefer rewriting the task to use `git` / `nano` over
+widening the allowlist; only extend `parse_user_command` when genuinely required, and keep the
 "no arbitrary shell" guarantee.
 
 Git runs with a deterministic environment from `git_env()`: a managed global config
