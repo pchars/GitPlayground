@@ -26,6 +26,5 @@
 
 ## См. также
 
-- [README.md](README.md)
-- [FRONTEND.md](FRONTEND.md) — UI плейграунда
-- [openapi/playground.yaml](openapi/playground.yaml) — endpoint `validate`
+- [FRONTEND.md](FRONTEND.md) — UI и endpoint `validate`
+- [../AGENTS.md](../AGENTS.md) — авторинг задач

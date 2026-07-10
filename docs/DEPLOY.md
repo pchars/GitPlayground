@@ -34,7 +34,7 @@ python manage.py collectstatic --noinput
 
 Статические файлы лежат в `static/`; после collect — в `staticfiles/`. CSS организован по страницам (см. [FRONTEND.md](FRONTEND.md)).
 
-**Не** публикуйте каталог `docs/` как веб-статику в продакшене (OpenAPI и внутренняя документация — только в репозитории). Подробнее: [API.md](API.md).
+Каталог `docs/` **не** публикуйте как веб-статику — это документация репозитория, не часть продукта.
 
 ## База данных и сиды
 
@@ -56,7 +56,8 @@ python manage.py sync_theory_content
 
 ```bash
 python manage.py check --deploy
-python manage.py test
+python manage.py test --exclude-tag=slow
+python manage.py test --tag=slow
 python manage.py makemigrations --check --dry-run
 ```
 
@@ -77,8 +78,8 @@ docker compose exec web python manage.py seed_quiz_questions
 
 ## См. также
 
-- [README.md](README.md) — оглавление документации
+- [README.md](../README.md) — быстрый старт
 - [OPERATIONS.md](OPERATIONS.md) — эксплуатация и мониторинг
 - [VALIDATOR_CONTRACT.md](VALIDATOR_CONTRACT.md) — выполнение `validator.py`
-- [openapi/playground.yaml](openapi/playground.yaml) — JSON API плейграунда
+- [FRONTEND.md](FRONTEND.md) — JSON API плейграунда
 - [../AGENTS.md](../AGENTS.md) — политики разработки
