@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{% static_v 'css/responsive.css' %}">
 </head>
 <body>
-  <header class="header top-nav">
+  <header class="header top-nav{% if request.user.is_authenticated %} has-collapsible-nav{% endif %}">
     <div class="header-left">
       <div class="brand">
         <a class="brand-link" href="{% url 'landing' %}">
@@ -19,7 +19,21 @@
         </a>
       </div>
       {% if request.user.is_authenticated %}
-        <nav class="header-nav" aria-label="Основная навигация">
+        <button
+          class="nav-toggle"
+          type="button"
+          id="nav-toggle"
+          aria-expanded="false"
+          aria-controls="header-nav"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true">
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+          </span>
+          <span class="nav-toggle-label">Меню</span>
+        </button>
+        <nav class="header-nav" id="header-nav" aria-label="Основная навигация">
           <a class="btn btn-text-link" href="{% url 'theory-detail' 1 %}">Теория</a>
           <a class="btn btn-text-link" href="{% url 'tasks' %}">Задачи</a>
           <a class="btn btn-text-link" href="{% url 'quiz-home' %}">Квиз</a>
@@ -90,5 +104,6 @@
   <button class="scroll-top-btn" id="scroll-top-btn" type="button" aria-label="Наверх" hidden>↑</button>
   <script src="{% static_v 'js/toast.js' %}"></script>
   <script src="{% static_v 'js/scroll_top.js' %}"></script>
+  <script src="{% static_v 'js/nav_mobile.js' %}"></script>
 </body>
 </html>

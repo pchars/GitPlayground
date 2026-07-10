@@ -1,4 +1,4 @@
-/* ——— Лидерборд (см. DESIGN.md: монохром, всё в одном .card) ——— */
+/* ——— Leaderboard (see docs/DESIGN.md: monochrome, single .card) ——— */
 .leaderboard-hero {
   display: flex;
   align-items: baseline;
@@ -22,7 +22,7 @@
   color: var(--color-muted);
 }
 
-/* Подиум — акцент на 1 месте, 2 и 3 одинаково меньше */
+/* Podium — emphasize 1st place; 2nd and 3rd equally smaller */
 .leaderboard-podium {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -41,7 +41,7 @@
   box-shadow: 0 2px 8px rgba(17, 17, 17, 0.06);
 }
 
-/* 1 место — крупнее, выделяется мягкой тенью (без жёсткой обводки) */
+/* 1st place — larger, soft shadow highlight (no hard border) */
 .podium-first {
   order: 2;
   border-color: var(--color-hairline);
@@ -51,7 +51,7 @@
 .podium-first .podium-name { font-size: 1rem; }
 .podium-first .podium-points { font-size: 1.25rem; }
 
-/* 2 и 3 места — одинаковый уменьшенный размер */
+/* 2nd and 3rd place — same reduced size */
 .podium-second,
 .podium-third {
   padding: var(--spacing-sm) var(--spacing-xs);
@@ -99,7 +99,7 @@
   outline-offset: 2px;
 }
 
-/* Таблица — плоская, живёт внутри общего .card */
+/* Table — flat layout inside the shared .card */
 .leaderboard-table-title {
   margin: var(--spacing-lg) 0 var(--spacing-sm);
   font-size: 1rem;
