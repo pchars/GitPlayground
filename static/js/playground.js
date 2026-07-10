@@ -81,7 +81,10 @@
   }
 
   function xtermTheme() {
-    return { background: "#ffffff", foreground: "#24292f", cursor: "#24292f" };
+    const root = getComputedStyle(document.documentElement);
+    const background = root.getPropertyValue("--bg-terminal").trim() || "#ffffff";
+    const foreground = root.getPropertyValue("--color-ink").trim() || "#24292f";
+    return { background, foreground, cursor: foreground };
   }
 
   if (typeof window.Terminal === "function") {

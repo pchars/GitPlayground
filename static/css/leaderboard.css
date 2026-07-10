@@ -31,6 +31,29 @@
   margin: 0 auto var(--spacing-lg);
   max-width: 560px;
 }
+
+.leaderboard-podium.podium-count-1 {
+  grid-template-columns: minmax(0, 220px);
+  justify-content: center;
+}
+
+.leaderboard-podium.podium-count-1 .podium-first {
+  order: 0;
+}
+
+.leaderboard-podium.podium-count-2 {
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  max-width: 400px;
+  justify-content: center;
+}
+
+.leaderboard-podium.podium-count-2 .podium-second {
+  order: 1;
+}
+
+.leaderboard-podium.podium-count-2 .podium-first {
+  order: 2;
+}
 .podium-card {
   position: relative;
   border-radius: var(--rounded-md);

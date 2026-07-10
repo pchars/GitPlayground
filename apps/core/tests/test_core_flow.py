@@ -55,6 +55,9 @@ class CoreFlowTests(TestCase):
         self.assertNotIn("Sandbox path:", content)
         self.assertNotIn("Session:", content)
         self.assertIn('id="xterm-host"', content)
+        self.assertIn("@xterm/xterm@5.5.0/lib/xterm.min.js", content)
+        self.assertIn("@xterm/addon-fit@0.10.0/lib/addon-fit.min.js", content)
+        self.assertNotIn("npm/xterm@5.5.0/lib/xterm.min.js", content)
         self.assertNotIn('id="cmd-input"', content)
 
     def test_playground_api_endpoints_work(self):

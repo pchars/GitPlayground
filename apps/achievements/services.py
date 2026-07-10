@@ -7,6 +7,28 @@ from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Task
 from apps.users.models import PointLedgerEntry, UserProfile
 
+K = Achievement.CriterionKind
+
+# Gallery order: tasks → quiz (easy→hard→milestones) → streaks.
+ACHIEVEMENT_KIND_ORDER: dict[str, int] = {
+    K.TASKS_COMPLETED: 0,
+    K.QUIZ_EASY_SOLVED: 1,
+    K.QUIZ_MEDIUM_SOLVED: 2,
+    K.QUIZ_HARD_SOLVED: 3,
+    K.QUIZ_ALL_SOLVED: 4,
+    K.STREAK_MIN: 5,
+    K.STREAK_FLAWLESS: 6,
+}
+
+
+def achievement_gallery_sort_key(achievement: Achievement) -> tuple[int, int, str]:
+    """Sort achievements for profile: simple first, then rising difficulty/targets."""
+    return (
+        ACHIEVEMENT_KIND_ORDER.get(achievement.criterion_kind, 99),
+        achievement.criterion_target,
+        achievement.slug,
+    )
+
 
 def bootstrap_default_achievements() -> None:
     total_tasks = max(1, Task.objects.count())

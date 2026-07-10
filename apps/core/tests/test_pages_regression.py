@@ -107,7 +107,7 @@ class PagesRegressionTests(TestCase):
         self.assertIn("Прогресс по обучению", html)
         self.assertIn("profile-level-list", html)
         self.assertIn("Достижения", html)
-        self.assertIn("Login", html)
+        self.assertIn("Имя пользователя", html)
         self.assertIn("Баллы", html)
         self.assertNotIn("Ср. попыток", html)
         self.assertNotIn("<h3>Профиль</h3>", html)

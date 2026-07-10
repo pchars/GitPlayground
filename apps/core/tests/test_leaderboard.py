@@ -39,3 +39,18 @@ class LeaderboardViewTests(TestCase):
         self.assertEqual(len(response.context["top_users"]), 1)
         self.assertEqual(response.context["top_users"][0]["rank"], 1)
         self.assertEqual(response.context["top_users"][0]["total_points"], 42)
+
+    def test_page_uses_russian_leaderboard_title(self):
+        response = self.client.get("/leaderboard/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Таблица лидеров", html)
+        self.assertNotIn(">Лидерборд<", html)
+        self.assertIn("Полный рейтинг", html)
+
+    def test_solo_podium_has_single_place_class(self):
+        user = User.objects.create_user(username="solo", password="pw")
+        UserProfile.objects.create(user=user, public_nickname="Solo", total_points=10)
+        LeaderboardSnapshot.objects.create(user=user, rank=1, total_points=10)
+        response = self.client.get("/leaderboard/")
+        self.assertContains(response, 'podium-count-1')

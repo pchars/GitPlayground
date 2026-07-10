@@ -1,16 +1,16 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block title %}GitPlayground | Плейграунд{% endblock %}
+{% block title %}GitPlayground | Практика{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static_v 'css/playground.css' %}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.5.0/css/xterm.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 {% endblock %}
-{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Tasks / {{ task.external_id }}</nav>{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Задачи / {{ task.external_id }}</nav>{% endblock %}
 
 {% block content %}
 <section class="playground-grid">
-  <div class="mobile-tabs" role="tablist" aria-label="Разделы плейграунда">
+  <div class="mobile-tabs" role="tablist" aria-label="Разделы практики">
     <button class="btn btn-secondary tab-btn active" type="button" data-tab="condition" role="tab" aria-selected="true">Условие</button>
     <button class="btn btn-secondary tab-btn" type="button" data-tab="terminal" role="tab" aria-selected="false">Терминал</button>
   </div>
@@ -28,7 +28,7 @@
     <div class="terminal-shell">
       <div class="terminal-topbar">
         <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-        <span class="terminal-title">gitplayground-session</span>
+        <span class="terminal-title">сессия GitPlayground</span>
       </div>
       <div id="terminal-body" class="terminal-body" tabindex="0">
         <div id="xterm-host" class="xterm-host"></div>
@@ -60,8 +60,8 @@
 </section>
 
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}
-<script src="https://cdn.jsdelivr.net/npm/xterm@5.5.0/lib/xterm.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script src="{% static_v 'js/terminal_paste.js' %}"></script>
 <script>
   window.__GP_PLAYGROUND__ = {

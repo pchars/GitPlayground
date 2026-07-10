@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.achievements.models import Achievement, UserAchievement
-from apps.achievements.services import quiz_streak_flawless_status
+from apps.achievements.services import achievement_gallery_sort_key, quiz_streak_flawless_status
 from apps.progress.models import TaskCompletion
 from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level
@@ -37,7 +37,10 @@ def _profile_learning_stats(user: User) -> dict:
     progress_pct = round((total_completed / total_tasks) * 100) if total_tasks else 0
     achievements = UserAchievement.objects.filter(user=user).select_related("achievement").order_by("-awarded_at")
     achievement_map = {ua.achievement_id: ua for ua in achievements}
-    all_achievements = Achievement.objects.filter(is_active=True).order_by("title")
+    all_achievements = sorted(
+        Achievement.objects.filter(is_active=True),
+        key=achievement_gallery_sort_key,
+    )
     completed_tasks_count = TaskCompletion.objects.filter(user=user).count()
     theory_dropoff = max(0, total_tasks - total_completed)
     quiz_stats, _ = QuizUserStats.objects.get_or_create(user=user)

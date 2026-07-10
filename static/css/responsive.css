@@ -31,6 +31,7 @@
   }
 
   .terminal-shell .terminal-body {
+    height: clamp(280px, 52vh, 560px);
     max-height: 52vh;
   }
 
@@ -187,6 +188,15 @@
   .theory-layout,
   .grid.two {
     gap: var(--spacing-md);
+  }
+
+  .landing-hero-band {
+    padding: var(--spacing-xl) 0;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .landing-hero-band .landing-hero-main {
+    padding: 0 var(--spacing-md);
   }
 
   .landing-hero {

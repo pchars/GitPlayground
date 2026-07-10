@@ -3,6 +3,7 @@ from django.test import TestCase
 
 from apps.achievements.models import Achievement, UserAchievement
 from apps.achievements.services import (
+    achievement_gallery_sort_key,
     bootstrap_default_achievements,
     evaluate_achievements_for_user,
     quiz_streak_flawless_status,
@@ -91,3 +92,14 @@ class ProgressAndAchievementsTests(TestCase):
         slugs = {item.achievement.slug for item in awarded}
         self.assertIn("streak_5", slugs)
         self.assertIn("streak_10", slugs)
+
+    def test_achievement_gallery_sort_order(self):
+        bootstrap_default_achievements()
+        achievements = sorted(
+            Achievement.objects.filter(is_active=True),
+            key=achievement_gallery_sort_key,
+        )
+        slugs = [item.slug for item in achievements]
+        self.assertEqual(slugs[0], "first_commit")
+        self.assertLess(slugs.index("quiz_easy_complete"), slugs.index("streak_5"))
+        self.assertLess(slugs.index("streak_5"), slugs.index("streak_flawless"))

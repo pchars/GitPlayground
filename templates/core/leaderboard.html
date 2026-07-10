@@ -3,13 +3,13 @@
 
 {% block title %}GitPlayground | Таблица лидеров{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/leaderboard.css' %}">{% endblock %}
-{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Лидерборд</nav>{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Таблица лидеров</nav>{% endblock %}
 
 {% block content %}
 <section class="card leaderboard-shell">
   <div class="leaderboard-hero">
     <div class="leaderboard-hero-text">
-      <h1 class="leaderboard-title">Лидерборд</h1>
+      <h1 class="leaderboard-title">Таблица лидеров</h1>
       {% if snapshot_mode %}
         <p class="leaderboard-sub muted">Снимок на {{ captured_at }}</p>
       {% endif %}
@@ -18,7 +18,7 @@
 
   {% if top_users %}
     {% with rows=top_users %}
-    <div class="leaderboard-podium">
+    <div class="leaderboard-podium podium-count-{{ rows|length }}">
       {% if rows|length >= 2 %}
         <article class="podium-card podium-second {% if request.user.id == rows.1.user_id %}podium-self{% endif %}">
           <div class="podium-rank">2</div>
@@ -45,7 +45,7 @@
       {% endif %}
     </div>
 
-    <h2 class="leaderboard-table-title">Полный топ</h2>
+    <h2 class="leaderboard-table-title">Полный рейтинг</h2>
     <div class="leaderboard-table-wrap">
       <table class="leaderboard-table">
         <thead>

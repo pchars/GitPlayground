@@ -6,14 +6,28 @@
   margin: 0 auto;
 }
 
+.landing-hero-band {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-bottom: var(--spacing-xxl);
+  padding: clamp(var(--spacing-xl), 5vw, var(--spacing-xxl)) 0;
+  background: transparent;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.landing-hero-band .landing-hero-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  text-align: left;
+}
+
 .landing-hero {
   display: block;
   padding: 0;
-}
-
-.landing-hero-full .landing-hero-main {
-  max-width: 52ch;
-  text-align: left;
 }
 
 .landing-hero-full .landing-kicker {
@@ -23,11 +37,13 @@
 .landing-hero-full h1 {
   max-width: none;
   margin: 0 0 var(--spacing-md);
+  text-align: left;
 }
 
 .landing-hero-full .landing-lead {
   max-width: 52ch;
   margin: 0 0 var(--spacing-lg);
+  text-align: left;
 }
 
 .landing-hero-full .hero-actions {

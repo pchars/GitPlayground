@@ -5,29 +5,29 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/landing.css' %}">{% endblock %}
 
 {% block content %}
-<section class="landing-shell">
-  <section class="landing-hero landing-hero-full">
-    <div class="landing-hero-main">
-      <p class="landing-kicker">GitPlayground</p>
-      <h1>
-        Освой Git через практику:
-        от первых коммитов до CI-сценариев
-      </h1>
-      <p class="landing-lead">
-        Подходит для новичков, джунов и тех, кто хочет структурировать знания перед собеседованиями.
-      </p>
-      <div class="hero-actions">
-        {% if request.user.is_authenticated %}
-          <a class="btn btn-primary" href="{% url 'tasks' %}">Перейти к задачам</a>
-          <a class="btn btn-secondary" href="{% url 'public-profile' request.user.username %}">Мой профиль</a>
-        {% else %}
-          <a class="btn btn-primary" href="{% url 'signup' %}">Начать обучение</a>
-          <a class="btn btn-secondary" href="{% url 'login' %}">У меня уже есть аккаунт</a>
-        {% endif %}
-      </div>
+<section class="landing-hero-band landing-hero-full">
+  <div class="landing-hero-main">
+    <p class="landing-kicker">GitPlayground</p>
+    <h1>
+      Освой Git через практику:
+      от первых коммитов до CI-сценариев
+    </h1>
+    <p class="landing-lead">
+      Подходит для новичков, джунов и тех, кто хочет структурировать знания перед собеседованиями.
+    </p>
+    <div class="hero-actions">
+      {% if request.user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'tasks' %}">Перейти к задачам</a>
+        <a class="btn btn-secondary" href="{% url 'public-profile' request.user.username %}">Мой профиль</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'signup' %}">Начать обучение</a>
+        <a class="btn btn-secondary" href="{% url 'login' %}">У меня уже есть аккаунт</a>
+      {% endif %}
     </div>
-  </section>
+  </div>
+</section>
 
+<section class="landing-shell">
   <section class="landing-feature-band">
     <article class="feature-band-item">
       <p class="feature-band-title">КВИЗ</p>
@@ -95,18 +95,18 @@
       <ul class="list">
         <li>Git — базовый инструмент в ежедневной работе разработчика.</li>
         <li>Позволяет откатывать ошибки и восстанавливать историю изменений.</li>
-        <li>Упрощает командную разработку через ветки, merge request и code review.</li>
-        <li>Нужен для CI/CD, релизов и сопровождения проектов в продакшене.</li>
+        <li>Упрощает командную разработку через ветки, запросы на слияние и ревью кода.</li>
+        <li>Нужен для непрерывной интеграции и доставки, релизов и сопровождения проектов в продакшене.</li>
       </ul>
     </article>
     <article class="landing-section">
       <h2>Где используется Git</h2>
       <ul class="list">
-        <li>Backend и frontend разработка.</li>
-        <li>DevOps, автоматизация и инфраструктура как код.</li>
-        <li>Data Science и ML-проекты (код, пайплайны, эксперименты).</li>
-        <li>Mobile и desktop разработка.</li>
-        <li>QA и автотесты, когда тесты хранятся вместе с кодом.</li>
+        <li>Серверная и клиентская разработка.</li>
+        <li>Эксплуатация и автоматизация, инфраструктура как код.</li>
+        <li>Наука о данных и машинное обучение (код, пайплайны, эксперименты).</li>
+        <li>Мобильная и настольная разработка.</li>
+        <li>Тестирование и автотесты, когда тесты хранятся вместе с кодом.</li>
       </ul>
     </article>
   </section>

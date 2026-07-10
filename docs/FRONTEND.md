@@ -44,7 +44,7 @@
 | `leaderboard.css` | Подиум, таблица | `core/leaderboard.html` |
 | `auth.css` | Login, signup, password reset, activation | `core/login.html`, `core/signup*.html`, `core/password_reset*.html`, `core/activation*.html` |
 
-Внешние стили: xterm.js CDN на странице плейграунда.
+Внешние стили и скрипты: [@xterm/xterm](https://www.jsdelivr.com/package/npm/@xterm/xterm) и [@xterm/addon-fit](https://www.jsdelivr.com/package/npm/@xterm/addon-fit) с jsDelivr на странице плейграунда (не использовать устаревшие пути `xterm@…` / `xterm-addon-fit@…` — они 404).
 
 ## Правила наследования
 
