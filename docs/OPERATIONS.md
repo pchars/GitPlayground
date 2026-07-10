@@ -89,7 +89,8 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 # Semgrep
 docker run --rm -v "$PWD:/src" -w /src returntocorp/semgrep:1.168.0 semgrep scan \
   --config p/python --config p/django --config p/javascript --config p/typescript \
-  --config p/javascript --config p/typescript --config p/secrets --config p/owasp-top-ten \
+  --config p/secrets --config p/owasp-top-ten \
+  --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token \
   --metrics=off
 
 # Trivy FS — сначала materialize lockfile

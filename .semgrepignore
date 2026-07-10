@@ -1,3 +1,12 @@
+# Semgrep ignore list (path globs only — like .gitignore).
+# Line- or rule-scoped suppressions are NOT supported here; use:
+#   - inline nosemgrep comments for one-off false positives in code
+#   - --exclude-rule in .github/workflows/security.yml for a whole community rule
+#
+# django-no-csrf-token is excluded via --exclude-rule in security.yml: the rule does
+# not recognize {% csrf_token %} in Django templates (forms are still protected by
+# CsrfViewMiddleware and {% csrf_token %} in templates).
+
 # Ephemeral / vendored (mirror security.yml Trivy skip-dirs)
 .sandboxes/
 .venv/

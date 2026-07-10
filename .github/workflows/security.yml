@@ -28,6 +28,7 @@ jobs:
               --config p/typescript \
               --config p/secrets \
               --config p/owasp-top-ten \
+              --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token \
               --metrics=off \
               --error \
               --exclude .sandboxes \

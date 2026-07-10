@@ -6,7 +6,6 @@
 
 {% block content %}
 <section class="auth-wrap">
-  <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
   <form method="post" class="card auth-card">
     {% csrf_token %}
     <h2>Вход</h2>
