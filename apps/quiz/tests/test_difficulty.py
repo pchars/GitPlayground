@@ -1,4 +1,4 @@
-"""Тесты классификации и баланса сложности банка квиза."""
+"""Tests for quiz difficulty classification and bank balance."""
 
 from __future__ import annotations
 

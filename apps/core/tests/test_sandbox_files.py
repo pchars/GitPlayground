@@ -13,7 +13,7 @@ from apps.users.models import UserProfile
 
 
 class SandboxFileToolsTests(TestCase):
-    """Безопасное чтение/запись файлов в песочнице (без произвольного shell)."""
+    """Safe file read/write in the sandbox (no arbitrary shell)."""
 
     def setUp(self):
         self.client = Client()

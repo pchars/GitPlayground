@@ -201,13 +201,21 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# GitPlayground runtime sandboxes
+# GitPlayground — runtime и CI-артефакты (не коммитить)
 .sandboxes/
 
-# Playwright (optional E2E)
+# Playwright E2E
 e2e/node_modules/
 e2e/test-results/
 e2e/playwright-report/
+e2e/package-lock.json
+
+# CI-only lockfile для Trivy FS (генерируется в security.yml)
+requirements.trivy.txt
+
+# Локальные заметки разработчика (не для репозитория)
+notes/
+*.local.md
 
 # Marimo
 marimo/_static/

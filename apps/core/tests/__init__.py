@@ -1,1 +1,1 @@
-# Тесты разнесены по модулям; Django обнаруживает подклассы TestCase в этом пакете.
+# Tests live in submodules; Django discovers TestCase subclasses in this package.

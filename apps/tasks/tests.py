@@ -113,7 +113,7 @@ class TaskConditionsCoverageTests(SimpleTestCase):
 
     def test_init_repo_condition_states_goal_without_fluff_or_exact_command(self):
         text = TASK_CONDITIONS["init_repo"]
-        # Условие описывает цель, но не разжёвывает точную команду.
+        # Condition states the goal without spelling out the exact command.
         self.assertIn("репозитор", text.lower())
         self.assertNotIn("git init", text.lower())
         self.assertNotIn("Контекст раздела", text)

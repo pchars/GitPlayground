@@ -49,6 +49,7 @@ class PagesRegressionTests(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
+        self.assertIn("landing-hero-full", html)
         self.assertIn("Что такое Git", html)
         self.assertIn("Почему важно учить Git", html)
         self.assertIn("Где используется Git", html)

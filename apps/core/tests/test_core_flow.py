@@ -7,52 +7,16 @@ from django.test import Client, TestCase
 from apps.achievements.models import Achievement, UserAchievement
 from apps.core.services import can_open_task, get_or_create_active_session, run_command
 from apps.core.terminal_paste import apply_paste_to_command
+from apps.core.tests.helpers import make_playground_bundle
 from apps.progress.models import HintUsage, TaskCompletion, TaskRevisionProgress
 from apps.sandbox.models import SandboxSession
-from apps.tasks.models import Level, Task, TaskAsset, TaskRevision
-from apps.users.models import UserProfile
+from apps.tasks.models import Task, TaskAsset, TaskRevision
 
 
 class CoreFlowTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="alice", password="password123")
-        self.level = Level.objects.create(number=1, title="L1", slug="l1", description="d")
-        self.task1 = Task.objects.create(
-            external_id="1.1",
-            slug="task-1-1",
-            title="Task 1",
-            description="desc",
-            level=self.level,
-            order=1,
-            points=5,
-        )
-        self.task2 = Task.objects.create(
-            external_id="1.2",
-            slug="task-1-2",
-            title="Task 2",
-            description="desc",
-            level=self.level,
-            order=2,
-            points=10,
-        )
-        TaskAsset.objects.create(
-            task=self.task1,
-            asset_type=TaskAsset.AssetType.HINT,
-            path="hints/hint1.txt",
-            sort_order=1,
-            content="Use git status.",
-        )
-        TaskRevision.objects.create(
-            task=self.task1,
-            version=1,
-            is_active=True,
-            objective="Complete task one objective.",
-            steps=["Step one", "Step two"],
-            expected_state="Expected repo state.",
-            validator_notes="Validator checks repository status.",
-        )
-        UserProfile.objects.create(user=self.user, public_nickname="alice", total_points=20)
+        self.user, self.level, self.task1, self.task2 = make_playground_bundle()
 
     def test_healthcheck(self):
         response = self.client.get("/healthz/")
@@ -215,13 +179,13 @@ class CoreFlowTests(TestCase):
             points=1,
         )
         session = get_or_create_active_session(self.user, init_task)
-        # До git init рабочая папка не должна «всплывать» в .git самого проекта.
+        # Before git init the workspace must not resolve to the host project's .git.
         before = run_command(session, "git status")
         self.assertNotEqual(before.return_code, 0)
         out_before = (before.output or "").lower()
         self.assertNotIn("apps/", out_before)
         self.assertNotIn("origin/main", out_before)
-        # После git init это уже изолированный пустой репозиторий песочницы.
+        # After git init this is an isolated empty sandbox repository.
         self.assertEqual(run_command(session, "git init").return_code, 0)
         after = run_command(session, "git status")
         self.assertEqual(after.return_code, 0)
@@ -248,17 +212,17 @@ class CoreFlowTests(TestCase):
         self.assertIn("notes/", ls.output)
         self.assertIn("todo.txt", run_command(session, "ls notes").output)
 
-        # mkdir -p идемпотентен, обычный mkdir по существующей папке — ошибка.
+        # mkdir -p is idempotent; plain mkdir on an existing directory fails.
         self.assertEqual(run_command(session, "mkdir -p notes").return_code, 0)
         self.assertNotEqual(run_command(session, "mkdir notes").return_code, 0)
 
-        # Выход за пределы песочницы заблокирован для всех новых глаголов.
+        # Path traversal outside the sandbox is blocked for all new verbs.
         self.assertEqual(run_command(session, "ls ../..").return_code, 126)
         self.assertEqual(run_command(session, "mkdir ../escape").return_code, 126)
 
     def test_paste_appended_to_git_init_runs_as_unknown_git_command(self):
-        # Регрессия: юзер печатает "git init", в буфере "ls", вставка дописывает
-        # справа -> "git initls". Enter -> git сообщает, что команды нет (не 0).
+        # Regression: user types "git init", clipboard has "ls", paste appends
+        # to the right -> "git initls". Enter -> git reports unknown command (non-zero).
         session = get_or_create_active_session(self.user, self.task1)
         command = apply_paste_to_command("git init", "ls")
         self.assertEqual(command, "git initls")

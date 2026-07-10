@@ -13,12 +13,15 @@ without a proven solution.
 
 from __future__ import annotations
 
+import shutil
+
 from django.contrib.auth.models import User
 from django.core.management import call_command
-from django.test import TransactionTestCase
+from django.test import TestCase, tag
 
-from apps.core.services import get_or_create_active_session, run_command, validate_task
+from apps.core.services import get_or_create_active_session, run_command, stop_session, validate_task
 from apps.core.services import sandbox_ops
+from apps.core.services.sandbox_ops import SANDBOX_ROOT
 from apps.progress.models import TaskAttempt
 from apps.tasks.models import Task
 
@@ -304,26 +307,31 @@ SOLUTIONS: dict[str, list[str]] = {
 }
 
 
-class TaskSolvabilityTests(TransactionTestCase):
-    """Every seeded task must pass via its intended solution."""
+@tag("slow")
+class TaskSolvabilityTests(TestCase):
+    """Every seeded task must pass via its intended solution (tag slow: ~90s)."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Force the local engine so we exercise real git without probing Docker.
         cls._orig_engine = sandbox_ops.SANDBOX_ENGINE
         sandbox_ops.SANDBOX_ENGINE = "local"
 
     @classmethod
     def tearDownClass(cls):
         sandbox_ops.SANDBOX_ENGINE = cls._orig_engine
+        if SANDBOX_ROOT.exists():
+            for child in SANDBOX_ROOT.iterdir():
+                shutil.rmtree(child, ignore_errors=True)
         super().tearDownClass()
 
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         call_command("seed_initial_data")
+        cls.solver = User.objects.create_user(username="golden_solver", password="pw")
 
-    def _solve(self, user: User, task: Task) -> TaskAttempt:
-        session = get_or_create_active_session(user, task)
+    def _solve(self, task: Task) -> TaskAttempt:
+        session = get_or_create_active_session(self.solver, task)
         for command in SOLUTIONS[task.slug]:
             result = run_command(session, command)
             self.assertNotEqual(
@@ -331,18 +339,17 @@ class TaskSolvabilityTests(TransactionTestCase):
                 126,
                 msg=f"[{task.external_id} {task.slug}] command blocked by policy: {command!r}",
             )
-        return validate_task(user, task, session)
+        attempt = validate_task(self.solver, task, session)
+        stop_session(session)
+        return attempt
 
     def test_every_seeded_task_is_solvable(self):
         tasks = list(Task.objects.select_related("level").order_by("level__number", "order"))
         self.assertGreater(len(tasks), 0, "Seed produced no tasks")
-        missing = sorted(t.slug for t in tasks if t.slug not in SOLUTIONS)
-        self.assertFalse(missing, f"No intended solution registered for slugs: {missing}")
 
-        for index, task in enumerate(tasks):
+        for task in tasks:
             with self.subTest(task=task.external_id, slug=task.slug):
-                user = User.objects.create_user(username=f"solver{index}", password="pw")
-                attempt = self._solve(user, task)
+                attempt = self._solve(task)
                 self.assertEqual(
                     attempt.verdict,
                     TaskAttempt.Verdict.PASSED,

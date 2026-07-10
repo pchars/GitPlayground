@@ -2,9 +2,13 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.achievements.models import Achievement, UserAchievement
-from apps.achievements.services import bootstrap_default_achievements, evaluate_achievements_for_user
+from apps.achievements.services import (
+    bootstrap_default_achievements,
+    evaluate_achievements_for_user,
+    quiz_streak_flawless_status,
+)
 from apps.progress.models import TaskCompletion
-from apps.quiz.models import QuizUserStats
+from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Level, Task
 from apps.users.models import UserProfile
 
@@ -52,6 +56,30 @@ class ProgressAndAchievementsTests(TestCase):
         self.assertEqual(awarded_again, [])
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.total_points, pts)
+
+    def test_quiz_streak_flawless_status_matches_award_logic(self):
+        bootstrap_default_achievements()
+        QuizUserStats.objects.update_or_create(
+            user=self.user,
+            defaults={"answered_total": 5, "correct_total": 5, "best_streak": 5},
+        )
+        self.assertEqual(quiz_streak_flawless_status(self.user), "без ошибок")
+        question = QuizQuestion.objects.create(
+            prompt="Q?",
+            choice_0="a",
+            choice_1="b",
+            choice_2="c",
+            choice_3="d",
+            correct_index=0,
+        )
+        QuizQuestionProgress.objects.create(
+            user=self.user,
+            question=question,
+            failed_attempts=1,
+            solved=False,
+            attempts_total=1,
+        )
+        self.assertEqual(quiz_streak_flawless_status(self.user), "есть ошибки")
 
     def test_quiz_streak_achievement_is_awarded(self):
         bootstrap_default_achievements()

@@ -4,11 +4,16 @@ on:
   push:
   pull_request:
 
+env:
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -26,9 +31,14 @@ jobs:
       - name: Run migrations
         run: |
           python manage.py migrate
-      - name: Run tests with coverage
+      - name: Run fast tests with coverage
         run: |
-          coverage run manage.py test
+          coverage run manage.py test --exclude-tag=slow
+      - name: Run slow golden-solution harness
+        run: |
+          coverage run -a manage.py test --tag=slow
+      - name: Coverage report
+        run: |
           coverage report --fail-under=52
           coverage html
       - name: Upload coverage HTML
@@ -38,38 +48,40 @@ jobs:
           name: coverage-html
           path: htmlcov/
 
-  e2e-auth-smoke:
+  e2e-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
       - name: Install app
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - name: Migrate and seed E2E user
+      - name: Migrate and seed E2E data
         run: |
           python manage.py migrate
+          python manage.py seed_initial_data
+          python manage.py seed_quiz_questions
           python manage.py shell -c "from django.contrib.auth.models import User; User.objects.filter(username='e2e_smoke').delete(); User.objects.create_user('e2e_smoke', password='e2e-smoke-pass-2026')"
       - name: Install Playwright
         working-directory: e2e
         run: |
           npm install
           npx playwright install --with-deps chromium
-      - name: Start Django and run auth E2E
+      - name: Start Django and run Playwright smoke
         run: |
           python manage.py runserver 127.0.0.1:8000 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/healthz/ && break || sleep 1; done
-          cd e2e && BASE_URL=http://127.0.0.1:8000 npx playwright test tests/auth-smoke.spec.ts
+          cd e2e && BASE_URL=http://127.0.0.1:8000 npx playwright test
 
   docker-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Docker engine smoke
         run: docker version && docker run --rm hello-world

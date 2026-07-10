@@ -26,8 +26,8 @@ class TerminalPasteSanitizeTests(SimpleTestCase):
 
 class TerminalPasteAppendTests(SimpleTestCase):
     def test_paste_appends_to_existing_command_without_overwriting(self):
-        # Сценарий: пользователь напечатал "git init", в буфере "ls",
-        # вставка должна дописать справа и получиться "git initls".
+        # Scenario: user typed "git init", clipboard contains "ls",
+        # paste should append on the right producing "git initls".
         self.assertEqual(apply_paste_to_command("git init", "ls"), "git initls")
 
     def test_paste_into_empty_buffer_equals_pasted_command(self):
