@@ -8,21 +8,27 @@ async function loginAsSmoke(page: import("@playwright/test").Page, base: string)
   await expect(page).toHaveURL(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/profile/e2e_smoke`));
 }
 
+function headerNav(page: import("@playwright/test").Page) {
+  return page.getByRole("navigation", { name: "Основная навигация" });
+}
+
 test("authenticated header links reach main sections", async ({ page }) => {
   const base = (process.env.BASE_URL || "").replace(/\/$/, "");
   test.skip(!base, "Set BASE_URL for navigation smoke");
   await loginAsSmoke(page, base);
 
-  await page.getByRole("link", { name: "Задачи" }).click();
+  const nav = headerNav(page);
+
+  await nav.getByRole("link", { name: "Задачи" }).click();
   await expect(page).toHaveURL(`${base}/tasks/`);
 
-  await page.getByRole("link", { name: "Теория" }).click();
+  await nav.getByRole("link", { name: "Теория" }).click();
   await expect(page).toHaveURL(/\/theory\/\d+\//);
 
-  await page.getByRole("link", { name: "Квиз" }).click();
+  await nav.getByRole("link", { name: "Квиз" }).click();
   await expect(page).toHaveURL(`${base}/quiz/`);
 
-  await page.getByRole("link", { name: "Таблица лидеров" }).click();
+  await nav.getByRole("link", { name: "Таблица лидеров" }).click();
   await expect(page).toHaveURL(`${base}/leaderboard/`);
 });
 
