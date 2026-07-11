@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -142,8 +143,6 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
 }
-
-import sys
 
 if "test" in sys.argv:
     LOGGING["loggers"] = {
