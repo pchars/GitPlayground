@@ -50,11 +50,7 @@ python manage.py seed_initial_data
 python manage.py seed_quiz_questions
 ```
 
-Только обновление теории без пересоздания задач:
-
-```bash
-python manage.py sync_theory_content
-```
+`seed_initial_data` пересоздаёт задачи и **обновляет теорию** из `apps/tasks/theory_content.py`.
 
 ## Проверка перед выкладкой
 

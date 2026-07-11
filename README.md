@@ -30,10 +30,13 @@ Copy-Item .env.example .env   # DJANGO_DEBUG=true — нужен для лока
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe manage.py seed_initial_data
 if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Item -Recurse -Force }
 .\.venv\Scripts\python.exe manage.py shell -c "from apps.sandbox.models import SandboxSession; SandboxSession.objects.exclude(status=SandboxSession.Status.STOPPED).update(status=SandboxSession.Status.STOPPED)"
 .\.venv\Scripts\python.exe manage.py runserver
 ```
+
+`seed_initial_data` обновляет уровни, задачи и **теорию** из `apps/tasks/theory_content.py`.
 
 Перед первым деплоем с `DJANGO_DEBUG=false`: `manage.py collectstatic --noinput` (см. [docs/DEPLOY.md](docs/DEPLOY.md)).
 
@@ -55,9 +58,8 @@ python manage.py runserver
 
 ## Контент: теория и квиз
 
-- **Квиз** (`/quiz/`) — банк вопросов загружается `seed_quiz_questions` (без `--force` не дублирует записи).
-- **Теория в UI** — из БД (`TheoryBlock`). Исходник при сиде: `apps/tasks/management/commands/seed_initial_data.py`.
-- **Только обновить теорию** без пересоздания задач: `sync_theory_content`.
+- **Квиз** (`/quiz/`) — банк вопросов: `seed_quiz_questions` (без `--force` не дублирует записи).
+- **Теория** (`/theory/N/`) — markdown в `apps/tasks/theory_content.py`; в БД попадает через **`seed_initial_data`** (вместе с уровнями и задачами).
 
 ## Docker (dev)
 
@@ -65,7 +67,7 @@ python manage.py runserver
 docker compose up --build
 ```
 
-Сервисы: `web`, `worker`, `redis`. В контейнере: `docker compose exec web python manage.py sync_theory_content`.
+Сервисы: `web`, `worker`, `redis`. После обновления образа: `docker compose exec web python manage.py seed_initial_data`.
 
 ## Тесты
 

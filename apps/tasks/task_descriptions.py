@@ -125,7 +125,32 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Измени `hello.txt`, добавь в индекс (`git add`) и создай маркер "
         "`staged-ready.txt` — валидатор проверит непустой `git diff --cached`."
     ),
-    # Level 2 — branching
+    # Level 2 — repository hygiene (.gitignore)
+    "setup_ignore": (
+        "Настрой `.gitignore`, чтобы Git игнорировал логи `*.log`, файл `.env` "
+        "и папку `__pycache__/`."
+    ),
+    "ignore_node_modules": (
+        "Добавь правило в `.gitignore`, чтобы Git игнорировал папку "
+        "`node_modules/`."
+    ),
+    "untrack_cached": (
+        "Перестань отслеживать уже добавленный в Git файл, "
+        "но не удаляй его с диска."
+    ),
+    "keep_empty_dir": (
+        "Добейся, чтобы пустая папка сохранилась в Git "
+        "(Git не хранит пустые каталоги сами по себе)."
+    ),
+    "ignore_exceptions": (
+        "Настрой `.gitignore` так, чтобы игнорировались все `*.log`, "
+        "кроме одного конкретного файла."
+    ),
+    "clean_untracked": (
+        "Создай неотслеживаемый `garbage.tmp` и удали его командой `git clean` "
+        "(сначала посмотри список через `git clean -n`)."
+    ),
+    # Level 3 — branching
     "create_branch": "Создай новую ветку `feature-x` и переключись на неё.",
     "commit_on_branch": (
         "Находясь на ветке `feature-x`, создай файл `feature.txt` "
@@ -157,7 +182,7 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Перейди в detached HEAD (`git checkout --detach`), затем создай ветку "
         "`rescue-tip` и запиши её имя в `rescue-branch.txt`."
     ),
-    # Level 3 — merges
+    # Level 4 — merges
     "fast_forward_merge": (
         "Влей ветку `feature` в `main` так, чтобы слияние прошло перемоткой "
         "(fast-forward), без отдельного merge-коммита."
@@ -189,7 +214,7 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Создай ветку `prof-feature`, сделай на ней коммит и убедись, что "
         "`git merge-base main HEAD` возвращает общий предок; создай маркер `merge-base-done.txt`."
     ),
-    # Level 4 — history rewriting
+    # Level 5 — history rewriting
     "amend_message": (
         "Измени сообщение последнего коммита, не создавая новый коммит."
     ),
@@ -212,7 +237,7 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Покажи на практике разницу между режимами сброса `--soft`, `--mixed` "
         "и `--hard`."
     ),
-    # Level 5 — remotes
+    # Level 6 — remotes
     "clone_local": "Склонируй репозиторий в новую папку.",
     "add_remote": (
         "Добавь репозиторию удалённый источник с именем `upstream` "
@@ -237,7 +262,7 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Создай офлайн-пакет `repo.bundle` из текущей ветки `main` "
         "(команда `git bundle create`)."
     ),
-    # Level 6 — diagnostics
+    # Level 8 — diagnostics
     "find_bisect": (
         "С помощью бинарного поиска по истории найди первый «плохой» коммит, "
         "где появилась регрессия."
@@ -288,32 +313,7 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "Создай ветку `triple-explore`, сделай коммит и маркер `triple-done.txt` — "
         "валидатор проверит непустой `git log main...HEAD`."
     ),
-    # Level 7 — hygiene
-    "setup_ignore": (
-        "Настрой `.gitignore`, чтобы Git игнорировал логи `*.log`, файл `.env` "
-        "и папку `__pycache__/`."
-    ),
-    "ignore_node_modules": (
-        "Добавь правило в `.gitignore`, чтобы Git игнорировал папку "
-        "`node_modules/`."
-    ),
-    "untrack_cached": (
-        "Перестань отслеживать уже добавленный в Git файл, "
-        "но не удаляй его с диска."
-    ),
-    "keep_empty_dir": (
-        "Добейся, чтобы пустая папка сохранилась в Git "
-        "(Git не хранит пустые каталоги сами по себе)."
-    ),
-    "ignore_exceptions": (
-        "Настрой `.gitignore` так, чтобы игнорировались все `*.log`, "
-        "кроме одного конкретного файла."
-    ),
-    "clean_untracked": (
-        "Создай неотслеживаемый `garbage.tmp` и удали его командой `git clean` "
-        "(сначала посмотри список через `git clean -n`)."
-    ),
-    # Level 8 — tagging
+    # Level 7 — tagging
     "create_lightweight_tag": (
         "Поставь на текущий коммит лёгкий (lightweight) тег `v0.1-lw`."
     ),

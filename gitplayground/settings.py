@@ -143,6 +143,14 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
 }
 
+import sys
+
+if "test" in sys.argv:
+    LOGGING["loggers"] = {
+        "django.request": {"handlers": ["console"], "level": "CRITICAL", "propagate": False},
+        "apps.core.sandbox.audit": {"handlers": ["console"], "level": "CRITICAL", "propagate": False},
+    }
+
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
     "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",

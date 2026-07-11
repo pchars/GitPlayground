@@ -143,8 +143,7 @@ rules live in `apps/core/client_errors.py`, `apps/core/services/repo_path_io.py`
 `command_policy.normalize_repo_relative_path`, and the CodeQL sections of the security agent playbooks — apply patterns repo-wide, not
 only on the reported line.
 
-`sync_theory_content` updates only the theory blocks in the DB from
-`apps/tasks/theory_content.py` without rebuilding tasks.
+`seed_initial_data` загружает уровни, задачи и блоки теории из `apps/tasks/theory_content.py`.
 
 ## Clean dev cycle after every code change (required)
 
@@ -253,13 +252,13 @@ order **in full** before calling the work done:
    gap analysis, update *Book coverage ledger* and add a *Playbook* subsection for
    fully read books.
 3. **Theory** — update `apps/tasks/theory_content.py` where the book adds or corrects
-   material; run `sync_theory_content --force` after reseed.
+   material; затем `seed_initial_data`.
 4. **Quiz** — add `apps/quiz/<book_slug>_questions.py`, wire in `question_generator.py`;
    run dedupe/balance (`_semantic_dedup_key`); remove near-duplicates from older modules.
 5. **Tasks** — add sandbox-safe tasks only for novel, honestly validatable skills;
    register slug, validator, `SOLUTIONS`.
 6. **Full service wipe** — delete dev `db.sqlite3`, `migrate`, `seed_initial_data`,
-   `seed_quiz_questions --force`, `sync_theory_content --force`, `manage.py test`;
+   `seed_quiz_questions --force`, `manage.py test`;
    then **clean dev cycle** (wipe `.sandboxes/`, stop `SandboxSession`, restart
    `runserver`) per section above.
 

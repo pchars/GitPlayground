@@ -73,7 +73,22 @@ SOLUTIONS: dict[str, list[str]] = {
         "git add hello.txt",
         "git reset HEAD hello.txt",
     ],
-    # Level 2 — branching
+    # Level 2 — repository hygiene
+    "setup_ignore": [
+        "echo *.log > .gitignore",
+        "echo .env >> .gitignore",
+        "echo __pycache__/ >> .gitignore",
+    ],
+    "ignore_node_modules": [],
+    "untrack_cached": [],
+    "keep_empty_dir": [],
+    "ignore_exceptions": [],
+    "clean_untracked": [
+        "echo garbage > garbage.tmp",
+        "git clean -n",
+        "git clean -f",
+    ],
+    # Level 3 — branching
     "create_branch": ["git checkout -b feature-x"],
     "commit_on_branch": [
         "git checkout feature-x",
@@ -105,7 +120,7 @@ SOLUTIONS: dict[str, list[str]] = {
         "git checkout -b rescue-tip",
         "echo rescue-tip > rescue-branch.txt",
     ],
-    # Level 3 — merges and integration
+    # Level 4 — merges and integration
     "fast_forward_merge": [
         'echo "a" > a.txt',
         "git add a.txt",
@@ -136,7 +151,7 @@ SOLUTIONS: dict[str, list[str]] = {
     "squash_merge": [],
     "cherry_pick_hotfix": [],
     "revert_merge": [],
-    # Level 4 — history rewriting
+    # Level 5 — history rewriting
     "amend_message": [
         'echo "a" > a.txt',
         "git add a.txt",
@@ -148,7 +163,7 @@ SOLUTIONS: dict[str, list[str]] = {
     "edit_commit": ['echo "a" > a.txt', "git add a.txt", 'git commit -m "c1"'],
     "stash_workflow": [],
     "reset_modes": ['echo "a" > a.txt', "git add a.txt", 'git commit -m "c1"'],
-    # Level 5 — remotes
+    # Level 6 — remotes
     "clone_local": [],
     "add_remote": [],
     "push_first": [],
@@ -156,29 +171,14 @@ SOLUTIONS: dict[str, list[str]] = {
     "pull_rebase": [],
     "push_conflict": [],
     "create_offline_bundle": ["git bundle create repo.bundle HEAD main"],
-    # Level 6 — diagnostics and internals
+    # Level 8 — diagnostics and internals
     "find_bisect": [],
     "reflog_recovery": [],
     "worktree": [],
     "inspect_objects": [],
     "custom_aliases_hooks": [],
     "filter_branch": [],
-    # Level 7 — repository hygiene
-    "setup_ignore": [
-        "echo *.log > .gitignore",
-        "echo .env >> .gitignore",
-        "echo __pycache__/ >> .gitignore",
-    ],
-    "ignore_node_modules": [],
-    "untrack_cached": [],
-    "keep_empty_dir": [],
-    "ignore_exceptions": [],
-    "clean_untracked": [
-        "echo garbage > garbage.tmp",
-        "git clean -n",
-        "git clean -f",
-    ],
-    # Level 8 — tagging
+    # Level 7 — tagging
     "create_lightweight_tag": [],
     "create_tag": [
         'echo "a" > a.txt',

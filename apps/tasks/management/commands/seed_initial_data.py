@@ -18,15 +18,15 @@ from apps.tasks.theory_content import LEVEL_DIAGRAMS, LEVEL_SECTION_HINTS, THEOR
 TASK_BLUEPRINTS = {level: blueprints_for_level(level) for level in LEVEL_TASK_POINTS}
 
 LEVELS = [
-    (1, "Основы Git", 11),
-    (2, "Ветвление", 9),
-    (3, "Слияния и интеграция", 7),
-    (4, "История и переписывание", 6),
-    (5, "Удаленные репозитории и командная работа", 8),
-    (6, "Диагностика, внутренности и автоматизация", 10),
-    (7, "Гигиена репозитория: .gitignore и .gitkeep", 6),
-    (8, "Тегирование и фиксация версий", 5),
-    (9, "Платформы и профессиональные практики", 11),
+    (1, "Основы Git", 12),
+    (2, "Чистый репозиторий: .gitignore", 6),
+    (3, "Ветвление", 9),
+    (4, "Слияния и интеграция", 8),
+    (5, "История и переписывание", 6),
+    (6, "Удалённые репозитории", 7),
+    (7, "Теги и релизы", 5),
+    (8, "Диагностика и устройство Git", 13),
+    (9, "Платформы и профессиональные практики", 13),
 ]
 
 TASK_VALIDATORS = {
@@ -650,6 +650,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         created_tasks = 0
         created_assets = 0
+        # Slugs are global; wipe all GitHub tasks before reordering levels.
+        Task.objects.filter(platform=Task.Platform.GITHUB).delete()
         for level_number, level_title, task_count in LEVELS:
             level_slug = f"level-{level_number}-{slugify(level_title)}"
             level, _ = Level.objects.update_or_create(
@@ -662,8 +664,7 @@ class Command(BaseCommand):
                 },
             )
 
-            # DB data is source of truth: do not overwrite manually edited theory.
-            TheoryBlock.objects.get_or_create(
+            TheoryBlock.objects.update_or_create(
                 level=level,
                 defaults={
                     "title": f"Теория: {level_title}",

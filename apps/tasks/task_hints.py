@@ -53,7 +53,32 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Измени `hello.txt`, затем `git add hello.txt`.",
         "Проверь `git diff --cached`, создай маркер: `echo ok > staged-ready.txt`.",
     ),
-    # Level 2 — branching
+    # Level 2 — repository hygiene (.gitignore)
+    "setup_ignore": (
+        "Создай `.gitignore` через `nano .gitignore` и добавь строки: `*.log`, `.env`, `__pycache__/` (по одной на строку).",
+        "Проверь `git status` — перечисленные файлы не должны появляться как неотслеживаемые, если они подпадают под маски.",
+    ),
+    "ignore_node_modules": (
+        "Добавь в `.gitignore` строку `node_modules/`.",
+        "После сохранения `git status` не должен предлагать отслеживать содержимое `node_modules/`.",
+    ),
+    "untrack_cached": (
+        "Убери файл из индекса, но оставь на диске: `git rm --cached <файл>`.",
+        "Добавь маску в `.gitignore`, чтобы Git снова не подхватил файл при следующем `git add .`.",
+    ),
+    "keep_empty_dir": (
+        "Git не хранит пустые папки — положи внутрь файл `.gitkeep` и добавь его в коммит.",
+        "Типично: `touch notes/.gitkeep`, затем `git add notes/.gitkeep` и коммит.",
+    ),
+    "ignore_exceptions": (
+        "В `.gitignore` правило `*.log` игнорирует все `.log`, исключение: `!important.log`.",
+        "Исключение сработает только если родительская папка не игнорируется целиком.",
+    ),
+    "clean_untracked": (
+        "Создай мусорный файл: `echo tmp > garbage.tmp`, затем `git clean -n` — dry-run.",
+        "Удали untracked: `git clean -f` (или `git clean -f garbage.tmp`).",
+    ),
+    # Level 3 — branching
     "create_branch": (
         "Создай и сразу переключись на ветку: `git checkout -b feature-x` (или `git switch -c feature-x`).",
         "Проверь текущую ветку: `git branch --show-current` должен вернуть `feature-x`.",
@@ -90,7 +115,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Detached HEAD: `git checkout --detach` (или `git switch --detach`).",
         "Спасение: `git checkout -b rescue-tip`, затем `echo rescue-tip > rescue-branch.txt`.",
     ),
-    # Level 3 — merges
+    # Level 4 — merges
     "fast_forward_merge": (
         "Слей ветку в `main`, когда `main` не ушёл вперёд: `git checkout main`, затем `git merge feature`.",
         "При fast-forward не появляется отдельный merge-коммит — указатель `main` просто перемещается вперёд.",
@@ -123,7 +148,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Ветка: `git checkout -b prof-feature`, измени `hello.txt`, commit.",
         "Проверь `git merge-base main HEAD`, затем `echo ok > merge-base-done.txt`.",
     ),
-    # Level 4 — history rewriting
+    # Level 5 — history rewriting
     "amend_message": (
         "Исправь сообщение последнего коммита: `git commit --amend -m \"Новый текст\"`.",
         "Команда меняет только HEAD; если коммит уже отправлен в remote, понадобится осторожность (в песочнице это безопасно).",
@@ -148,7 +173,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "`git reset --soft HEAD~1` — откатывает коммит, оставляя изменения в индексе.",
         "`git reset --mixed` (по умолчанию) снимает и коммит, и staging; `--hard` ещё и чистит рабочую копию.",
     ),
-    # Level 5 — remotes
+    # Level 6 — remotes
     "clone_local": (
         "Клонируй репозиторий: `git clone <url> <папка>` — появится копия с настроенным `origin`.",
         "После clone перейди в папку клона и проверь `git remote -v`.",
@@ -177,7 +202,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Офлайн-пакет: `git bundle create repo.bundle HEAD main`.",
         "Проверка: `git bundle verify repo.bundle` — должен завершиться без ошибок.",
     ),
-    # Level 6 — diagnostics
+    # Level 8 — diagnostics
     "find_bisect": (
         "Запусти бинарный поиск: `git bisect start`, затем `git bisect bad` на текущем и `git bisect good` на известно хорошем коммите.",
         "Git будет переключать HEAD — на каждом шаге отмечай `git bisect good` или `git bisect bad`, пока не найдёшь первый плохой.",
@@ -230,32 +255,7 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Ветка: `git checkout -b triple-explore`, измени `hello.txt`, commit.",
         "Проверь `git log main...HEAD --oneline`, затем `echo ok > triple-done.txt`.",
     ),
-    # Level 7 — hygiene
-    "setup_ignore": (
-        "Создай `.gitignore` через `nano .gitignore` и добавь строки: `*.log`, `.env`, `__pycache__/` (по одной на строку).",
-        "Проверь `git status` — перечисленные файлы не должны появляться как неотслеживаемые, если они подпадают под маски.",
-    ),
-    "ignore_node_modules": (
-        "Добавь в `.gitignore` строку `node_modules/`.",
-        "После сохранения `git status` не должен предлагать отслеживать содержимое `node_modules/`.",
-    ),
-    "untrack_cached": (
-        "Убери файл из индекса, но оставь на диске: `git rm --cached <файл>`.",
-        "Добавь маску в `.gitignore`, чтобы Git снова не подхватил файл при следующем `git add .`.",
-    ),
-    "keep_empty_dir": (
-        "Git не хранит пустые папки — положи внутрь файл `.gitkeep` и добавь его в коммит.",
-        "Типично: `touch notes/.gitkeep`, затем `git add notes/.gitkeep` и коммит.",
-    ),
-    "ignore_exceptions": (
-        "В `.gitignore` правило `*.log` игнорирует все `.log`, исключение: `!important.log`.",
-        "Исключение сработает только если родительская папка не игнорируется целиком.",
-    ),
-    "clean_untracked": (
-        "Создай мусорный файл: `echo tmp > garbage.tmp`, затем `git clean -n` — dry-run.",
-        "Удали untracked: `git clean -f` (или `git clean -f garbage.tmp`).",
-    ),
-    # Level 8 — tagging
+    # Level 7 — tagging
     "create_lightweight_tag": (
         "Лёгкий тег на текущем коммите: `git tag v0.1-lw` (без `-a` и без сообщения).",
         "Проверь: `git tag -l` должен показать `v0.1-lw`.",

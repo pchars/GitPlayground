@@ -15,7 +15,7 @@ authors, or copyrighted excerpts**.
 - **No network** in tasks/validators; simulate remotes locally (bare repos, `file://`).
 - User-facing copy in **Russian**; code identifiers in English.
 - Every seeded task needs a **golden solution** in `test_task_solvability.SOLUTIONS`.
-- Theory source of truth: `apps/tasks/theory_content.py` → `sync_theory_content --force`.
+- Theory source of truth: `apps/tasks/theory_content.py` → `seed_initial_data`.
 - Levels **1–9**; level **9** = platforms, CI, releases, professional workflows.
 
 Do **not** paste copyrighted material. Paraphrase in your own words; teach concepts directly.
@@ -44,7 +44,7 @@ Do **not** paste copyrighted material. Paraphrase in your own words; teach conce
 
 1. Edit `THEORY_CONTENT[level]` in cohesive markdown: headings, definitions, examples.
 2. Update `LEVEL_SECTION_HINTS` and `LEVEL_DIAGRAMS` when structure changes.
-3. Run `sync_theory_content --force`.
+3. Run `seed_initial_data`.
 4. No book names, chapter refs, or «по книге X» phrasing.
 
 ### Quiz
@@ -86,14 +86,16 @@ Do **not** paste copyrighted material. Paraphrase in your own words; teach conce
 
 ## Level themes (reference)
 
+Course arc: **basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms**.
+
 | Level | Focus |
 | --- | --- |
 | 1 | init, add, commit, status, diff, log |
-| 2 | branches, switch, checkout |
-| 3 | merge, conflicts, cherry-pick, revert |
-| 4 | amend, rebase, stash, reset |
-| 5 | clone, remote, fetch, push, pull, bare |
-| 6 | bisect, blame, objects, hooks, advanced log |
-| 7 | .gitignore, .gitkeep, clean |
-| 8 | tags, releases |
+| 2 | .gitignore, .gitkeep, clean, untrack cached |
+| 3 | branches, switch, checkout, detached HEAD |
+| 4 | merge, conflicts, cherry-pick, revert |
+| 5 | amend, rebase, stash, reset |
+| 6 | clone, remote, fetch, push, pull, bare |
+| 7 | tags, releases |
+| 8 | bisect, blame, objects, hooks, advanced log |
 | 9 | GitHub/GitLab, CI, Pages, patches, issues |

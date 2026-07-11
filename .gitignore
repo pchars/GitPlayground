@@ -203,6 +203,7 @@ cython_debug/
 
 # GitPlayground — runtime и CI-артефакты (не коммитить)
 .sandboxes/
+.tmp-ci-logs/
 
 # Playwright E2E
 e2e/node_modules/

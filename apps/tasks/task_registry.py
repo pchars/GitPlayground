@@ -6,6 +6,7 @@ from apps.tasks.task_descriptions import TASK_CONDITIONS
 from apps.tasks.task_hints import TASK_HINTS
 
 # slug -> points per level (source of truth for seed and coverage tests)
+# Course arc: basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms
 LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
     1: [
         ("init_repo", 6),
@@ -22,6 +23,14 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("diff_cached_staged", 8),
     ],
     2: [
+        ("setup_ignore", 8),
+        ("ignore_node_modules", 7),
+        ("untrack_cached", 10),
+        ("keep_empty_dir", 7),
+        ("ignore_exceptions", 10),
+        ("clean_untracked", 8),
+    ],
+    3: [
         ("create_branch", 8),
         ("commit_on_branch", 10),
         ("switch_branch", 6),
@@ -32,7 +41,7 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("branch_without_checkout", 7),
         ("rescue_detached_head", 10),
     ],
-    3: [
+    4: [
         ("fast_forward_merge", 8),
         ("no_ff_merge", 12),
         ("resolve_conflict", 18),
@@ -42,7 +51,7 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("revert_merge", 14),
         ("merge_base_ready", 10),
     ],
-    4: [
+    5: [
         ("amend_message", 8),
         ("reorder_commits", 14),
         ("squash_commits", 14),
@@ -50,7 +59,7 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("stash_workflow", 10),
         ("reset_modes", 14),
     ],
-    5: [
+    6: [
         ("clone_local", 8),
         ("add_remote", 6),
         ("push_first", 9),
@@ -59,7 +68,14 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("push_conflict", 15),
         ("create_offline_bundle", 10),
     ],
-    6: [
+    7: [
+        ("create_lightweight_tag", 8),
+        ("create_tag", 10),
+        ("show_tag", 7),
+        ("tag_old_commit", 10),
+        ("push_tags", 10),
+    ],
+    8: [
         ("find_bisect", 16),
         ("reflog_recovery", 14),
         ("worktree", 10),
@@ -73,21 +89,6 @@ LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
         ("log_double_dot_range", 10),
         ("pickaxe_log_search", 10),
         ("triple_dot_log_range", 10),
-    ],
-    7: [
-        ("setup_ignore", 8),
-        ("ignore_node_modules", 7),
-        ("untrack_cached", 10),
-        ("keep_empty_dir", 7),
-        ("ignore_exceptions", 10),
-        ("clean_untracked", 8),
-    ],
-    8: [
-        ("create_lightweight_tag", 8),
-        ("create_tag", 10),
-        ("show_tag", 7),
-        ("tag_old_commit", 10),
-        ("push_tags", 10),
     ],
     9: [
         ("export_format_patch", 10),

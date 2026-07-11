@@ -1,29 +1,20 @@
 import unittest.mock
-from django.contrib.auth.models import User
 from django.test import Client, TestCase, override_settings
-from django.utils import timezone
 
 from apps.core.tests.helpers import make_user
 from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock
-from apps.users.legal import PRIVACY_CONSENT_SNAPSHOT, PRIVACY_POLICY_VERSION
-from apps.users.models import UserProfile
 from apps.quiz.models import QuizQuestion
 
 
 class PagesRegressionTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="Mikhail", password="password123", email="mikhail@example.com")
-        UserProfile.objects.create(
-            user=self.user,
-            pseudonym="Mikhail",
-            certificate_name="Mikhail Example",
-            learning_goal=UserProfile.LearningGoal.WORK,
-            knowledge_level=UserProfile.KnowledgeLevel.BASIC,
-            total_points=10,
-            privacy_consent_at=timezone.now(),
-            privacy_consent_version=PRIVACY_POLICY_VERSION,
-            privacy_consent_text=PRIVACY_CONSENT_SNAPSHOT,
+        self.user = make_user(
+            username="page_owner",
+            password="password123",
+            certificate_name="Page Owner Example",
+            pseudonym="page_owner",
+            points=10,
         )
         self.level = Level.objects.create(number=1, title="Основы", slug="osnovy", description="d")
         TheoryBlock.objects.create(level=self.level, title="Теория", content_md="## Раздел\nТекст", diagram_mermaid="")
@@ -115,8 +106,8 @@ class PagesRegressionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertIn("Информация о пользователе", html)
-        self.assertIn("Mikhail Example", html)
-        self.assertIn("mikhail@example.com", html)
+        self.assertIn("Page Owner Example", html)
+        self.assertIn("page_owner@example.com", html)
 
     def test_header_uses_my_profile_and_sidebar_has_no_profile_link(self):
         self.client.force_login(self.user)
@@ -261,9 +252,12 @@ class PagesRegressionTests(TestCase):
 
     def test_playground_sandbox_unavailable_returns_styled_503(self):
         self.client.force_login(self.user)
-        with unittest.mock.patch(
-            "apps.core.views.playground.get_or_create_active_session",
-            side_effect=RuntimeError("Docker sandbox runtime is required but unavailable."),
+        with (
+            unittest.mock.patch(
+                "apps.core.views.playground.get_or_create_active_session",
+                side_effect=RuntimeError("Docker sandbox runtime is required but unavailable."),
+            ),
+            unittest.mock.patch("apps.core.views.playground.log_exception"),
         ):
             response = self.client.get("/playground/gh-1_1/")
         self.assertEqual(response.status_code, 503)

@@ -96,8 +96,9 @@ class SignupViewTests(TestCase):
         self.assertFalse(User.objects.filter(email="wanted_name@example.com").exists())
 
     @override_settings(SIGNUP_REQUIRE_EMAIL_CONFIRMATION=True)
+    @patch("apps.core.views.auth.logger.exception")
     @patch("apps.core.views.auth.send_mail", side_effect=RuntimeError("smtp down"))
-    def test_signup_does_not_crash_when_email_send_fails(self, _mock_send_mail):
+    def test_signup_does_not_crash_when_email_send_fails(self, _mock_send_mail, _mock_log):
         client = Client()
         password = "x3$QwertySignup9zUnique"
         response = client.post(

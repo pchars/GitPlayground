@@ -38,7 +38,7 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 
 - **SQLite** — единственный движок БД (dev и prod). Файл по умолчанию: `db.sqlite3` в корне проекта (`SQLITE_DB_PATH` для другого пути).
 - После миграций на чистой БД: `seed_initial_data`, `seed_quiz_questions`.
-- Только теория: `sync_theory_content`.
+- После обновления контента (теория, задачи): снова `seed_initial_data`.
 
 ### Management-команды (ops)
 
@@ -46,7 +46,6 @@ if (Test-Path ".\.sandboxes") { Get-ChildItem ".\.sandboxes" -Force | Remove-Ite
 | --- | --- |
 | `snapshot_leaderboard` | Зафиксировать снимок таблицы лидеров (`LeaderboardSnapshot`) |
 | `reconcile_points` | Сверить `UserProfile.total_points` с суммой `PointLedgerEntry` |
-| `sync_theory_content` | Обновить теорию из `theory_content.py` без пересида задач |
 
 Импорт задачи из ZIP — в Django Admin: `/admin/tasks/task/upload/` (preview + import).
 
