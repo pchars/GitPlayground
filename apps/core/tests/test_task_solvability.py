@@ -37,7 +37,10 @@ SOLUTIONS: dict[str, list[str]] = {
         "git add hello.txt",
         'git commit -m "Add hello"',
     ],
-    "check_status": ['echo "review later" >> hello.txt'],
+    "check_status": [
+        'echo "review later" >> hello.txt',
+        "git status",
+    ],
     "stage_unstage": [
         'echo "staged then unstaged" >> hello.txt',
         "git add hello.txt",
@@ -54,7 +57,7 @@ SOLUTIONS: dict[str, list[str]] = {
         "git add config.txt",
         "git commit --amend --no-edit",
     ],
-    "view_history": [],
+    "view_history": ["git log --oneline"],
     "grep_in_repo": [
         "git grep Git",
         'echo "hello.txt:Hello, Git!" > grep-hit.txt',

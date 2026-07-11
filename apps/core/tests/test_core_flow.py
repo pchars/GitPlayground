@@ -1,4 +1,7 @@
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -220,7 +223,6 @@ class CoreFlowTests(TestCase):
         self.assertEqual(run_command(session, "mkdir -p notes").return_code, 0)
         self.assertNotEqual(run_command(session, "mkdir notes").return_code, 0)
 
-        # Path traversal outside the sandbox is blocked for all new verbs.
         self.assertEqual(run_command(session, "ls ../..").return_code, 126)
         self.assertEqual(run_command(session, "mkdir ../escape").return_code, 126)
 
@@ -241,6 +243,17 @@ class CoreFlowTests(TestCase):
 
         self.assertEqual(run_command(session, "rm sample-copy.txt").return_code, 0)
         self.assertNotEqual(run_command(session, "cat sample-copy.txt").return_code, 0)
+
+    def test_successful_commands_recorded_in_gp_log(self):
+        from pathlib import Path
+
+        session = get_or_create_active_session(self.user, self.task1)
+        self.assertEqual(run_command(session, "git init").return_code, 0)
+        log_path = Path(session.repo_path) / ".gp" / "commands.log"
+        self.assertTrue(log_path.exists())
+        self.assertIn("git init", log_path.read_text(encoding="utf-8"))
+        self.assertEqual(run_command(session, "ls ../..").return_code, 126)
+        self.assertNotIn("ls ../..", log_path.read_text(encoding="utf-8"))
 
     def test_paste_appended_to_git_init_runs_as_unknown_git_command(self):
         # Regression: user types "git init", clipboard has "ls", paste appends
@@ -400,3 +413,66 @@ class CoreFlowTests(TestCase):
         self.assertIn("img/achievements/first_commit.svg", content)
         self.assertIn("achievement-card", content)
         self.assertNotIn("Чтобы открыть:", content)
+
+
+class ValidatorCommandLogTests(TestCase):
+    """Validators for command-aware tasks must require the learner to run the command."""
+
+    @staticmethod
+    def _run_validator(code: str, repo: Path) -> int:
+        (repo / "validator.py").write_text(code, encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, "validator.py"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).returncode
+
+    @staticmethod
+    def _prepare_modified_hello_repo(repo: Path) -> None:
+        from apps.core.services.sandbox_ops import git_env
+
+        env = git_env()
+        subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True, env=env)
+        (repo / "hello.txt").write_text("Hello, Git!\n", encoding="utf-8")
+        subprocess.run(["git", "add", "hello.txt"], cwd=repo, check=True, capture_output=True, env=env)
+        subprocess.run(
+            ["git", "commit", "-m", "Add hello"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            env=env,
+        )
+        (repo / "hello.txt").write_text("Hello, Git!\nchanged\n", encoding="utf-8")
+
+    def test_check_status_validator_requires_git_status_command(self):
+        from apps.tasks.management.commands.seed_initial_data import TASK_VALIDATORS
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._prepare_modified_hello_repo(repo)
+            gp = repo / ".gp"
+            gp.mkdir()
+            (gp / "commands.log").write_text('echo "x" >> hello.txt\n', encoding="utf-8")
+            self.assertNotEqual(self._run_validator(TASK_VALIDATORS["1.3"], repo), 0)
+
+            (gp / "commands.log").write_text(
+                'echo "x" >> hello.txt\ngit status\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(self._run_validator(TASK_VALIDATORS["1.3"], repo), 0)
+
+    def test_view_history_validator_requires_oneline_flag(self):
+        from apps.tasks.management.commands.seed_initial_data import TASK_VALIDATORS
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._prepare_modified_hello_repo(repo)
+            gp = repo / ".gp"
+            gp.mkdir()
+            (gp / "commands.log").write_text("git log\n", encoding="utf-8")
+            self.assertNotEqual(self._run_validator(TASK_VALIDATORS["1.8"], repo), 0)
+
+            (gp / "commands.log").write_text("git log --oneline\n", encoding="utf-8")
+            self.assertEqual(self._run_validator(TASK_VALIDATORS["1.8"], repo), 0)

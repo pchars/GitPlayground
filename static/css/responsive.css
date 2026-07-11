@@ -31,9 +31,9 @@
   }
 
   .terminal-shell .terminal-body {
-    min-height: 360px;
-    height: clamp(360px, 62vh, 680px);
-    max-height: 62vh;
+    min-height: 420px;
+    height: clamp(420px, 68vh, 720px);
+    max-height: 68vh;
   }
 
   .theory-layout {
@@ -183,11 +183,35 @@
 
   .tasks-hero {
     flex-direction: column;
+    gap: var(--spacing-md);
   }
 
   .tasks-metrics {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .task-level-summary {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .level-summary-meta {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .level-summary-progress {
+    display: block;
+  }
+
+  .level-meta {
+    order: 2;
+  }
+
+  .level-theory-link {
+    order: 3;
   }
 
   .task-grid {

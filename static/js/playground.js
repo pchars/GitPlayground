@@ -93,12 +93,14 @@
     term.writeln("Режим nano/edit:");
     term.writeln("  - Ctrl+S / Ctrl+O — сохранить");
     term.writeln("  - Ctrl+X — выйти в командную строку");
+    term.writeln("  - Ctrl+V / Cmd+V — вставить в редактор");
     term.writeln("");
     term.writeln("Терминал:");
     term.writeln("  - Enter — выполнить команду");
     term.writeln("  - ArrowUp / ArrowDown — история");
     term.writeln("  - Ctrl+L / clear — очистить экран");
     term.writeln("  - Ctrl+V / Cmd+V — вставить в строку");
+    term.writeln("  - Ctrl+C — копировать выделение");
     term.writeln("Локальная команда: help");
   }
 
@@ -117,7 +119,18 @@
     const root = getComputedStyle(document.documentElement);
     const background = root.getPropertyValue("--bg-terminal").trim() || "#ffffff";
     const foreground = root.getPropertyValue("--color-ink").trim() || "#24292f";
-    return { background, foreground, cursor: foreground };
+    const selectionBackground =
+      root.getPropertyValue("--terminal-selection-bg").trim() || "rgba(17, 17, 17, 0.28)";
+    const selectionInactiveBackground =
+      root.getPropertyValue("--terminal-selection-inactive-bg").trim() || "rgba(17, 17, 17, 0.16)";
+    return {
+      background,
+      foreground,
+      cursor: foreground,
+      selectionBackground,
+      selectionForeground: foreground,
+      selectionInactiveBackground,
+    };
   }
 
   if (typeof window.Terminal === "function") {
@@ -129,16 +142,36 @@
         fontSize: 13,
         convertEol: true,
         scrollback: 2000,
+        allowTransparency: false,
       });
       term.open(xtermHost);
       term.attachCustomKeyEventHandler((event) => {
         if (event.type !== "keydown") {
           return true;
         }
-        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "v") {
+        if (isNanoOpen && nanoBody && document.activeElement === nanoBody) {
+          return true;
+        }
+        const key = event.key.toLowerCase();
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "v") {
           event.preventDefault();
           if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
-            navigator.clipboard.readText().then(applyPaste).catch(() => {});
+            navigator.clipboard.readText().then((text) => {
+              if (isNanoOpen && nanoBody) {
+                insertTextAtSelection(nanoBody, text);
+                focusWithoutScroll(nanoBody);
+                return;
+              }
+              applyPaste(text);
+            }).catch(() => {});
+          }
+          return false;
+        }
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "c" && term.hasSelection()) {
+          event.preventDefault();
+          const selected = term.getSelection();
+          if (selected && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            navigator.clipboard.writeText(selected).catch(() => {});
           }
           return false;
         }
@@ -238,6 +271,31 @@
     }
   }
 
+  function focusTerminal() {
+    if (!term) {
+      return;
+    }
+    if (typeof term.focus === "function") {
+      term.focus();
+      return;
+    }
+    focusWithoutScroll(term.element || term.textarea || terminalBody);
+  }
+
+  function refocusTerminalAfterNano() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        focusTerminal();
+        if (terminalBody && typeof terminalBody.focus === "function") {
+          terminalBody.focus();
+        }
+        if (term && term.textarea && typeof term.textarea.focus === "function") {
+          term.textarea.focus();
+        }
+      });
+    });
+  }
+
   function closeNanoEditor(message) {
     isNanoOpen = false;
     nanoCurrentPath = "";
@@ -252,7 +310,7 @@
         writePrompt();
         scrollTerminalDown();
       }
-      focusWithoutScroll(term.element || term.textarea || terminalBody);
+      refocusTerminalAfterNano();
     }
   }
 
@@ -337,13 +395,42 @@
     return match ? match[2] : null;
   }
 
+  function insertTextAtSelection(textarea, text) {
+    if (!textarea || text == null) {
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    textarea.value = value.slice(0, start) + text + value.slice(end);
+    const pos = start + text.length;
+    textarea.selectionStart = pos;
+    textarea.selectionEnd = pos;
+  }
+
   function handleTerminalPaste(event) {
+    if (isNanoOpen && nanoBody && (event.target === nanoBody || (nanoOverlay && nanoOverlay.contains(event.target)))) {
+      return;
+    }
     const pasted = event.clipboardData && event.clipboardData.getData("text");
     if (!pasted) {
       return;
     }
     event.preventDefault();
     applyPaste(pasted);
+  }
+
+  function handleNanoPaste(event) {
+    if (!isNanoOpen || !nanoBody) {
+      return;
+    }
+    const pasted = event.clipboardData && event.clipboardData.getData("text");
+    if (!pasted) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    insertTextAtSelection(nanoBody, pasted);
   }
 
   async function submitCommand(command) {
@@ -581,6 +668,7 @@
 
   if (nanoBody) {
     nanoBody.addEventListener("keydown", handleNanoShortcuts);
+    nanoBody.addEventListener("paste", handleNanoPaste);
   }
 
   const tabButtons = document.querySelectorAll(".tab-btn");

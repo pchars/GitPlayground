@@ -14,21 +14,20 @@
     <button class="btn btn-secondary tab-btn active" type="button" data-tab="condition" role="tab" aria-selected="true">Условие</button>
     <button class="btn btn-secondary tab-btn" type="button" data-tab="terminal" role="tab" aria-selected="false">Терминал</button>
   </div>
-  <article class="card tab-panel active" data-panel="condition" role="tabpanel">
-    <h2>{{ task.title }}</h2>
-    <p class="muted">Уровень {{ task.level.number }} · {{ task.points }} баллов</p>
+  <article class="card tab-panel active playground-condition" data-panel="condition" role="tabpanel">
+    <h2 class="playground-task-title">{{ task.title }}</h2>
     <h3>Условие</h3>
     <p>{{ learning_content.objective|default:task.description }}</p>
-    <p class="muted">Подсказок доступно: <span id="hint-total">{{ hint_ui_state.total }}</span></p>
-    <button class="btn btn-secondary" id="hint-btn" type="button">Подсказка</button>
-    <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
+    <div class="playground-hint-block">
+      <button class="btn btn-secondary playground-hint-btn" id="hint-btn" type="button">Подсказка</button>
+      <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
+    </div>
   </article>
-  <article class="card terminal tab-panel" data-panel="terminal" role="tabpanel">
-    <h3>Терминал</h3>
+  <article class="card terminal tab-panel playground-terminal" data-panel="terminal" role="tabpanel">
     <div class="terminal-shell">
       <div class="terminal-topbar">
         <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-        <span class="terminal-title">сессия GitPlayground</span>
+        <span class="terminal-title">user@gitplayground</span>
       </div>
       <div id="terminal-body" class="terminal-body" tabindex="0">
         <div id="xterm-host" class="xterm-host"></div>

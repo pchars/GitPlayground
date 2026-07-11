@@ -1,53 +1,164 @@
 {% extends "core/base.html" %}
+
 {% load static %}
 
+
+
 {% block title %}GitPlayground | Задачи{% endblock %}
+
 {% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/tasks.css' %}">{% endblock %}
+
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Задачи</nav>{% endblock %}
 
+
+
 {% block content %}
-<section class="card">
+
+<section class="card tasks-page">
+
   <div class="tasks-hero">
-    <div>
+
+    <div class="tasks-hero-copy">
+
       <h2>Тренировочный трек Git</h2>
+
+      <p class="muted tasks-hero-lead">Проходите уровни по порядку — каждая задача открывается после предыдущей.</p>
+
+      {% if not selected_level %}
+
+        <p class="muted tasks-levels-hint">Раскройте уровень, чтобы увидеть список задач.</p>
+
+      {% endif %}
+
     </div>
-    <div class="tasks-metrics">
+
+    <div class="tasks-metrics" aria-label="Общий прогресс">
+
       <div class="metric-chip"><strong>{{ completed_tasks }}</strong><span>выполнено</span></div>
+
       <div class="metric-chip"><strong>{{ total_tasks }}</strong><span>всего задач</span></div>
-      <div class="metric-chip"><strong>{{ overall_pct }}%</strong><span>общий прогресс</span></div>
+
+      <div class="metric-chip metric-chip--accent"><strong>{{ overall_pct }}%</strong><span>общий прогресс</span></div>
+
     </div>
+
   </div>
+
   {% for row in level_rows %}
+
     {% if not selected_level or selected_level.number == row.level.number %}
-      <details {% if row.level.number == expanded_level_number %}open{% endif %} class="accordion task-level-accordion">
-        <summary>
-          <span>Уровень {{ row.level.number }} — {{ row.level.title }}</span>
-          <span class="level-meta">{{ row.completed }}/{{ row.total }} · {{ row.progress_pct }}%</span>
+
+      <details
+
+        {% if expanded_level_number and row.level.number == expanded_level_number %}open{% endif %}
+
+        class="accordion task-level-accordion{% if row.active_count %} task-level-accordion--current{% endif %}"
+
+      >
+
+        <summary class="task-level-summary">
+
+          <span class="level-summary-chevron" aria-hidden="true"></span>
+
+          <span class="level-summary-title">
+
+            <span class="level-summary-index">Уровень {{ row.level.number }}</span>
+
+            <span class="level-summary-name">{{ row.level.title }}</span>
+
+          </span>
+
+          <span class="level-summary-meta">
+
+            {% if row.active_count %}
+
+              <span class="level-current-badge">Текущий</span>
+
+            {% endif %}
+
+            <span class="level-meta">{{ row.completed }}/{{ row.total }} · {{ row.progress_pct }}%</span>
+
+            <a
+              class="level-theory-link"
+              href="{% url 'theory-detail' row.level.number %}"
+              onclick="event.stopPropagation();"
+            >Теория</a>
+
+            <span class="level-summary-progress" aria-hidden="true">
+
+              <span style="width: {{ row.progress_pct }}%;"></span>
+
+            </span>
+
+          </span>
+
         </summary>
-        <div class="level-progress-bar"><span style="width: {{ row.progress_pct }}%;"></span></div>
-        <div class="level-actions">
-          <a class="btn btn-secondary" href="{% url 'theory-detail' row.level.number %}">Теория уровня</a>
+
+        <div class="level-progress-bar" role="progressbar" aria-valuenow="{{ row.progress_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Прогресс уровня {{ row.level.number }}">
+
+          <span style="width: {{ row.progress_pct }}%;"></span>
+
         </div>
+
         <div class="task-grid">
+
           {% for item in row.tasks %}
-            <article class="task-card {{ item.status }}">
+
+            <article class="task-card task-card--{{ item.status }}">
+
               <div class="task-card-head">
-                <h4>Задача {{ forloop.counter }} · {{ item.task.title }}</h4>
+
+                <div class="task-card-title">
+
+                  <span class="task-card-index">Задача {{ forloop.counter }}</span>
+
+                  <h4 class="task-card-name">{{ item.task.title }}</h4>
+
+                </div>
+
                 <span class="status-badge status-{{ item.status }}">
+
                   {% if item.status == "completed" %}Выполнено{% elif item.status == "active" %}Текущая{% else %}Закрыта{% endif %}
+
                 </span>
+
               </div>
-              <p class="muted task-card-points">{{ item.task.points }} баллов</p>
-              {% if item.status == "locked" %}
-                <p class="muted task-card-locked-note">Сначала выполните предыдущие задачи</p>
-              {% else %}
-                <a class="btn btn-secondary" href="{% url 'playground' item.task_route_id %}">Открыть</a>
-              {% endif %}
+
+              <div class="task-card-footer">
+
+                {% if item.status == "locked" %}
+
+                  <p class="muted task-card-locked-note">Сначала выполните предыдущие задачи</p>
+
+                {% else %}
+
+                  <span class="muted task-card-points">{{ item.task.points }} баллов</span>
+
+                  <a
+
+                    class="btn {% if item.status == 'active' %}btn-primary{% else %}btn-secondary{% endif %} task-card-open"
+
+                    href="{% url 'playground' item.task_route_id %}"
+
+                  >Открыть</a>
+
+                {% endif %}
+
+              </div>
+
             </article>
+
           {% endfor %}
+
         </div>
+
       </details>
+
     {% endif %}
+
   {% endfor %}
+
 </section>
+
 {% endblock %}
+

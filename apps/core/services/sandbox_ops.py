@@ -214,6 +214,17 @@ def _sanitize_terminal_output(repo_root: str, command: str, text: str) -> str:
     return out
 
 
+def _record_sandbox_command(repo_path: str, command: str) -> None:
+    """Append successful learner commands for task validators (under ``.gp/``, not in Git)."""
+    normalized = command.strip()
+    if not normalized:
+        return
+    gp_dir = Path(repo_path) / ".gp"
+    gp_dir.mkdir(parents=True, exist_ok=True)
+    with (gp_dir / "commands.log").open("a", encoding="utf-8") as handle:
+        handle.write(f"{normalized}\n")
+
+
 def _write_log(
     session: SandboxSession,
     command: str,
@@ -607,6 +618,8 @@ def run_command(
         return_code = 122
         output = f"{output}\n{quota_error}".strip()
     output = _sanitize_terminal_output(session.repo_path, command, output.strip())
+    if return_code == 0:
+        _record_sandbox_command(session.repo_path, command)
     _write_log(session, command, output or "(no output)", include_in_user_log=include_in_user_log)
     SandboxSession.objects.filter(pk=session.pk).update(
         last_activity_at=timezone.now(),

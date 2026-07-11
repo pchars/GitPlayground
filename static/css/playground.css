@@ -5,6 +5,42 @@
   gap: var(--spacing-lg);
 }
 
+.playground-condition .playground-task-title {
+  margin: 0 0 var(--spacing-md);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.playground-condition h3 {
+  margin: 0 0 var(--spacing-xs);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.playground-condition > p {
+  margin: 0 0 var(--spacing-md);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.playground-hint-block {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.playground-hint-btn {
+  width: 100%;
+}
+
+.playground-hint-block .hint-box {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
 .terminal-shell {
   border: 1px solid var(--color-hairline);
   border-radius: var(--rounded-lg);
@@ -14,8 +50,8 @@
 
 .terminal-shell .terminal-body {
   position: relative;
-  min-height: 400px;
-  height: clamp(400px, 58vh, 680px);
+  min-height: 500px;
+  height: clamp(500px, 68vh, 780px);
   padding: 0;
   overflow: hidden;
   background: var(--bg-terminal);

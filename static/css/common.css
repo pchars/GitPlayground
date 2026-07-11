@@ -49,6 +49,8 @@
   --bg-primary: var(--color-canvas);
   --bg-secondary: var(--color-canvas);
   --bg-terminal: var(--color-surface-card);
+  --terminal-selection-bg: rgba(17, 17, 17, 0.28);
+  --terminal-selection-inactive-bg: rgba(17, 17, 17, 0.16);
   --accent: var(--color-primary);
   --text-primary: var(--color-ink);
   --text-secondary: var(--color-muted);

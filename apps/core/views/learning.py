@@ -46,15 +46,8 @@ def tasks_list(request, level_number=None):
     selected_level = None
     if level_number is not None:
         selected_level = get_object_or_404(Level, number=level_number)
-    active_level_number = None
-    if next_unlocked_id is not None:
-        active_task = next((task for task in all_tasks if task.id == next_unlocked_id), None)
-        active_level_number = active_task.level.number if active_task else None
-    expanded_level_number = (
-        selected_level.number
-        if selected_level
-        else (active_level_number or (levels[0].number if levels else None))
-    )
+    # Only deep-linked /tasks/level/<n>/ opens an accordion; the main /tasks/ list stays collapsed.
+    expanded_level_number = selected_level.number if selected_level else None
 
     level_rows = []
     for level in levels:

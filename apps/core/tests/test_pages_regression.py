@@ -160,6 +160,30 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("theory.js", html)
         self.assertNotIn("Углубленная теория перед практикой", html)
 
+    def test_tasks_page_collapses_all_levels_by_default(self):
+        import re
+
+        self.client.force_login(self.user)
+        response = self.client.get("/tasks/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("tasks-levels-hint", html)
+        self.assertIn("task-card-index", html)
+        self.assertIn("level-theory-link", html)
+        self.assertNotIn("level-summary-theory-link", html)
+        self.assertIsNone(re.search(r"<details[^>]*\bopen\b", html))
+
+    def test_tasks_by_level_page_opens_selected_level(self):
+        import re
+
+        self.client.force_login(self.user)
+        response = self.client.get("/tasks/level/1/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        details_tag = re.search(r"<details\s[^>]*task-level-accordion[^>]*>", html, re.DOTALL)
+        self.assertIsNotNone(details_tag)
+        self.assertIn("open", details_tag.group(0))
+
     def test_playground_page_has_no_internal_subtitle_or_validator_copy(self):
         self.client.force_login(self.user)
         response = self.client.get("/playground/gh-1_1/")
@@ -168,6 +192,8 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("Режим обучения", html)
         self.assertNotIn("validator.py", html)
         self.assertNotIn("terminal-log-data", html)
+        self.assertNotIn("Подсказок доступно", html)
+        self.assertNotIn("баллов</p>", html)
         self.assertIn("terminal_paste.js", html)
 
     def test_footer_contains_privacy_policy_link(self):

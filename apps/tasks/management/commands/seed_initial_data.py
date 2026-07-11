@@ -59,6 +59,13 @@ print('OK')
     "1.3": """\
 import sys
 import subprocess
+from pathlib import Path
+
+log = Path('.gp/commands.log')
+lines = log.read_text(encoding='utf-8').splitlines() if log.exists() else []
+if not any(line.strip().lower().startswith('git status') for line in lines):
+    print('Выполни git status, чтобы посмотреть состояние файлов')
+    sys.exit(1)
 
 status = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, check=False).stdout
 if ' M hello.txt' not in status:
@@ -113,10 +120,17 @@ print('OK')
     "1.8": """\
 import sys
 import subprocess
+from pathlib import Path
+
+log = Path('.gp/commands.log')
+lines = log.read_text(encoding='utf-8').splitlines() if log.exists() else []
+if not any('git log' in line and '--oneline' in line for line in lines):
+    print('Выполни git log --oneline для компактной истории')
+    sys.exit(1)
 
 count = subprocess.run(['git', 'rev-list', '--count', 'HEAD'], capture_output=True, text=True, check=False)
-if count.returncode != 0 or int(count.stdout.strip()) < 2:
-    print('Need at least two commits to inspect history')
+if count.returncode != 0 or int(count.stdout.strip()) < 1:
+    print('Need at least one commit to inspect history')
     sys.exit(1)
 print('OK')
 """,
@@ -452,7 +466,9 @@ if 'rescue-tip' not in br:
     print('rescue-tip branch missing')
     sys.exit(1)
 sys.exit(0)"""
-    if slug in {"view_history", "branch_compare", "branch_from_commit", "track_remote_branch"}:
+    if slug == "view_history":
+        return TASK_VALIDATORS["1.8"]
+    if slug in {"branch_compare", "branch_from_commit", "track_remote_branch"}:
         return "import subprocess, sys\nr=subprocess.run(['git','rev-list','--count','HEAD'],capture_output=True,text=True,check=False)\nsys.exit(0 if r.returncode==0 and int((r.stdout or '0').strip() or 0)>=1 else 1)"
     if slug in {"switch_branch"}:
         return TASK_VALIDATORS["2.3"]
@@ -525,7 +541,7 @@ if tracked.stdout.strip():
     print('garbage.tmp must never have been tracked')
     sys.exit(1)
 sys.exit(0)"""
-    if slug in {"init_repo", "first_commit", "check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit"}:
+    if slug in {"init_repo", "first_commit", "check_status", "stage_unstage", "commit_second", "view_diff", "amend_commit", "view_history"}:
         reverse_lookup = {
             "init_repo": "1.1",
             "first_commit": "1.2",
@@ -534,6 +550,7 @@ sys.exit(0)"""
             "commit_second": "1.5",
             "view_diff": "1.6",
             "amend_commit": "1.7",
+            "view_history": "1.8",
         }
         mapped = reverse_lookup.get(slug)
         if mapped and mapped in TASK_VALIDATORS:
