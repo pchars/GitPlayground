@@ -40,7 +40,7 @@
 
   function startAutoplay() {
     window.clearInterval(autoplay);
-    autoplay = window.setInterval(() => render(index + 1), 7000);
+    autoplay = window.setInterval(() => render(index + 1), 4000);
   }
 
   let autoplay = 0;

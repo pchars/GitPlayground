@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from apps.quiz.concept_questions import CONCEPT_QUESTIONS
+from apps.quiz.prompt_quality import normalize_concept_prompt
 from apps.quiz.difficulty import classify_command_difficulty, classify_concept_difficulty
 
 # Command -> short correct description (for the learning quiz).
@@ -290,10 +291,13 @@ def iter_packed_questions() -> list[dict[str, Any]]:
 
     all_concept_questions = CONCEPT_QUESTIONS
     for q, a, b, c, d in all_concept_questions:
-        choices, ci = _shuffle_choices(a, b, c, d, seed=(hash(q) % 2**31))
+        prompt = normalize_concept_prompt(q)
+        if prompt is None:
+            continue
+        choices, ci = _shuffle_choices(a, b, c, d, seed=(hash(prompt) % 2**31))
         rows.append(
             {
-                "prompt": q,
+                "prompt": prompt,
                 "choice_0": choices[0],
                 "choice_1": choices[1],
                 "choice_2": choices[2],

@@ -272,9 +272,7 @@
   }
 
   .landing-git-value-header {
-    grid-template-columns: 1fr;
     gap: var(--spacing-sm);
-    align-items: start;
   }
 
   .landing-git-value-grid {
