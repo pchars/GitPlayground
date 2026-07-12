@@ -4,6 +4,79 @@ from __future__ import annotations
 
 # Each value is (hint_1, hint_2) shown in order; hint_2 costs another unlock step.
 TASK_HINTS: dict[str, tuple[str, str]] = {
+    # Level 0 — terminal sandbox
+    "sandbox_pwd": (
+        "Введи `pwd` и нажми Enter — увидишь путь к текущей папке.",
+        "В песочнице это обычно `~/repo`.",
+    ),
+    "sandbox_ls": (
+        "Команда `ls` показывает файлы и каталоги в текущей папке.",
+        "Можно указать путь: `ls practice`.",
+    ),
+    "sandbox_whoami": (
+        "Команда `whoami` выводит имя пользователя.",
+        "В песочнице ответ будет `gitplayground`.",
+    ),
+    "sandbox_mkdir": (
+        "Создай каталог: `mkdir practice` или `mkdir -p practice`.",
+        "Проверь: `ls` должен показать каталог `practice`.",
+    ),
+    "sandbox_touch": (
+        "Сначала создай каталог `practice`, если его ещё нет.",
+        "Затем: `touch practice/notes.txt`.",
+    ),
+    "sandbox_echo_write": (
+        "Запиши текст в файл: `echo GitPlayground > practice/notes.txt`.",
+        "Проверь: `cat practice/notes.txt`.",
+    ),
+    "sandbox_cat": (
+        "Убедись, что файл practice/notes.txt существует и не пустой.",
+        "Выполни: `cat practice/notes.txt`.",
+    ),
+    "sandbox_echo_append": (
+        "Допиши строку в конец: `echo sandbox >> practice/notes.txt`.",
+        "Символы `>>` дописывают, а `>` перезаписывают файл целиком.",
+    ),
+    "sandbox_type_empty": (
+        "Пустой файл: `type nul > practice/blank.txt`.",
+        "Проверь: `ls practice` — файл `blank.txt` должен появиться.",
+    ),
+    "sandbox_head": (
+        "Первая строка: `head practice/notes.txt` или `head -n 1 practice/notes.txt`.",
+        "Файл должен содержать хотя бы одну строку.",
+    ),
+    "sandbox_tail": (
+        "Последняя строка: `tail practice/notes.txt` или `tail -n 1 practice/notes.txt`.",
+        "Удобно после `echo … >>`, когда в файле несколько строк.",
+    ),
+    "sandbox_wc": (
+        "Подсчёт строк: `wc -l practice/notes.txt`.",
+        "Флаг `-l` считает только строки.",
+    ),
+    "sandbox_cp": (
+        "Скопируй файл: `cp practice/notes.txt practice/copy.txt`.",
+        "После копирования оба файла должны существовать.",
+    ),
+    "sandbox_mv": (
+        "Сначала скопируй файл в `practice/copy.txt`, если его ещё нет.",
+        "Переименуй: `mv practice/copy.txt practice/backup.txt`.",
+    ),
+    "sandbox_find": (
+        "Поиск в каталоге: `find practice`.",
+        "Можно также `find .` — покажет файлы во всей учебной папке.",
+    ),
+    "sandbox_rm": (
+        "Создай `practice/blank.txt`, если удалил его раньше.",
+        "Удали: `rm practice/blank.txt`.",
+    ),
+    "sandbox_nano": (
+        "Открой редактор: `nano practice/diary.txt` или `edit practice/diary.txt`.",
+        "Ctrl+S — сохранить, Ctrl+X — выйти из редактора.",
+    ),
+    "sandbox_clear": (
+        "Очистка экрана: `clear`.",
+        "Команда не удаляет файлы — только убирает старый вывод с экрана.",
+    ),
     # Level 1 — basics
     "init_repo": (
         "В пустой папке выполни `git init` — появится скрытая директория `.git`.",
@@ -38,8 +111,8 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "В выводе должен быть хотя бы один коммит из истории репозитория.",
     ),
     "grep_in_repo": (
-        "Поиск по отслеживаемым файлам: `git grep Git` (или `git grep -n Git` для номеров строк).",
-        "Запиши одну строку вывода в файл: `echo \"hello.txt:Hello, Git!\" > grep-hit.txt`.",
+        "Поиск по отслеживаемым файлам: `git grep Git`.",
+        "Сохрани одну строку результата: `git grep Git > grep-hit.txt` (формат `файл:текст`).",
     ),
     "stage_tracked_only": (
         "Измени отслеживаемый файл и создай новый: `echo \"...\" >> hello.txt`, `echo temp > scratch.txt`.",
@@ -112,8 +185,9 @@ TASK_HINTS: dict[str, tuple[str, str]] = {
         "Проверь: `git branch --show-current` всё ещё `main`; запиши: `echo main > active-branch.txt`.",
     ),
     "rescue_detached_head": (
-        "Detached HEAD: `git checkout --detach` (или `git switch --detach`).",
-        "Спасение: `git checkout -b rescue-tip`, затем `echo rescue-tip > rescue-branch.txt`.",
+        "Detached HEAD: `git checkout --detach`, затем `git checkout -b rescue-tip` — "
+        "важно переключиться на ветку, а не только `git branch`.",
+        "Запиши имя: `echo rescue-tip > rescue-branch.txt`. Перед проверкой HEAD должен быть на `rescue-tip`.",
     ),
     # Level 4 — merges
     "fast_forward_merge": (

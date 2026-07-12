@@ -22,6 +22,62 @@ from .sandbox_ops import is_docker_session, write_session_log, git_env
 
 logger = logging.getLogger(__name__)
 
+# Intro levels that do not gate the main Git track (level 1+).
+NON_BLOCKING_LEVEL_NUMBERS: frozenset[int] = frozenset({0})
+
+
+def _completed_task_ids_for_user(user: User) -> set[int]:
+    return set(TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True))
+
+
+def _iter_github_tasks():
+    return Task.objects.select_related("level").filter(platform=Task.Platform.GITHUB).order_by(
+        "level__number", "order"
+    )
+
+
+def get_next_optional_track_task_for_user(user: User) -> Task | None:
+    completed = _completed_task_ids_for_user(user)
+    for task in _iter_github_tasks():
+        if task.level.number not in NON_BLOCKING_LEVEL_NUMBERS:
+            continue
+        if task.id not in completed:
+            return task
+    return None
+
+
+def get_next_unlockable_task_for_user(user: User) -> Task | None:
+    """First incomplete task on the main track (level 1+). Level 0 never blocks."""
+    completed = _completed_task_ids_for_user(user)
+    for task in _iter_github_tasks():
+        if task.level.number in NON_BLOCKING_LEVEL_NUMBERS:
+            continue
+        if task.id not in completed:
+            return task
+    return None
+
+
+def get_suggested_next_task_after_pass(user: User, completed_task: Task) -> Task | None:
+    if completed_task.level.number in NON_BLOCKING_LEVEL_NUMBERS:
+        next_optional = get_next_optional_track_task_for_user(user)
+        if next_optional is not None:
+            return next_optional
+    return get_next_unlockable_task_for_user(user)
+
+
+def can_open_task(user: User, task: Task) -> bool:
+    if TaskCompletion.objects.filter(user=user, task=task).exists():
+        return True
+    if task.level.number in NON_BLOCKING_LEVEL_NUMBERS:
+        next_optional = get_next_optional_track_task_for_user(user)
+        if next_optional is None:
+            return True
+        return task.id == next_optional.id
+    next_task = get_next_unlockable_task_for_user(user)
+    if next_task is None:
+        return True
+    return task.id == next_task.id
+
 
 def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttempt:
     started = time.perf_counter()
@@ -120,25 +176,6 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
                     defaults={"delta": completion.points_awarded},
                 )
     return attempt
-
-
-def get_next_unlockable_task_for_user(user: User) -> Task | None:
-    completed = set(TaskCompletion.objects.filter(user=user).values_list("task_id", flat=True))
-    for task in Task.objects.select_related("level").filter(platform=Task.Platform.GITHUB).order_by(
-        "level__number", "order"
-    ):
-        if task.id not in completed:
-            return task
-    return None
-
-
-def can_open_task(user: User, task: Task) -> bool:
-    next_task = get_next_unlockable_task_for_user(user)
-    if next_task is None:
-        return True
-    if task.id == next_task.id:
-        return True
-    return TaskCompletion.objects.filter(user=user, task=task).exists()
 
 
 # Hint cost by unlock order (1 = first hint asset, etc.).

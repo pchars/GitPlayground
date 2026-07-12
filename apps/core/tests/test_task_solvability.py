@@ -30,6 +30,64 @@ from apps.tasks.models import Task
 # learner types into the sandbox terminal. An empty list means the seeded start
 # state already satisfies the validator (exploration/read-only tasks).
 SOLUTIONS: dict[str, list[str]] = {
+    # Level 0 — terminal sandbox
+    "sandbox_pwd": ["pwd"],
+    "sandbox_ls": ["ls"],
+    "sandbox_whoami": ["whoami"],
+    "sandbox_mkdir": ["mkdir -p practice"],
+    "sandbox_touch": ["mkdir -p practice", "touch practice/notes.txt"],
+    "sandbox_echo_write": ["mkdir -p practice", "echo GitPlayground > practice/notes.txt"],
+    "sandbox_cat": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "cat practice/notes.txt",
+    ],
+    "sandbox_echo_append": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "echo sandbox >> practice/notes.txt",
+    ],
+    "sandbox_type_empty": ["mkdir -p practice", "type nul > practice/blank.txt"],
+    "sandbox_head": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "head -n 1 practice/notes.txt",
+    ],
+    "sandbox_tail": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "echo sandbox >> practice/notes.txt",
+        "tail -n 1 practice/notes.txt",
+    ],
+    "sandbox_wc": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "echo sandbox >> practice/notes.txt",
+        "wc -l practice/notes.txt",
+    ],
+    "sandbox_cp": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "cp practice/notes.txt practice/copy.txt",
+    ],
+    "sandbox_mv": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "cp practice/notes.txt practice/copy.txt",
+        "mv practice/copy.txt practice/backup.txt",
+    ],
+    "sandbox_find": [
+        "mkdir -p practice",
+        "echo GitPlayground > practice/notes.txt",
+        "find practice",
+    ],
+    "sandbox_rm": [
+        "mkdir -p practice",
+        "type nul > practice/blank.txt",
+        "rm practice/blank.txt",
+    ],
+    "sandbox_nano": ["nano practice/diary.txt"],
+    "sandbox_clear": ["clear"],
     # Level 1 — basics
     "init_repo": ["git init"],
     "first_commit": [
@@ -59,8 +117,7 @@ SOLUTIONS: dict[str, list[str]] = {
     ],
     "view_history": ["git log --oneline"],
     "grep_in_repo": [
-        "git grep Git",
-        'echo "hello.txt:Hello, Git!" > grep-hit.txt',
+        "git grep Git > grep-hit.txt",
     ],
     "stage_tracked_only": [
         'echo "tracked-only" >> hello.txt',
@@ -79,10 +136,21 @@ SOLUTIONS: dict[str, list[str]] = {
         "echo .env >> .gitignore",
         "echo __pycache__/ >> .gitignore",
     ],
-    "ignore_node_modules": [],
-    "untrack_cached": [],
-    "keep_empty_dir": [],
-    "ignore_exceptions": [],
+    "ignore_node_modules": ['echo "node_modules/" >> .gitignore'],
+    "untrack_cached": [
+        'echo "secrets.env" >> .gitignore',
+        "git rm --cached secrets.env",
+    ],
+    "keep_empty_dir": [
+        "mkdir -p notes",
+        "touch notes/.gitkeep",
+        "git add notes/.gitkeep",
+        'git commit -m "Keep notes directory"',
+    ],
+    "ignore_exceptions": [
+        'echo "*.log" > .gitignore',
+        'echo "!important.log" >> .gitignore',
+    ],
     "clean_untracked": [
         "echo garbage > garbage.tmp",
         "git clean -n",

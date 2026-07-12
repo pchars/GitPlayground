@@ -9,52 +9,77 @@
 {% block breadcrumbs %}<nav class="breadcrumbs">Главная / Задачи / {{ task.external_id }}</nav>{% endblock %}
 
 {% block content %}
-<section class="playground-grid">
+<section class="card playground-workspace">
   <div class="mobile-tabs" role="tablist" aria-label="Разделы практики">
-    <button class="btn btn-secondary tab-btn active" type="button" data-tab="condition" role="tab" aria-selected="true">Условие</button>
+    <button class="btn btn-secondary tab-btn active" type="button" data-tab="learn" role="tab" aria-selected="true">Задача</button>
     <button class="btn btn-secondary tab-btn" type="button" data-tab="terminal" role="tab" aria-selected="false">Терминал</button>
   </div>
-  <article class="card tab-panel active playground-condition" data-panel="condition" role="tabpanel">
-    <h2 class="playground-task-title">{{ task.title }}</h2>
-    <h3>Условие</h3>
-    <p>{{ learning_content.objective|default:task.description }}</p>
-    <div class="playground-hint-block">
-      <button class="btn btn-secondary playground-hint-btn" id="hint-btn" type="button">Подсказка</button>
-      <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
-    </div>
-  </article>
-  <article class="card terminal tab-panel playground-terminal" data-panel="terminal" role="tabpanel">
-    <div class="terminal-shell">
-      <div class="terminal-topbar">
-        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-        <span class="terminal-title">user@gitplayground</span>
+
+  <div class="playground-workspace-body">
+    <div class="playground-learn tab-panel active" data-panel="learn" role="tabpanel">
+      <div class="playground-learn-scroll">
+        <header class="playground-learn-head">
+          <h2 class="playground-task-title">{{ task.title }}</h2>
+          {% if level_theory_url %}
+            <a class="playground-theory-index-link" href="{{ level_theory_url }}">Оглавление теории</a>
+          {% endif %}
+        </header>
+
+        {% if task_theory_html %}
+          <section class="playground-learn-section">
+            <h3 class="playground-section-label">Теория</h3>
+            <article class="playground-theory-text theory-text">{{ task_theory_html|safe }}</article>
+          </section>
+        {% endif %}
+
+        <section class="playground-learn-section">
+          <h3 class="playground-section-label">Условие</h3>
+          <p class="playground-condition-text">{{ learning_content.objective|default:task.description }}</p>
+        </section>
+
+        <section class="playground-learn-section playground-learn-section--hints">
+          <h3 class="playground-section-label">Подсказки</h3>
+          <button class="btn btn-secondary playground-hint-btn" id="hint-btn" type="button">Открыть подсказку</button>
+          <div id="hint-output" class="hint-box muted">Подсказки пока не открыты.</div>
+        </section>
       </div>
-      <div id="terminal-body" class="terminal-body" tabindex="0">
-        <div id="xterm-host" class="xterm-host"></div>
-        <div id="nano-overlay" class="nano-overlay" hidden aria-hidden="true">
-          <div class="nano-overlay__header">
-            <span class="nano-overlay__brand">GNU nano (GitPlayground)</span>
-            <span id="nano-overlay-path" class="nano-overlay__path"></span>
-          </div>
-          <textarea
-            id="nano-overlay-body"
-            class="nano-overlay__body"
-            spellcheck="false"
-            aria-label="Содержимое файла"
-          ></textarea>
-          <div id="nano-overlay-status" class="nano-overlay__status" aria-live="polite">
-            ^S сохранить · ^O записать · ^X выйти
+    </div>
+
+    <div class="playground-divider" aria-hidden="true"></div>
+
+    <div class="playground-terminal-pane tab-panel" data-panel="terminal" role="tabpanel">
+      <div class="terminal-shell">
+        <div class="terminal-topbar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="terminal-title">user@gitplayground</span>
+        </div>
+        <div id="terminal-body" class="terminal-body" tabindex="0">
+          <div id="xterm-host" class="xterm-host"></div>
+          <div id="nano-overlay" class="nano-overlay" hidden aria-hidden="true">
+            <div class="nano-overlay__header">
+              <span class="nano-overlay__brand">GNU nano (GitPlayground)</span>
+              <span id="nano-overlay-path" class="nano-overlay__path"></span>
+            </div>
+            <textarea
+              id="nano-overlay-body"
+              class="nano-overlay__body"
+              spellcheck="false"
+              aria-label="Содержимое файла"
+            ></textarea>
+            <div id="nano-overlay-status" class="nano-overlay__status" aria-live="polite">
+              ^S сохранить · ^O записать · ^X выйти
+            </div>
           </div>
         </div>
       </div>
+      <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
+      <div class="terminal-actions">
+        <button class="btn btn-secondary" id="reset-btn" type="button">Сбросить репозиторий</button>
+        <button class="btn btn-primary" id="validate-btn" type="button">Проверить</button>
+        <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
+      </div>
     </div>
-    <div id="csrf-holder" class="csrf-holder">{% csrf_token %}</div>
-    <div class="terminal-actions">
-      <button class="btn btn-secondary" id="reset-btn" type="button">Сбросить репозиторий</button>
-      <button class="btn btn-primary" id="validate-btn" type="button">Проверить</button>
-      <div id="validate-output" class="hint-box validate-banner muted">Результат проверки появится здесь.</div>
-    </div>
-  </article>
+  </div>
 </section>
 
 {{ hint_ui_state|json_script:"hint-ui-state-data" }}

@@ -2,12 +2,15 @@
 
 from .learn_ops import (
     HINT_UNLOCK_COSTS,
+    NON_BLOCKING_LEVEL_NUMBERS,
     HintRequestError,
     HintUnlockResult,
     NotEnoughPointsError,
     can_open_task,
     ensure_revision_progress,
+    get_next_optional_track_task_for_user,
     get_next_unlockable_task_for_user,
+    get_suggested_next_task_after_pass,
     hint_ui_state,
     process_hint_request,
     task_learning_content,
@@ -38,6 +41,7 @@ from .sandbox_ops import (
 
 __all__ = [
     "HINT_UNLOCK_COSTS",
+    "NON_BLOCKING_LEVEL_NUMBERS",
     "HintRequestError",
     "HintUnlockResult",
     "NotEnoughPointsError",
@@ -56,7 +60,9 @@ __all__ = [
     "can_open_task",
     "ensure_revision_progress",
     "get_active_session",
+    "get_next_optional_track_task_for_user",
     "get_next_unlockable_task_for_user",
+    "get_suggested_next_task_after_pass",
     "hint_ui_state",
     "process_hint_request",
     "get_or_create_active_session",

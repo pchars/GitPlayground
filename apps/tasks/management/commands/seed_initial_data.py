@@ -13,11 +13,13 @@ from apps.tasks.models import Level, Task, TaskAsset, TheoryBlock, TaskRevision
 from apps.tasks.task_hints import TASK_HINTS
 from apps.tasks.task_registry import LEVEL_TASK_POINTS, blueprints_for_level
 from apps.tasks.theory_content import LEVEL_DIAGRAMS, LEVEL_SECTION_HINTS, THEORY_CONTENT
+from apps.tasks.terminal_validators import TERMINAL_TASK_VALIDATORS
 
 
 TASK_BLUEPRINTS = {level: blueprints_for_level(level) for level in LEVEL_TASK_POINTS}
 
 LEVELS = [
+    (0, "Терминал и знакомство с Git", 18),
     (1, "Основы Git", 12),
     (2, "Чистый репозиторий: .gitignore", 6),
     (3, "Ветвление", 9),
@@ -202,6 +204,8 @@ print('OK')
 
 
 def _validator_by_slug(slug: str, external_id: str) -> str:
+    if slug in TERMINAL_TASK_VALIDATORS:
+        return TERMINAL_TASK_VALIDATORS[slug]
     if slug in {"list_branches"}:
         return "import subprocess, sys\nr=subprocess.run(['git','branch'],capture_output=True,text=True);sys.exit(0 if '*' in r.stdout else 1)"
     if slug in {"delete_branch"}:
@@ -209,7 +213,73 @@ def _validator_by_slug(slug: str, external_id: str) -> str:
     if slug in {"rename_branch"}:
         return "import subprocess, sys\nb=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True).stdout.strip();sys.exit(0 if b and b!='main' else 1)"
     if slug in {"setup_ignore"}:
-        return "from pathlib import Path\nimport sys\nc=Path('.gitignore').read_text(encoding='utf-8') if Path('.gitignore').exists() else ''\nsys.exit(0 if '*.log' in c and '__pycache__/' in c else 1)"
+        return (
+            "from pathlib import Path\n"
+            "import subprocess, sys\n"
+            "c = Path('.gitignore').read_text(encoding='utf-8') if Path('.gitignore').exists() else ''\n"
+            "if not all(token in c for token in ('*.log', '.env', '__pycache__/')):\n"
+            "    print('Expected *.log, .env and __pycache__/ in .gitignore')\n"
+            "    sys.exit(1)\n"
+            "for path in ('app.log', '.env', '__pycache__/module.pyc'):\n"
+            "    ignored = subprocess.run(['git', 'check-ignore', '-q', path], capture_output=True)\n"
+            "    if ignored.returncode != 0:\n"
+            "        print(f'{path} should be ignored')\n"
+            "        sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "ignore_node_modules":
+        return (
+            "from pathlib import Path\n"
+            "import subprocess, sys\n"
+            "c = Path('.gitignore').read_text(encoding='utf-8') if Path('.gitignore').exists() else ''\n"
+            "if 'node_modules' not in c:\n"
+            "    print('Add node_modules/ to .gitignore')\n"
+            "    sys.exit(1)\n"
+            "ignored = subprocess.run(['git', 'check-ignore', '-q', 'node_modules/dummy.js'], capture_output=True)\n"
+            "if ignored.returncode != 0:\n"
+            "    print('node_modules should be ignored')\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "untrack_cached":
+        return (
+            "from pathlib import Path\n"
+            "import subprocess, sys\n"
+            "if not Path('secrets.env').is_file():\n"
+            "    print('secrets.env must remain on disk')\n"
+            "    sys.exit(1)\n"
+            "tracked = subprocess.run(['git', 'ls-files', 'secrets.env'], capture_output=True, text=True)\n"
+            "if tracked.stdout.strip():\n"
+            "    print('secrets.env should no longer be tracked')\n"
+            "    sys.exit(1)\n"
+            "ignore = Path('.gitignore').read_text(encoding='utf-8') if Path('.gitignore').exists() else ''\n"
+            "if 'secrets.env' not in ignore:\n"
+            "    print('secrets.env should be listed in .gitignore')\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "keep_empty_dir":
+        return (
+            "import subprocess, sys\n"
+            "tracked = subprocess.run(['git', 'ls-files', 'notes/.gitkeep'], capture_output=True, text=True)\n"
+            "if not tracked.stdout.strip():\n"
+            "    print('notes/.gitkeep should be tracked in Git')\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
+    if slug == "ignore_exceptions":
+        return (
+            "import subprocess, sys\n"
+            "important = subprocess.run(['git', 'check-ignore', '-q', 'important.log'], capture_output=True)\n"
+            "debug = subprocess.run(['git', 'check-ignore', '-q', 'debug.log'], capture_output=True)\n"
+            "if important.returncode == 0:\n"
+            "    print('important.log must stay tracked (exception from *.log rule)')\n"
+            "    sys.exit(1)\n"
+            "if debug.returncode != 0:\n"
+            "    print('debug.log should be ignored by *.log rule')\n"
+            "    sys.exit(1)\n"
+            "sys.exit(0)"
+        )
     if slug in {"create_tag", "push_tags"}:
         return "import subprocess, sys\nr=subprocess.run(['git','tag','-l','v1.0'],capture_output=True,text=True).stdout.strip();sys.exit(0 if r=='v1.0' else 1)"
     if slug == "export_format_patch":
@@ -500,14 +570,23 @@ sys.exit(0)"""
         return "import subprocess, sys\nr=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True);sys.exit(0 if r.returncode==0 else 1)"
     if slug == "grep_in_repo":
         return """import sys
+import subprocess
 from pathlib import Path
 p = Path('grep-hit.txt')
 if not p.exists():
     print('grep-hit.txt missing')
     sys.exit(1)
-text = p.read_text(encoding='utf-8')
+text = p.read_text(encoding='utf-8').strip()
+grep = subprocess.run(['git', 'grep', 'Git'], capture_output=True, text=True, check=False)
+if grep.returncode != 0:
+    print('git grep Git should find a match in tracked files')
+    sys.exit(1)
+hits = [line.strip() for line in grep.stdout.splitlines() if line.strip()]
+if not any(hit in text for hit in hits):
+    print('grep-hit.txt should contain a line from git grep output')
+    sys.exit(1)
 if 'hello.txt' not in text or 'Git' not in text:
-    print('grep-hit.txt should contain a git grep hit from hello.txt')
+    print('grep-hit.txt should reference hello.txt and Git')
     sys.exit(1)
 sys.exit(0)"""
     if slug == "stage_tracked_only":

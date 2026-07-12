@@ -448,14 +448,8 @@
       scrollTerminalDown();
       return;
     }
-    if (command.trim().toLowerCase() === "clear") {
-      term.clear();
-      writePrompt();
-      isCommandRunning = false;
-      scrollTerminalDown();
-      return;
-    }
-    const editorPath = parseEditorCommand(command);
+    const isClear = command.trim().toLowerCase() === "clear";
+    const editorPath = !isClear ? parseEditorCommand(command) : null;
     const data = await post(urls.run, { command });
     if (!data.ok) {
       validateOutput.textContent = data.message || "Команда не выполнена";
@@ -465,9 +459,17 @@
       isCommandRunning = false;
       return;
     }
-    if (editorPath) {
-      term.writeln(`[ Открыт редактор: ${editorPath} ]`);
-      await openNanoEditor(editorPath);
+    if (isClear) {
+      term.clear();
+      writePrompt();
+      isCommandRunning = false;
+      scrollTerminalDown();
+      return;
+    }
+    const editorPathAfterRun = editorPath ?? parseEditorCommand(command);
+    if (editorPathAfterRun) {
+      term.writeln(`[ Открыт редактор: ${editorPathAfterRun} ]`);
+      await openNanoEditor(editorPathAfterRun);
       isCommandRunning = false;
       scrollTerminalDown();
       return;
@@ -637,10 +639,7 @@
         return;
       }
       if (dataChunk === "\u000c") {
-        term.clear();
-        commandBuffer = "";
-        cursorPos = 0;
-        writePrompt();
+        void submitCommand("clear");
         return;
       }
       if (dataChunk.length > 1) {

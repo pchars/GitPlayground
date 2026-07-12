@@ -138,18 +138,26 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("Последние действия", html)
         self.assertNotIn("Топ-10", html)
 
-    def test_theory_page_prefers_database_content_over_builtin_fallback(self):
+    def test_theory_index_shows_book_toc(self):
         self.client.force_login(self.user)
         response = self.client.get("/theory/1/")
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Раздел", html)
-        self.assertIn("theory-hero-inner", html)
-        self.assertIn("scroll-top-btn", html)
-        self.assertIn("scroll_top.js", html)
-        self.assertNotIn("theory-pager-level", html)
-        self.assertNotIn("theory.js", html)
-        self.assertNotIn("Углубленная теория перед практикой", html)
+        self.assertIn("theory-book", html)
+        self.assertIn("Оглавление", html)
+        self.assertIn("Обзор уровня", html)
+        self.assertIn("/theory/1/overview/", html)
+        self.assertNotIn("theory-content-card", html)
+
+    def test_theory_article_page_renders_overview(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/theory/1/overview/")
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("theory-article", html)
+        self.assertIn("Обзор уровня", html)
+        self.assertIn("← Оглавление", html)
+        self.assertIn("theory-text", html)
 
     def test_tasks_page_collapses_all_levels_by_default(self):
         import re
@@ -186,6 +194,7 @@ class PagesRegressionTests(TestCase):
         self.assertNotIn("Подсказок доступно", html)
         self.assertNotIn("баллов</p>", html)
         self.assertIn("terminal_paste.js", html)
+        self.assertIn("playground-workspace", html)
 
     def test_footer_contains_privacy_policy_link(self):
         response = self.client.get("/")

@@ -6,8 +6,28 @@ from apps.tasks.task_descriptions import TASK_CONDITIONS
 from apps.tasks.task_hints import TASK_HINTS
 
 # slug -> points per level (source of truth for seed and coverage tests)
-# Course arc: basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms
+# Course arc: terminal intro → basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms
 LEVEL_TASK_POINTS: dict[int, list[tuple[str, int]]] = {
+    0: [
+        ("sandbox_pwd", 5),
+        ("sandbox_ls", 5),
+        ("sandbox_whoami", 4),
+        ("sandbox_mkdir", 6),
+        ("sandbox_touch", 5),
+        ("sandbox_echo_write", 7),
+        ("sandbox_cat", 5),
+        ("sandbox_echo_append", 6),
+        ("sandbox_type_empty", 5),
+        ("sandbox_head", 5),
+        ("sandbox_tail", 5),
+        ("sandbox_wc", 6),
+        ("sandbox_cp", 7),
+        ("sandbox_mv", 7),
+        ("sandbox_find", 6),
+        ("sandbox_rm", 6),
+        ("sandbox_nano", 6),
+        ("sandbox_clear", 4),
+    ],
     1: [
         ("init_repo", 6),
         ("first_commit", 10),

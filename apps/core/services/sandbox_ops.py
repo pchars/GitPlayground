@@ -489,6 +489,53 @@ def run_command(
                 check=False,
                 env=git_env(),
             )
+    elif policy_kind == "git_redirect":
+        args = policy_data["args"]
+        if _is_docker_session(session):
+            proc = subprocess.run(
+                ["docker", "exec", session.container_id, *args],
+                capture_output=True,
+                text=True,
+                timeout=session.timeout_seconds,
+                check=False,
+            )
+        else:
+            proc = subprocess.run(
+                args,
+                cwd=session.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=session.timeout_seconds,
+                check=False,
+                env=git_env(),
+            )
+        if proc.returncode == 0:
+            output_text = (proc.stdout or "").rstrip("\n")
+            if output_text:
+                ok = append_repo_text_line(
+                    session.repo_path,
+                    policy_data["path"],
+                    output_text,
+                    append=policy_data["mode"] == ">>",
+                )
+                if not ok:
+                    return CommandResult(
+                        command=command,
+                        return_code=1,
+                        output="Path escapes sandbox and is blocked.",
+                        duration_ms=0,
+                    )
+            elif policy_data["mode"] == ">":
+                ok = write_empty_repo_file(session.repo_path, policy_data["path"])
+                if not ok:
+                    return CommandResult(
+                        command=command,
+                        return_code=1,
+                        output="Path escapes sandbox and is blocked.",
+                        duration_ms=0,
+                    )
+        # Redirect commands are silent in the terminal (like shell).
+        proc = subprocess.CompletedProcess(["policy"], proc.returncode, "", proc.stderr or "")
     elif policy_kind in {"touch", "type_nul_redirect"}:
         if policy_kind == "touch":
             ok = touch_repo_file(session.repo_path, policy_data["path"])

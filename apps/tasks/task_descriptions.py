@@ -46,6 +46,9 @@ _FILE_CREATE_SLUGS = frozenset(
         "mr_feature_branch",
         "add_gitlab_ci_yaml",
         "gitlab_md_issue_ref",
+        "sandbox_echo_write",
+        "sandbox_type_empty",
+        "sandbox_touch",
     }
 )
 
@@ -75,6 +78,30 @@ def _with_file_hints(conditions: dict[str, str]) -> dict[str, str]:
 
 
 _RAW_TASK_CONDITIONS: dict[str, str] = {
+    # Level 0 — terminal sandbox
+    "sandbox_pwd": "Узнай, в какой папке ты работаешь сейчас.",
+    "sandbox_ls": "Посмотри, какие файлы и каталоги есть в текущей папке.",
+    "sandbox_whoami": "Узнай имя пользователя в учебной песочнице.",
+    "sandbox_mkdir": "Создай каталог practice.",
+    "sandbox_touch": "Создай пустой файл practice/notes.txt.",
+    "sandbox_echo_write": (
+        "Запиши строку GitPlayground в файл practice/notes.txt "
+        "(файл должен содержать именно это слово)."
+    ),
+    "sandbox_cat": "Выведи на экран содержимое файла practice/notes.txt.",
+    "sandbox_echo_append": (
+        "Добавь строку sandbox в конец practice/notes.txt, не удаляя уже записанный текст."
+    ),
+    "sandbox_type_empty": "Создай пустой файл practice/blank.txt.",
+    "sandbox_head": "Покажи первую строку файла practice/notes.txt.",
+    "sandbox_tail": "Покажи последнюю строку файла practice/notes.txt.",
+    "sandbox_wc": "Посчитай количество строк в practice/notes.txt.",
+    "sandbox_cp": "Скопируй practice/notes.txt в practice/copy.txt.",
+    "sandbox_mv": "Переименуй или перемести practice/copy.txt в practice/backup.txt.",
+    "sandbox_find": "Найди файлы внутри каталога practice.",
+    "sandbox_rm": "Удали файл practice/blank.txt.",
+    "sandbox_nano": "Открой файл practice/diary.txt во встроенном редакторе (nano или edit).",
+    "sandbox_clear": "Очисти экран терминала.",
     # Level 1 — basics
     "init_repo": (
         "Преврати текущую папку в Git-репозиторий. После этого в ней должен "
@@ -86,44 +113,44 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "с сообщением `Add hello`."
     ),
     "check_status": (
-        "Измени `hello.txt`, но не добавляй правку в индекс. Выполни `git status` и убедись, "
-        "что Git видит файл как изменённый, но не подготовленный к коммиту (статус ` M`)."
+        "Измени `hello.txt`, но не добавляй правку в индекс. Убедись, что Git видит файл "
+        "как изменённый в рабочей папке, но не подготовленный к коммиту."
     ),
     "stage_unstage": (
-        "Измени `hello.txt` и добавь его в индекс, затем сними файл из индекса, "
-        "сохранив саму правку. Итог: файл изменён, но не подготовлен к коммиту "
-        "(статус ` M`). Важно снять из индекса, не откатывая изменения."
+        "Измени `hello.txt`, подготовь его к коммиту, затем сними с индекса, "
+        "сохранив саму правку в файле. Итог: изменение есть на диске, но не в staging."
     ),
     "view_diff": (
-        "Добавь в `hello.txt` строку `Another line` и, не коммитя её, посмотри "
-        "незакоммиченные изменения — добавленная строка должна быть видна в diff."
+        "Добавь в `hello.txt` строку `Another line` и посмотри незакоммиченные "
+        "изменения — добавленная строка должна быть видна в diff."
     ),
     "commit_second": (
         "Внеси ещё одну правку в `hello.txt` и зафиксируй её вторым коммитом "
         "с сообщением `Update hello`."
     ),
     "amend_commit": (
-        "Создай файл `config.txt`, добавь его в индекс и включи в последний коммит, "
-        "не создавая новый."
+        "Создай файл `config.txt`, включи его в последний коммит "
+        "без создания нового коммита в истории."
     ),
     "view_history": (
-        "Выведи историю коммитов в компактном однострочном виде командой `git log --oneline`."
+        "Выведи историю коммитов в компактном однострочном виде — "
+        "короткий хеш и сообщение на каждой строке."
     ),
     "grep_in_repo": (
-        "Найди в отслеживаемых файлах строку `Git` командой `git grep` "
-        "и запиши одну найденную строку (формат `файл:текст`) в файл `grep-hit.txt`."
+        "Найди в отслеживаемых файлах вхождение строки `Git` и сохрани одну "
+        "найденную строку в формате `файл:текст` в файл `grep-hit.txt`."
     ),
     "stage_tracked_only": (
         "Измени `hello.txt`, создай неотслеживаемый `scratch.txt` и закоммить "
-        "только изменения уже отслеживаемых файлов (`git add -u`), не добавляя `scratch.txt`."
+        "только изменения уже отслеживаемых файлов — `scratch.txt` в коммит не должен попасть."
     ),
     "reset_head_unstage": (
-        "Измени `hello.txt`, добавь в индекс, затем сними с индекса через "
-        "`git reset HEAD hello.txt` (без `git restore`)."
+        "Измени `hello.txt`, подготовь его к коммиту, затем сними с индекса через "
+        "`reset` по имени файла, не откатывая правки в рабочей папке."
     ),
     "diff_cached_staged": (
-        "Измени `hello.txt`, добавь в индекс (`git add`) и создай маркер "
-        "`staged-ready.txt` — валидатор проверит непустой `git diff --cached`."
+        "Измени `hello.txt`, подготовь правку к коммиту и создай маркер "
+        "`staged-ready.txt` — валидатор проверит непустой staged diff."
     ),
     # Level 2 — repository hygiene (.gitignore)
     "setup_ignore": (
@@ -179,8 +206,8 @@ _RAW_TASK_CONDITIONS: dict[str, str] = {
         "и запиши имя текущей ветки в `active-branch.txt`."
     ),
     "rescue_detached_head": (
-        "Перейди в detached HEAD (`git checkout --detach`), затем создай ветку "
-        "`rescue-tip` и запиши её имя в `rescue-branch.txt`."
+        "Перейди в detached HEAD, затем создай ветку `rescue-tip` от текущего коммита "
+        "и переключись на неё. Запиши имя ветки в `rescue-branch.txt`."
     ),
     # Level 4 — merges
     "fast_forward_merge": (

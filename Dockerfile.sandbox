@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
+    && apt-get install -y --only-upgrade liblzma5 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

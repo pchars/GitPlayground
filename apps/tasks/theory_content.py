@@ -3,18 +3,17 @@
 Source of truth for TheoryBlock seeding. Imported by seed_initial_data and the theory
 view. Loaded into the DB on every `manage.py seed_initial_data` run.
 
-Course order (2026): basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms.
+Course order (2026): terminal intro → basics → hygiene → branches → merges → history → remotes → tags → diagnostics → platforms.
 """
 
-THEORY_CONTENT = {1: '# Основы Git\n'
+from apps.tasks.level0_theory import LEVEL_0_DIAGRAM, LEVEL_0_HINTS, LEVEL_0_THEORY
+
+THEORY_CONTENT = {0: LEVEL_0_THEORY, 1: '# Основы Git\n'
     '\n'
     'Git — **распределённая система контроля версий** (VCS): она хранит историю изменений\n'
     'проекта и позволяет нескольким людям работать параллельно. В отличие от обычного\n'
     '«Сохранить как…», Git запоминает **цепочку снимков** (коммитов) с автором, датой и\n'
     'сообщением.\n'
-    '\n'
-    '> **Главная идея уровня:** записать файл на диск ≠ сделать коммит. Между ними есть\n'
-    '> **индекс** (staging area) — список того, что попадёт в следующий снимок.\n'
     '\n'
     '## Что вы узнаете\n'
     '\n'
@@ -2554,7 +2553,8 @@ THEORY_CONTENT = {1: '# Основы Git\n'
     '5. Теги и `describe` для версий.\n'
     '6. `reflog` и bisect — когда что-то пошло не так.\n'}
 
-LEVEL_SECTION_HINTS = {1: ('Цикл новичка: status → add → diff --cached → commit → log.',
+LEVEL_SECTION_HINTS = {0: LEVEL_0_HINTS,
+ 1: ('Цикл новичка: status → add → diff --cached → commit → log.',
      'Сохранение файла и коммит — разные шаги; между ними индекс (staging).'),
  2: ('Настрой .gitignore до первого массового git add.',
      'git rm --cached снимает файл с учёта, не удаляя с диска.'),
@@ -2573,7 +2573,8 @@ LEVEL_SECTION_HINTS = {1: ('Цикл новичка: status → add → diff --c
  9: ('Fixes #N / Closes #N в сообщении коммита связывает правку с issue.',
      'git mv сохраняет историю переименования лучше, чем ручное rename.')}
 
-LEVEL_DIAGRAMS = {1: 'flowchart LR\n'
+LEVEL_DIAGRAMS = {0: LEVEL_0_DIAGRAM,
+ 1: 'flowchart LR\n'
     '  worktree[Working tree] --> index[Index / staging]\n'
     '  index --> commit[Commit]\n'
     '  commit --> history[History .git]',

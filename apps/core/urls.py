@@ -47,6 +47,7 @@ urlpatterns = [
     path("tasks/", views.tasks_list, name="tasks"),
     path("tasks/level/<int:level_number>/", views.tasks_list, name="tasks-by-level"),
     path("theory/<int:level_id>/", views.theory_detail, name="theory-detail"),
+    path("theory/<int:level_id>/<slug:article_slug>/", views.theory_article, name="theory-article"),
     path("playground/<str:task_id>/", views.playground, name="playground"),
     path(
         "playground/<str:task_id>/run/",

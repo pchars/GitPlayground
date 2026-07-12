@@ -25,7 +25,8 @@ _BLOCKED_GIT_SUBCOMMANDS = frozenset(
 
 SANDBOX_ALLOWED_COMMANDS_SUMMARY = (
     "git, ls, pwd, mkdir, touch, cat, head, tail, wc, cp, mv, rm, find, "
-    "echo (вывод и запись в файл), type nul >, nano/edit, whoami, clear"
+    "echo (вывод и запись в файл), type nul >, nano/edit, whoami, clear; "
+    "у git поддерживается перенаправление stdout: git … > файл"
 )
 
 
@@ -109,10 +110,26 @@ def parse_user_command(command: str) -> tuple[bool, str, dict]:
 
     root = tokens[0]
     if root == "git":
-        ok, reason = _git_tokens_allowed(tokens)
+        redirect_mode = None
+        redirect_path = None
+        git_tokens = tokens
+        if len(tokens) >= 4 and tokens[-2] in {">", ">>"}:
+            redirect_mode = tokens[-2]
+            redirect_path = tokens[-1]
+            git_tokens = tokens[:-2]
+            ok, reason, _ = _validate_repo_path_token(redirect_path, reason_prefix="redirect")
+            if not ok:
+                return False, reason, {}
+        ok, reason = _git_tokens_allowed(git_tokens)
         if not ok:
             return False, reason, {}
-        return True, "git", {"args": tokens}
+        if redirect_mode:
+            return True, "git_redirect", {
+                "args": git_tokens,
+                "mode": redirect_mode,
+                "path": redirect_path,
+            }
+        return True, "git", {"args": git_tokens}
 
     if root == "touch" and len(tokens) == 2:
         return True, "touch", {"path": tokens[1]}

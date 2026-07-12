@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Теория — уровень {{ level.number }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/theory.css' %}">{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Теория / Уровень {{ level.number }}</nav>{% endblock %}
+
+{% block content %}
+<section class="card theory-book">
+  <header class="theory-book-header">
+    {% if prev_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' prev_level.number %}" aria-label="Предыдущий уровень">←</a>
+    {% else %}
+      <span class="theory-nav-arrow is-disabled" aria-hidden="true">←</span>
+    {% endif %}
+    <div class="theory-book-header-text">
+      <p class="theory-book-kicker">Уровень {{ level.number }}</p>
+      <h2 class="theory-book-title">{{ level.title }}</h2>
+      <p class="muted theory-book-lead">Оглавление — выберите раздел, как в учебнике.</p>
+    </div>
+    {% if next_level %}
+      <a class="theory-nav-arrow" href="{% url 'theory-detail' next_level.number %}" aria-label="Следующий уровень">→</a>
+    {% else %}
+      <span class="theory-nav-arrow is-disabled" aria-hidden="true">→</span>
+    {% endif %}
+  </header>
+
+  {% if toc_entries %}
+    <nav class="theory-book-toc" aria-label="Оглавление уровня {{ level.number }}">
+      <ol class="theory-book-toc-list">
+        {% for entry in toc_entries %}
+          <li class="theory-book-toc-item">
+            <a class="theory-book-toc-link" href="{% url 'theory-article' level.number entry.slug %}">
+              <span class="theory-book-toc-index">{{ entry.index_label }}</span>
+              <span class="theory-book-toc-title">{{ entry.title }}</span>
+              {% if entry.subtitle %}
+                <span class="theory-book-toc-sub muted">{{ entry.subtitle }}</span>
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+  {% else %}
+    <p class="muted theory-book-empty">Теория для этого уровня пока не добавлена.</p>
+  {% endif %}
+</section>
+{% endblock %}

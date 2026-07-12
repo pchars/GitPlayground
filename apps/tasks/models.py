@@ -13,8 +13,8 @@ class Level(models.Model):
         ordering = ["number"]
         constraints = [
             models.CheckConstraint(
-                condition=Q(number__gte=1) & Q(number__lte=9),
-                name="tasks_level_number_1_9",
+                condition=Q(number__gte=0) & Q(number__lte=9),
+                name="tasks_level_number_0_9",
             ),
         ]
 

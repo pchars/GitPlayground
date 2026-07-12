@@ -15,11 +15,14 @@ from apps.core.client_errors import INSUFFICIENT_HINT_POINTS, SANDBOX_UNAVAILABL
 from apps.core.playground_limits import allow_playground_action
 from apps.core.services import (
     HintRequestError,
+    NON_BLOCKING_LEVEL_NUMBERS,
     NotEnoughPointsError,
     audit_playground_repo_file,
     can_open_task,
     get_active_session,
+    get_next_optional_track_task_for_user,
     get_next_unlockable_task_for_user,
+    get_suggested_next_task_after_pass,
     get_or_create_active_session,
     hint_ui_state,
     process_hint_request,
@@ -33,6 +36,8 @@ from apps.core.services import (
 from apps.progress.models import TaskAttempt
 from apps.sandbox.models import SandboxSession
 from apps.tasks.models import Task
+
+from apps.core.views.learning import task_theory_html
 
 from .helpers import _log_playground_event, _task_from_route
 
@@ -105,7 +110,10 @@ def playground(request, task_id):
     normalized_id = task_id.replace("_", ".")
     task = get_object_or_404(Task.objects.select_related("level"), external_id=normalized_id)
     if not can_open_task(request.user, task):
-        next_task = get_next_unlockable_task_for_user(request.user)
+        if task.level.number in NON_BLOCKING_LEVEL_NUMBERS:
+            next_task = get_next_optional_track_task_for_user(request.user)
+        else:
+            next_task = get_next_unlockable_task_for_user(request.user)
         if next_task:
             return redirect("playground", task_id=next_task.external_id.replace(".", "_"))
         return redirect("tasks")
@@ -131,6 +139,8 @@ def playground(request, task_id):
             "task_route_id": task.external_id.replace(".", "_"),
             "learning_content": task_learning_content(request.user, task),
             "hint_ui_state": hint_ui_state(request.user, task),
+            "task_theory_html": task_theory_html(task.slug),
+            "level_theory_url": f"/theory/{task.level.number}/",
         },
     )
 
@@ -245,7 +255,7 @@ def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
     awarded_payload = achievement_toast_payloads_since(request.user, before_achievement_ids)
     next_task = None
     if attempt.verdict == TaskAttempt.Verdict.PASSED:
-        next_task = get_next_unlockable_task_for_user(request.user)
+        next_task = get_suggested_next_task_after_pass(request.user, task)
     response = JsonResponse(
         {
             "ok": True,

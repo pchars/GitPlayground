@@ -78,3 +78,25 @@ def seed_workspace_from_assets(task: Task, workspace: Path) -> None:
         else:
             _git("checkout", "-b", "feature-x")
             _git("checkout", "main")
+
+    if task.slug == "ignore_node_modules":
+        node_modules = workspace / "node_modules"
+        node_modules.mkdir(parents=True, exist_ok=True)
+        (node_modules / "dummy.js").write_text("// dependency stub\n", encoding="utf-8")
+
+    if task.slug == "untrack_cached":
+        secrets = workspace / "secrets.env"
+        secrets.write_text("SECRET=1\n", encoding="utf-8")
+        _git("add", "secrets.env")
+        _git("commit", "-m", "Track secrets by mistake")
+
+    if task.slug == "ignore_exceptions":
+        (workspace / "debug.log").write_text("debug output\n", encoding="utf-8")
+        (workspace / "important.log").write_text("important output\n", encoding="utf-8")
+
+    if task.slug == "setup_ignore":
+        (workspace / "app.log").write_text("log line\n", encoding="utf-8")
+        (workspace / ".env").write_text("KEY=value\n", encoding="utf-8")
+        cache_dir = workspace / "__pycache__"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        (cache_dir / "module.pyc").write_bytes(b"\x00")

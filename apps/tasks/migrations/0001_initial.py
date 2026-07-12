@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['number'],
-                'constraints': [models.CheckConstraint(condition=models.Q(('number__gte', 1), ('number__lte', 9)), name='tasks_level_number_1_9')],
+                'constraints': [models.CheckConstraint(condition=models.Q(('number__gte', 0), ('number__lte', 9)), name='tasks_level_number_0_9')],
             },
         ),
         migrations.CreateModel(

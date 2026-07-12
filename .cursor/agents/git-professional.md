@@ -16,7 +16,7 @@ authors, or copyrighted excerpts**.
 - User-facing copy in **Russian**; code identifiers in English.
 - Every seeded task needs a **golden solution** in `test_task_solvability.SOLUTIONS`.
 - Theory source of truth: `apps/tasks/theory_content.py` → `seed_initial_data`.
-- Levels **1–9**; level **9** = platforms, CI, releases, professional workflows.
+- Levels **0–9**; level **0** = terminal sandbox; level **9** = platforms, CI, releases, professional workflows.
 
 Do **not** paste copyrighted material. Paraphrase in your own words; teach concepts directly.
 

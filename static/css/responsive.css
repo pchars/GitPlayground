@@ -14,20 +14,29 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .playground-grid {
+  .playground-workspace-body {
     grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .playground-divider {
+    display: none;
   }
 
   .mobile-tabs {
     display: flex;
   }
 
-  .playground-grid .tab-panel {
+  .playground-workspace-body .tab-panel {
     display: none;
   }
 
-  .playground-grid .tab-panel.active {
-    display: block;
+  .playground-workspace-body .tab-panel.active {
+    display: flex;
+  }
+
+  .playground-terminal-pane {
+    padding: var(--spacing-md);
   }
 
   .terminal-shell .terminal-body {
@@ -54,7 +63,7 @@
 @media (max-width: 768px) {
   .grid.two,
   .theory-layout,
-  .playground-grid {
+  .playground-workspace-body {
     grid-template-columns: 1fr;
   }
 
@@ -223,7 +232,7 @@
     margin-bottom: var(--spacing-md);
   }
 
-  .playground-grid,
+  .playground-workspace-body,
   .theory-layout,
   .grid.two {
     gap: var(--spacing-md);

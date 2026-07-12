@@ -199,6 +199,8 @@ class CoreFlowTests(TestCase):
         self.assertNotIn("apps/", (after.output or "").lower())
 
     def test_navigation_commands_are_allowed_and_sandboxed(self):
+        from pathlib import Path
+
         task = Task.objects.create(
             external_id="1.8",
             slug="nav_helpers",
@@ -211,6 +213,10 @@ class CoreFlowTests(TestCase):
         session = get_or_create_active_session(self.user, task)
 
         self.assertEqual(run_command(session, "pwd").output, "~/repo")
+
+        self.assertEqual(run_command(session, "clear").return_code, 0)
+        log_path = Path(session.repo_path) / ".gp" / "commands.log"
+        self.assertIn("clear", log_path.read_text(encoding="utf-8"))
 
         self.assertEqual(run_command(session, "mkdir notes").return_code, 0)
         self.assertEqual(run_command(session, "touch notes/todo.txt").return_code, 0)
@@ -243,6 +249,14 @@ class CoreFlowTests(TestCase):
 
         self.assertEqual(run_command(session, "rm sample-copy.txt").return_code, 0)
         self.assertNotEqual(run_command(session, "cat sample-copy.txt").return_code, 0)
+
+        run_command(session, "git init")
+        run_command(session, 'echo "Hello, Git!" > hello.txt')
+        self.assertEqual(run_command(session, "git add hello.txt").return_code, 0)
+        self.assertEqual(run_command(session, 'git commit -m "Add hello"').return_code, 0)
+        self.assertEqual(run_command(session, "git grep Git > grep-hit.txt").return_code, 0)
+        grep_hit_text = (Path(session.repo_path) / "grep-hit.txt").read_text(encoding="utf-8")
+        self.assertIn("hello.txt", grep_hit_text)
 
     def test_successful_commands_recorded_in_gp_log(self):
         from pathlib import Path

@@ -1,47 +1,127 @@
-/* ——— Playground / terminal ——— */
-.playground-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr);
-  gap: var(--spacing-lg);
+/* ——— Playground: один блок, слева теория/условие, справа терминал ——— */
+.playground-workspace {
+  padding: 0;
+  overflow: hidden;
 }
 
-.playground-condition .playground-task-title {
-  margin: 0 0 var(--spacing-md);
-  font-size: 1.35rem;
+.playground-workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1.85fr);
+  align-items: stretch;
+  min-height: clamp(520px, 72vh, 820px);
+}
+
+.playground-learn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.playground-learn-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.playground-learn-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.playground-task-title {
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.35;
+  flex: 1 1 200px;
 }
 
-.playground-condition h3 {
-  margin: 0 0 var(--spacing-xs);
-  font-size: 0.78rem;
+.playground-theory-index-link {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.playground-learn-section {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.playground-learn-section + .playground-learn-section {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.playground-section-label {
+  margin: 0;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
-.playground-condition > p {
-  margin: 0 0 var(--spacing-md);
+.playground-condition-text {
+  margin: 0;
   font-size: 15px;
   line-height: 1.65;
 }
 
-.playground-hint-block {
-  display: grid;
-  gap: var(--spacing-sm);
+.playground-theory-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.playground-theory-text h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-ink);
+}
+
+.playground-learn-section--hints {
+  margin-top: auto;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-hairline);
 }
 
 .playground-hint-btn {
   width: 100%;
 }
 
-.playground-hint-block .hint-box {
-  font-size: 15px;
-  line-height: 1.65;
+.playground-learn-section--hints .hint-box {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.playground-divider {
+  background: var(--color-hairline);
+  width: 1px;
+  min-height: 100%;
+}
+
+.playground-terminal-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--spacing-lg);
+  padding-left: var(--spacing-md);
 }
 
 .terminal-shell {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border: 1px solid var(--color-hairline);
   border-radius: var(--rounded-lg);
   overflow: hidden;
@@ -50,8 +130,9 @@
 
 .terminal-shell .terminal-body {
   position: relative;
-  min-height: 500px;
-  height: clamp(500px, 68vh, 780px);
+  flex: 1 1 auto;
+  min-height: 360px;
+  height: auto;
   padding: 0;
   overflow: hidden;
   background: var(--bg-terminal);
@@ -98,9 +179,9 @@
   align-items: center;
   gap: var(--spacing-xs);
   padding: 0 var(--spacing-sm);
+  flex-shrink: 0;
 }
 
-/* macOS-style window dots — ANSI/terminal exception per docs/DESIGN.md */
 .dot {
   width: 10px;
   height: 10px;
@@ -129,6 +210,7 @@
   flex-wrap: wrap;
   align-items: center;
   margin-top: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .terminal-actions .validate-banner {
@@ -141,11 +223,9 @@
   border: 1px dashed var(--color-hairline);
   border-radius: var(--rounded-lg);
   padding: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
 }
 
 .validate-banner {
-  margin: var(--spacing-sm) 0 var(--spacing-xs);
   border-style: solid;
 }
 
@@ -166,8 +246,7 @@
 .mobile-tabs {
   display: none;
   gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-xs);
-  grid-column: 1 / -1;
+  padding: var(--spacing-sm) var(--spacing-md) 0;
 }
 
 .tab-btn.active {

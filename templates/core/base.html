@@ -37,7 +37,7 @@
           <span class="nav-toggle-label">Меню</span>
         </button>
         <nav class="header-nav" id="header-nav" aria-label="Основная навигация">
-          <a class="btn btn-text-link" href="{% url 'theory-detail' 1 %}">Теория</a>
+          <a class="btn btn-text-link" href="{% url 'theory-detail' 0 %}">Теория</a>
           <a class="btn btn-text-link" href="{% url 'tasks' %}">Задачи</a>
           <a class="btn btn-text-link" href="{% url 'quiz-home' %}">Квиз</a>
           <a class="btn btn-text-link" href="{% url 'leaderboard' %}">Таблица лидеров</a>
@@ -80,7 +80,7 @@
       <div class="site-footer-col">
         <h4>Обучение</h4>
         {% if request.user.is_authenticated %}
-          <a href="{% url 'theory-detail' 1 %}">Теория</a>
+          <a href="{% url 'theory-detail' 0 %}">Теория</a>
           <a href="{% url 'tasks' %}">Задачи</a>
           <a href="{% url 'quiz-home' %}">Квиз</a>
         {% else %}

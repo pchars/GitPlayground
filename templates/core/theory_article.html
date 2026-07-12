@@ -1,0 +1,74 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | {{ article_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/theory.css' %}">{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / <a href="{% url 'theory-detail' level.number %}">Теория {{ level.number }}</a> / {{ article_title }}</nav>{% endblock %}
+
+{% block content %}
+<section class="card theory-article">
+  <header class="theory-article-header">
+    <a class="theory-article-back" href="{% url 'theory-detail' level.number %}">← Оглавление</a>
+    <p class="theory-book-kicker">Уровень {{ level.number }} · {{ level.title }}</p>
+    <h2 class="theory-article-title">{{ article_title }}</h2>
+  </header>
+
+  {% if rendered_md %}
+    <article class="theory-text">{{ rendered_md|safe }}</article>
+  {% else %}
+    <p class="muted">Содержимое раздела пока не добавлено.</p>
+  {% endif %}
+
+  {% if show_diagram %}
+    <div class="theory-visualization">
+      <h3>Визуализация</h3>
+      <div class="theory-diagram-wrap">
+        <pre class="diagram mermaid">{% if diagram_mermaid %}{{ diagram_mermaid }}{% else %}graph LR; A-->B;{% endif %}</pre>
+      </div>
+    </div>
+  {% endif %}
+
+  <nav class="theory-article-pager" aria-label="Навигация по разделам">
+    {% if prev_article %}
+      <a class="theory-article-pager-link theory-article-pager-link--prev" href="{% url 'theory-article' level.number prev_article.slug %}">
+        <span class="theory-article-pager-dir">Назад</span>
+        <span class="theory-article-pager-label">{{ prev_article.title }}</span>
+      </a>
+    {% else %}
+      <span class="theory-article-pager-spacer"></span>
+    {% endif %}
+    {% if next_article %}
+      <a class="theory-article-pager-link theory-article-pager-link--next" href="{% url 'theory-article' level.number next_article.slug %}">
+        <span class="theory-article-pager-dir">Далее</span>
+        <span class="theory-article-pager-label">{{ next_article.title }}</span>
+      </a>
+    {% endif %}
+  </nav>
+</section>
+
+{% if show_diagram %}
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    securityLevel: "loose",
+    theme: "base",
+    themeVariables: {
+      background: "#ffffff",
+      primaryColor: "#f5f5f5",
+      primaryTextColor: "#111111",
+      primaryBorderColor: "#e5e7eb",
+      secondaryColor: "#f8f9fa",
+      tertiaryColor: "#ffffff",
+      lineColor: "#6b7280",
+      textColor: "#374151",
+      mainBkg: "#f5f5f5",
+      nodeBorder: "#e5e7eb",
+      clusterBkg: "#f8f9fa",
+      titleColor: "#111111",
+      edgeLabelBackground: "#ffffff",
+    },
+  });
+</script>
+{% endif %}
+{% endblock %}
