@@ -2,7 +2,7 @@
 
 from .auth import activate_account, signup_view
 from .leaderboard import leaderboard
-from .learning import tasks_list, theory_article, theory_detail
+from .learning import tasks_list, theory_detail, theory_home
 from .pages import healthcheck, landing
 from .playground import (
     playground,
@@ -36,6 +36,6 @@ __all__ = [
     "public_profile",
     "signup_view",
     "tasks_list",
-    "theory_article",
     "theory_detail",
+    "theory_home",
 ]

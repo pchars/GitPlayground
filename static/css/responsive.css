@@ -238,6 +238,15 @@
     gap: var(--spacing-md);
   }
 
+  .theory-chapter-header {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .theory-chapter-back {
+    justify-self: start;
+  }
+
   .landing-hero-band {
     padding: var(--spacing-xl) 0;
     margin-bottom: var(--spacing-xl);

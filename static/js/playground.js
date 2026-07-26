@@ -73,6 +73,32 @@
     insertAtCursor(chunk);
   }
 
+  function isPasteChord(event) {
+    return (event.ctrlKey || event.metaKey)
+      && !event.altKey
+      && !event.shiftKey
+      && String(event.key || "").toLowerCase() === "v";
+  }
+
+  function pasteFromSystemClipboard() {
+    if (isNanoOpen || isCommandRunning) {
+      return;
+    }
+    const clipboard = navigator.clipboard;
+    if (!clipboard || typeof clipboard.readText !== "function") {
+      return;
+    }
+    clipboard.readText()
+      .then((text) => {
+        if (text) {
+          applyPaste(text);
+        }
+      })
+      .catch(() => {
+        // Permission denied or insecure context: context-menu paste still works.
+      });
+  }
+
   function writePrompt() {
     term.write(`\r\n${PROMPT_ANSI}`);
   }
@@ -153,18 +179,10 @@
           return true;
         }
         const key = event.key.toLowerCase();
-        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "v") {
-          event.preventDefault();
-          if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
-            navigator.clipboard.readText().then((text) => {
-              if (isNanoOpen && nanoBody) {
-                insertTextAtSelection(nanoBody, text);
-                focusWithoutScroll(nanoBody);
-                return;
-              }
-              applyPaste(text);
-            }).catch(() => {});
-          }
+        // Ctrl/Cmd+V: cancel xterm handling; host capture listener pastes via clipboard API.
+        // Returning true lets xterm swallow V; returning false alone also blocks the browser
+        // paste event — so pasteFromSystemClipboard must run (see terminalBody keydown).
+        if (isPasteChord(event)) {
           return false;
         }
         if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "c" && term.hasSelection()) {
@@ -412,12 +430,27 @@
     if (isNanoOpen && nanoBody && (event.target === nanoBody || (nanoOverlay && nanoOverlay.contains(event.target)))) {
       return;
     }
-    const pasted = event.clipboardData && event.clipboardData.getData("text");
+    const data = event.clipboardData;
+    const pasted = data
+      && (data.getData("text/plain") || data.getData("text"));
     if (!pasted) {
       return;
     }
     event.preventDefault();
+    event.stopPropagation();
     applyPaste(pasted);
+  }
+
+  function handleTerminalPasteKeydown(event) {
+    if (isNanoOpen) {
+      return;
+    }
+    if (!isPasteChord(event)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    pasteFromSystemClipboard();
   }
 
   function handleNanoPaste(event) {
@@ -662,7 +695,13 @@
       }
       term.focus();
     });
-    terminalBody.addEventListener("paste", handleTerminalPaste);
+    // Capture Ctrl/Cmd+V before xterm; also accept native paste (context menu).
+    terminalBody.addEventListener("keydown", handleTerminalPasteKeydown, true);
+    terminalBody.addEventListener("paste", handleTerminalPaste, true);
+    xtermHost.addEventListener("paste", handleTerminalPaste, true);
+    if (term.textarea) {
+      term.textarea.addEventListener("paste", handleTerminalPaste);
+    }
   }
 
   if (nanoBody) {

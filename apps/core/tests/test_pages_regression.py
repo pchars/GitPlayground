@@ -79,6 +79,7 @@ class PagesRegressionTests(TestCase):
             "/profile/",
             "/profile/edit/",
             "/tasks/",
+            "/theory/",
             "/theory/1/",
             "/quiz/",
             "/quiz/play/?difficulty=easy",
@@ -140,25 +141,32 @@ class PagesRegressionTests(TestCase):
 
     def test_theory_index_shows_book_toc(self):
         self.client.force_login(self.user)
+        home = self.client.get("/theory/")
+        self.assertEqual(home.status_code, 200)
+        home_html = home.content.decode("utf-8")
+        self.assertIn("theory-book", home_html)
+        self.assertIn("Оглавление", home_html)
+        self.assertIn("theory-toc-book", home_html)
+        self.assertIn("theory-toc-accordion", home_html)
+        self.assertIn("/theory/1/", home_html)
+
         response = self.client.get("/theory/1/")
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("theory-book", html)
-        self.assertIn("Оглавление", html)
-        self.assertIn("Обзор уровня", html)
-        self.assertIn("/theory/1/overview/", html)
+        self.assertIn("theory-chapter", html)
+        self.assertIn("theory-text", html)
+        self.assertIn("К оглавлению", html)
+        self.assertIn('id="', html)
+        self.assertNotIn("theory-chapter-toc", html)
+        self.assertNotIn("На этой странице", html)
+        self.assertNotIn("theory-nav-arrow", html)
         self.assertNotIn("theory-content-card", html)
 
-    def test_theory_article_page_renders_overview(self):
+    def test_theory_article_urls_are_gone(self):
         self.client.force_login(self.user)
-        response = self.client.get("/theory/1/overview/")
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
-        self.assertIn("theory-article", html)
-        self.assertIn("Обзор уровня", html)
-        self.assertIn("← Оглавление", html)
-        self.assertIn("theory-text", html)
-
+        for url in ("/theory/1/overview/", "/theory/0/sandbox_cat/", "/theory/1/init_repo/"):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 404, url)
     def test_tasks_page_collapses_all_levels_by_default(self):
         import re
 

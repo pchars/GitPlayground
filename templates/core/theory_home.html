@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Теория{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/theory.css' %}">{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Теория</nav>{% endblock %}
+
+{% block content %}
+<section class="card theory-book">
+  <header class="theory-book-intro">
+    <h2 class="theory-book-title">Оглавление</h2>
+  </header>
+
+  {% if chapters %}
+    <nav class="theory-toc-book" aria-label="Оглавление учебника">
+      {% for chapter in chapters %}
+        <details class="theory-toc-accordion">
+          <summary class="theory-toc-summary">
+            <span class="theory-toc-chevron" aria-hidden="true"></span>
+            <span class="theory-toc-summary-text">
+              <span class="theory-toc-kicker">Уровень {{ chapter.level.number }}</span>
+              <span class="theory-toc-name">{{ chapter.level.title }}</span>
+            </span>
+          </summary>
+          <div class="theory-toc-panel">
+            {% if chapter.sections %}
+              <ul class="theory-toc-sections">
+                {% for section in chapter.sections %}
+                  <li>
+                    <a href="{% url 'theory-detail' chapter.level.number %}#{{ section.anchor }}">{{ section.title }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </details>
+      {% endfor %}
+    </nav>
+  {% else %}
+    <p class="muted">Теория пока не добавлена.</p>
+  {% endif %}
+</section>
+{% endblock %}

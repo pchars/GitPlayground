@@ -100,3 +100,36 @@ def seed_workspace_from_assets(task: Task, workspace: Path) -> None:
         cache_dir = workspace / "__pycache__"
         cache_dir.mkdir(parents=True, exist_ok=True)
         (cache_dir / "module.pyc").write_bytes(b"\x00")
+
+    # Level 0: each task gets a fresh workspace — seed files earlier tasks would create.
+    if task.slug in {
+        "sandbox_touch",
+        "sandbox_echo_write",
+        "sandbox_cat",
+        "sandbox_echo_append",
+        "sandbox_type_empty",
+        "sandbox_head",
+        "sandbox_tail",
+        "sandbox_wc",
+        "sandbox_cp",
+        "sandbox_mv",
+        "sandbox_find",
+        "sandbox_rm",
+        "sandbox_nano",
+    }:
+        (workspace / "practice").mkdir(parents=True, exist_ok=True)
+    if task.slug in {
+        "sandbox_cat",
+        "sandbox_echo_append",
+        "sandbox_head",
+        "sandbox_cp",
+        "sandbox_find",
+    }:
+        (workspace / "practice" / "notes.txt").write_text("GitPlayground\n", encoding="utf-8")
+    if task.slug in {"sandbox_tail", "sandbox_wc"}:
+        (workspace / "practice" / "notes.txt").write_text("GitPlayground\nsandbox\n", encoding="utf-8")
+    if task.slug == "sandbox_mv":
+        (workspace / "practice" / "notes.txt").write_text("GitPlayground\n", encoding="utf-8")
+        (workspace / "practice" / "copy.txt").write_text("GitPlayground\n", encoding="utf-8")
+    if task.slug == "sandbox_rm":
+        (workspace / "practice" / "blank.txt").write_text("", encoding="utf-8")

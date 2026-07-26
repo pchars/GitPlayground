@@ -139,8 +139,10 @@ def playground(request, task_id):
             "task_route_id": task.external_id.replace(".", "_"),
             "learning_content": task_learning_content(request.user, task),
             "hint_ui_state": hint_ui_state(request.user, task),
-            "task_theory_html": task_theory_html(task.slug),
-            "level_theory_url": f"/theory/{task.level.number}/",
+            "task_theory_html": task_theory_html(
+                task.slug,
+                level_number=task.level.number,
+            ),
         },
     )
 

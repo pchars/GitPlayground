@@ -22,8 +22,6 @@
 
       <h2>Тренировочный трек Git</h2>
 
-      <p class="muted tasks-hero-lead">Проходите уровни по порядку — каждая задача открывается после предыдущей на своём уровне. Уровень 0 не блокирует Git-задачи.</p>
-
       {% if not selected_level %}
 
         <p class="muted tasks-levels-hint">Раскройте уровень, чтобы увидеть список задач.</p>
@@ -52,7 +50,7 @@
 
         {% if expanded_level_number and row.level.number == expanded_level_number %}open{% endif %}
 
-        class="accordion task-level-accordion{% if row.active_count %} task-level-accordion--current{% endif %}"
+        class="accordion task-level-accordion{% if row.active_count and row.level.number != 0 %} task-level-accordion--current{% endif %}"
 
       >
 
@@ -70,7 +68,7 @@
 
           <span class="level-summary-meta">
 
-            {% if row.active_count %}
+            {% if row.active_count and row.level.number != 0 %}
 
               <span class="level-current-badge">Текущий</span>
 

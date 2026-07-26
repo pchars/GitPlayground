@@ -20,6 +20,8 @@
 
 .playground-learn-scroll {
   flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: var(--spacing-lg);
   display: flex;
@@ -41,6 +43,8 @@
   font-weight: 600;
   line-height: 1.35;
   flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .playground-theory-index-link {
@@ -51,6 +55,8 @@
 .playground-learn-section {
   display: grid;
   gap: var(--spacing-xs);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .playground-learn-section + .playground-learn-section {
@@ -71,19 +77,73 @@
   margin: 0;
   font-size: 15px;
   line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .playground-theory-text {
+  min-width: 0;
+  max-width: 100%;
   font-size: 14px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.playground-theory-text h1,
+.playground-theory-text h2,
+.playground-theory-text h3 {
+  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-ink);
+}
+
+.playground-theory-text h1:first-child,
+.playground-theory-text h2:first-child,
+.playground-theory-text h3:first-child {
+  margin-top: 0;
+}
+
+.playground-theory-text h1 {
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+.playground-theory-text h2 {
+  font-size: 1.05rem;
+  line-height: 1.35;
 }
 
 .playground-theory-text h3 {
-  margin-top: 0;
-  font-size: 1rem;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--color-ink);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.playground-theory-text .theory-table-wrap {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.playground-theory-text table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.playground-theory-text th,
+.playground-theory-text td,
+.playground-theory-text pre,
+.playground-theory-text code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.playground-theory-text pre {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .playground-learn-section--hints {
