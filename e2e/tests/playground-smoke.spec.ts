@@ -13,11 +13,9 @@ test("playground run and validate smoke", async ({ page }) => {
   test.skip(!base, "Set BASE_URL for playground smoke");
   await loginAsSmoke(page, base);
 
-  await page.goto(`${base}/tasks/`);
-  const playgroundLink = page.locator('a[href*="/playground/"]').first();
-  await expect(playgroundLink).toBeVisible();
-  await playgroundLink.click();
-  await expect(page).toHaveURL(/\/playground\//);
+  // Level-0 accordion may be collapsed on /tasks/; open the first unlockable task directly.
+  await page.goto(`${base}/playground/gh-0_1/`);
+  await expect(page).toHaveURL(/\/playground\/gh-0_1\/?$/);
   await expect(page.locator("#xterm-host")).toBeVisible();
 
   const csrf = await page.locator("#csrf-holder input[name=csrfmiddlewaretoken]").inputValue();
