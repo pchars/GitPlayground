@@ -28,13 +28,15 @@ class RateLimitHelperTests(SimpleTestCase):
     def test_playground_validate_cap(self):
         with override_settings():
             import os
+            import uuid
 
             os.environ["PLAYGROUND_RL_WINDOW_SEC"] = "60"
             os.environ["PLAYGROUND_RL_MAX_VALIDATE"] = "2"
+            uid = int(uuid.uuid4().int % 10_000_000) + 10_000
             try:
-                self.assertTrue(allow_playground_action(1, 1, "validate"))
-                self.assertTrue(allow_playground_action(1, 1, "validate"))
-                self.assertFalse(allow_playground_action(1, 1, "validate"))
+                self.assertTrue(allow_playground_action(uid, uid, "validate"))
+                self.assertTrue(allow_playground_action(uid, uid, "validate"))
+                self.assertFalse(allow_playground_action(uid, uid, "validate"))
             finally:
                 os.environ.pop("PLAYGROUND_RL_MAX_VALIDATE", None)
 
@@ -43,12 +45,14 @@ class RateLimitHelperTests(SimpleTestCase):
     )
     def test_auth_action_cap(self):
         import os
+        import uuid
 
         os.environ["AUTH_RL_WINDOW_SEC"] = "60"
         os.environ["AUTH_RL_MAX_LOGIN"] = "2"
+        key = f"test-ip-{uuid.uuid4().hex}"
         try:
-            self.assertTrue(allow_auth_action("127.0.0.1", "login"))
-            self.assertTrue(allow_auth_action("127.0.0.1", "login"))
-            self.assertFalse(allow_auth_action("127.0.0.1", "login"))
+            self.assertTrue(allow_auth_action(key, "login"))
+            self.assertTrue(allow_auth_action(key, "login"))
+            self.assertFalse(allow_auth_action(key, "login"))
         finally:
             os.environ.pop("AUTH_RL_MAX_LOGIN", None)

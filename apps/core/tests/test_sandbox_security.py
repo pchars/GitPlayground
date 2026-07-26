@@ -10,10 +10,13 @@ from apps.core.services.workspace_seed import safe_extract_zip
 
 
 class CommandPolicySecurityTests(SimpleTestCase):
-    def test_blocks_git_config_subcommand(self):
-        allowed, reason, _ = parse_user_command("git config user.name evil")
-        self.assertFalse(allowed)
-        self.assertIn("config", reason)
+    def test_blocks_all_blocked_git_subcommands(self):
+        from apps.core.services.command_policy import _BLOCKED_GIT_SUBCOMMANDS
+
+        for sub in sorted(_BLOCKED_GIT_SUBCOMMANDS):
+            allowed, reason, _ = parse_user_command(f"git {sub}")
+            self.assertFalse(allowed, msg=sub)
+            self.assertEqual(reason, f"git_subcommand_blocked:{sub}", msg=sub)
 
     def test_blocks_git_config_injection_flag(self):
         allowed, reason, _ = parse_user_command("git -c core.hooksPath=/tmp/evil status")

@@ -28,12 +28,61 @@ class ProgressAndAchievementsTests(TestCase):
         )
 
     def test_bootstrap_default_achievements_is_idempotent(self):
+        # Exact count lives in apps.achievements.tests.test_bootstrap_idempotent.
         bootstrap_default_achievements()
-        n1 = Achievement.objects.count()
+        n1 = Achievement.objects.filter(is_active=True).count()
         bootstrap_default_achievements()
-        n2 = Achievement.objects.count()
-        self.assertEqual(n1, n2)
+        self.assertEqual(Achievement.objects.filter(is_active=True).count(), n1)
         self.assertGreaterEqual(n1, 1)
+
+    def test_quiz_difficulty_and_all_solved_criteria(self):
+        easy = QuizQuestion.objects.create(
+            prompt="easy?",
+            choice_0="a",
+            choice_1="b",
+            choice_2="c",
+            choice_3="d",
+            correct_index=0,
+            difficulty=QuizQuestion.Difficulty.EASY,
+        )
+        medium = QuizQuestion.objects.create(
+            prompt="medium?",
+            choice_0="a",
+            choice_1="b",
+            choice_2="c",
+            choice_3="d",
+            correct_index=0,
+            difficulty=QuizQuestion.Difficulty.MEDIUM,
+        )
+        hard = QuizQuestion.objects.create(
+            prompt="hard?",
+            choice_0="a",
+            choice_1="b",
+            choice_2="c",
+            choice_3="d",
+            correct_index=0,
+            difficulty=QuizQuestion.Difficulty.HARD,
+        )
+        bootstrap_default_achievements()
+        for question in (easy, medium, hard):
+            QuizQuestionProgress.objects.create(
+                user=self.user,
+                question=question,
+                solved=True,
+                failed_attempts=0,
+                attempts_total=1,
+            )
+        QuizUserStats.objects.update_or_create(
+            user=self.user,
+            defaults={"answered_total": 3, "correct_total": 3, "best_streak": 3},
+        )
+        awarded = evaluate_achievements_for_user(self.user)
+        slugs = {item.achievement.slug for item in awarded}
+        self.assertIn("quiz_easy_complete", slugs)
+        self.assertIn("quiz_medium_complete", slugs)
+        self.assertIn("quiz_hard_complete", slugs)
+        self.assertIn("quiz_all_complete", slugs)
+        self.assertIn("streak_flawless", slugs)
 
     def test_task_completion_signal_awards_first_commit_achievement(self):
         bootstrap_default_achievements()
