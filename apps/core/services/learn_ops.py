@@ -18,6 +18,7 @@ from apps.tasks.models import Level, Task, TaskAsset
 from apps.users.models import PointLedgerEntry, UserProfile
 from apps.users.services import ensure_user_profile
 
+from .sandbox_exec import run_sandbox_argv
 from .sandbox_ops import is_docker_session, write_session_log, git_env
 
 logger = logging.getLogger(__name__)
@@ -248,14 +249,7 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
             last_code = 1
             last_output = ""
             for py in ("python3", "python"):
-                proc = subprocess.run(
-                    ["docker", "exec", session.container_id, py, validator_path.name],
-                    cwd=session.repo_path,
-                    capture_output=True,
-                    text=True,
-                    timeout=session.timeout_seconds,
-                    check=False,
-                )
+                proc = run_sandbox_argv(session, [py, validator_path.name])
                 last_output = (proc.stdout or "") + (proc.stderr or "")
                 last_code = proc.returncode
                 if last_code == 0:
@@ -263,13 +257,9 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
             diagnostics.append(last_output or f"Command exit code: {last_code}")
             verdict = TaskAttempt.Verdict.PASSED if last_code == 0 else TaskAttempt.Verdict.FAILED
         else:
-            proc = subprocess.run(
+            proc = run_sandbox_argv(
+                session,
                 [sys.executable, validator_path.name],
-                cwd=session.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=session.timeout_seconds,
-                check=False,
                 env=git_env(),
             )
             output = (proc.stdout or "") + (proc.stderr or "")

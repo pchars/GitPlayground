@@ -43,6 +43,7 @@ from .repo_path_io import (
     write_empty_repo_file,
     write_repo_file_bytes,
 )
+from .sandbox_exec import run_sandbox_argv
 from .sandbox_git import (
     SANDBOX_ROOT,
     ensure_sandbox_root,
@@ -480,44 +481,18 @@ def run_command(
 
     if policy_kind == "git":
         args = policy_data["args"]
-        if _is_docker_session(session):
-            proc = subprocess.run(
-                ["docker", "exec", session.container_id, *args],
-                capture_output=True,
-                text=True,
-                timeout=session.timeout_seconds,
-                check=False,
-            )
-        else:
-            proc = subprocess.run(
-                args,
-                cwd=session.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=session.timeout_seconds,
-                check=False,
-                env=git_env(),
-            )
+        proc = run_sandbox_argv(
+            session,
+            args,
+            env=None if _is_docker_session(session) else git_env(),
+        )
     elif policy_kind == "git_redirect":
         args = policy_data["args"]
-        if _is_docker_session(session):
-            proc = subprocess.run(
-                ["docker", "exec", session.container_id, *args],
-                capture_output=True,
-                text=True,
-                timeout=session.timeout_seconds,
-                check=False,
-            )
-        else:
-            proc = subprocess.run(
-                args,
-                cwd=session.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=session.timeout_seconds,
-                check=False,
-                env=git_env(),
-            )
+        proc = run_sandbox_argv(
+            session,
+            args,
+            env=None if _is_docker_session(session) else git_env(),
+        )
         if proc.returncode == 0:
             output_text = (proc.stdout or "").rstrip("\n")
             if output_text:

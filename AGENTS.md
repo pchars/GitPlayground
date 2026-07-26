@@ -84,7 +84,7 @@ Apps live under `apps/`:
 | App | Responsibility |
 | --- | --- |
 | `core` | Views, the playground UI/JSON API, and the service layer (`apps/core/services/`). Has **no models**. |
-| `tasks` | Content models (`Level`, `Task`, `TaskAsset`, `TaskRevision`, `TheoryBlock`), the `seed_initial_data` source of truth, and `theory_content.py`. |
+| `tasks` | Content models (`Level`, `Task`, `TaskAsset`, `TaskRevision`, `TheoryBlock`), the `seed_initial_data` source of truth, and `theory_content.py`. **Theory dual-source:** runtime chapter/playground HTML prefers `THEORY_CONTENT` in `theory_content.py` (and excerpts via `theory_extract.py`); `TheoryBlock` in the DB is still seeded for diagrams/legacy and as a fallback when a level has no entry in `THEORY_CONTENT`. |
 | `sandbox` | `SandboxSession` model (one sandbox per user+task). |
 | `progress` | Attempts, completions, hint usage, revision progress, leaderboard snapshots. |
 | `achievements` | Achievement definitions + awarding (`services.py`). |
@@ -194,8 +194,8 @@ paste behavior.
 
 ## Sandbox command policy (security-critical)
 
-User input is **not** run through a shell. `_parse_user_command` in
-`sandbox_ops.py` enforces a strict allowlist; anything else returns exit code `126`
+User input is **not** run through a shell. `parse_user_command` in
+`apps/core/services/command_policy.py` enforces a strict allowlist; anything else returns exit code `126`
 (`command_not_allowed`) and is audit-logged (`sandbox_command_policy`). Allowed forms:
 
 - `git ...` (any git subcommand)
