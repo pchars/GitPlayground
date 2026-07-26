@@ -55,3 +55,24 @@ def certificate_resend(request: HttpRequest) -> HttpResponse:
 def certificate_verify(request: HttpRequest, code: str) -> HttpResponse:
     cert = get_object_or_404(CompletionCertificate, verification_code=code)
     return render(request, "core/certificate_verify.html", {"certificate": cert})
+
+
+@login_required
+@require_GET
+def certificate_info(request: HttpRequest) -> HttpResponse:
+    from apps.users.certificate_pdf import CERTIFICATE_DISCLAIMER, CERTIFICATE_TITLE
+    from apps.users.certificate_services import certificate_progress_for_user
+    from apps.users.services import ensure_user_profile
+
+    profile = ensure_user_profile(request.user)
+    progress = certificate_progress_for_user(request.user)
+    return render(
+        request,
+        "core/certificate_info.html",
+        {
+            "certificate_title": CERTIFICATE_TITLE,
+            "certificate_disclaimer": CERTIFICATE_DISCLAIMER,
+            "demo_name": profile.certificate_name or request.user.get_username(),
+            **progress,
+        },
+    )

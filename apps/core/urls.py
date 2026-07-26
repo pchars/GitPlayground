@@ -37,6 +37,7 @@ urlpatterns = [
     path("profile/edit/", views.profile_edit, name="profile-edit"),
     path("profile/certificate.pdf", views.certificate_download, name="certificate-download"),
     path("profile/certificate/resend/", views.certificate_resend, name="certificate-resend"),
+    path("certificate/", views.certificate_info, name="certificate-info"),
     path("certificate/verify/<str:code>/", views.certificate_verify, name="certificate-verify"),
     path("legal/privacy/", views.privacy_policy, name="privacy-policy"),
     path("legal/marketing/", views.marketing_consent_info, name="marketing-consent"),

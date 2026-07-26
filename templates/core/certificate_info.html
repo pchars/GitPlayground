@@ -1,0 +1,77 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}GitPlayground | Сертификат{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static_v 'css/certificate.css' %}">{% endblock %}
+{% block breadcrumbs %}<nav class="breadcrumbs">Главная / Сертификат</nav>{% endblock %}
+
+{% block content %}
+<section class="certificate-page">
+  <header class="certificate-page-intro">
+    <h1>Сертификат о прохождении практики</h1>
+    <p class="muted">
+      После прохождения всех задач основного курса (уровни 1+) и всего квиза вы получите PDF
+      на email и сможете скачать его в профиле. Это не диплом и не документ об образовании.
+    </p>
+  </header>
+
+  <div class="certificate-page-grid">
+    <article class="certificate-demo" aria-label="Пример сертификата">
+      <p class="certificate-demo-label muted">Так будет выглядеть ваш сертификат</p>
+      <div class="certificate-demo-frame">
+        <h2 class="certificate-demo-title">{{ certificate_title }}</h2>
+        <p class="certificate-demo-lead">Настоящим подтверждается, что</p>
+        <p class="certificate-demo-name">{{ demo_name }}</p>
+        <p class="certificate-demo-body">
+          прошёл(а) практические задачи курса и квиз<br>
+          на платформе GitPlayground.
+        </p>
+        <p class="certificate-demo-meta muted">Дата выдачи: — · Код проверки: DEMO-XXXX</p>
+        <p class="certificate-demo-disclaimer">{{ certificate_disclaimer }}</p>
+      </div>
+    </article>
+
+    <aside class="certificate-progress card">
+      <h2>Ваш прогресс</h2>
+      <ul class="certificate-progress-list">
+        <li>
+          <div class="certificate-progress-head">
+            <span>Задачи основного курса</span>
+            <strong>{{ main_tasks_done }}/{{ main_tasks_total }}</strong>
+          </div>
+          <div class="progress" aria-hidden="true"><span style="width: {{ main_tasks_pct }}%;"></span></div>
+          <p class="muted">{% if tasks_complete %}Готово{% else %}Нужно пройти все задачи уровней 1+{% endif %}</p>
+        </li>
+        <li>
+          <div class="certificate-progress-head">
+            <span>Квиз</span>
+            <strong>{{ quiz_done }}/{{ quiz_total }}</strong>
+          </div>
+          <div class="progress" aria-hidden="true"><span style="width: {{ quiz_pct }}%;"></span></div>
+          <p class="muted">{% if quiz_complete %}Готово{% else %}Нужно правильно решить все вопросы{% endif %}</p>
+        </li>
+      </ul>
+
+      {% if issued %}
+        <p class="certificate-status">Сертификат уже выдан.</p>
+        <div class="certificate-actions">
+          <a class="btn btn-primary" href="{% url 'certificate-download' %}">Скачать PDF</a>
+          <a class="btn btn-secondary" href="{% url 'profile-self' %}">В профиль</a>
+        </div>
+      {% elif eligible %}
+        <p class="certificate-status">Условия выполнены — можно получить сертификат.</p>
+        <form method="post" action="{% url 'certificate-resend' %}">
+          {% csrf_token %}
+          <button class="btn btn-primary" type="submit">Получить сертификат</button>
+        </form>
+      {% else %}
+        <p class="certificate-status muted">Сертификат станет доступен, когда оба условия будут выполнены.</p>
+        <div class="certificate-actions">
+          <a class="btn btn-secondary" href="{% url 'tasks' %}">К задачам</a>
+          <a class="btn btn-secondary" href="{% url 'quiz-home' %}">К квизу</a>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}

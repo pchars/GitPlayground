@@ -14,12 +14,18 @@ from .playground import (
     playground_write_file,
 )
 from .legal import marketing_consent_info, privacy_policy, support_donate
-from .certificate import certificate_download, certificate_resend, certificate_verify
+from .certificate import (
+    certificate_download,
+    certificate_info,
+    certificate_resend,
+    certificate_verify,
+)
 from .profile import profile_edit, profile_self, public_profile
 
 __all__ = [
     "activate_account",
     "certificate_download",
+    "certificate_info",
     "certificate_resend",
     "certificate_verify",
     "healthcheck",

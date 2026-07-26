@@ -5,7 +5,7 @@ from apps.achievements.services import bootstrap_default_achievements
 
 
 class BootstrapIdempotencyTests(TestCase):
-    EXPECTED_ACTIVE_ACHIEVEMENTS = 23
+    EXPECTED_ACTIVE_ACHIEVEMENTS = 24
 
     def test_bootstrap_twice_stable_count(self):
         bootstrap_default_achievements()

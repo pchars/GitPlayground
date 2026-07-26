@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import Q
 import logging
 
 from apps.achievements.models import Achievement, UserAchievement
@@ -13,15 +14,19 @@ logger = logging.getLogger(__name__)
 
 K = Achievement.CriterionKind
 
-# Gallery order: tasks → quiz (easy→hard→milestones) → streaks.
+# Keep in sync with learn_ops.NON_BLOCKING_LEVEL_NUMBERS (avoid circular import).
+_NON_BLOCKING_LEVEL_NUMBERS: frozenset[int] = frozenset({0})
+
+# Gallery order: intro level → tasks → quiz → streaks.
 ACHIEVEMENT_KIND_ORDER: dict[str, int] = {
-    K.TASKS_COMPLETED: 0,
-    K.QUIZ_EASY_SOLVED: 1,
-    K.QUIZ_MEDIUM_SOLVED: 2,
-    K.QUIZ_HARD_SOLVED: 3,
-    K.QUIZ_ALL_SOLVED: 4,
-    K.STREAK_MIN: 5,
-    K.STREAK_FLAWLESS: 6,
+    K.LEVEL_COMPLETED: 0,
+    K.TASKS_COMPLETED: 1,
+    K.QUIZ_EASY_SOLVED: 2,
+    K.QUIZ_MEDIUM_SOLVED: 3,
+    K.QUIZ_HARD_SOLVED: 4,
+    K.QUIZ_ALL_SOLVED: 5,
+    K.STREAK_MIN: 6,
+    K.STREAK_FLAWLESS: 7,
 }
 
 
@@ -98,16 +103,31 @@ def _streak_achievement(
 
 
 def bootstrap_default_achievements() -> None:
-    total_tasks = max(1, Task.objects.count())
+    main_track_tasks = max(
+        1,
+        Task.objects.exclude(level__number__in=_NON_BLOCKING_LEVEL_NUMBERS).count(),
+    )
+    level0_tasks = Task.objects.filter(level__number=0).count()
     total_quiz_questions = max(1, QuizQuestion.objects.count())
     easy_quiz_questions = max(1, QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.EASY).count())
     medium_quiz_questions = max(1, QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.MEDIUM).count())
     hard_quiz_questions = max(1, QuizQuestion.objects.filter(difficulty=QuizQuestion.Difficulty.HARD).count())
     defaults = [
+        {
+            "slug": "terminal_ready",
+            "title": "Терминал освоен",
+            "description": "Пройден вводный уровень 0: терминал и знакомство с Git.",
+            "icon_path": "img/achievements/terminal_ready.svg",
+            "points_bonus": 3,
+            "threshold_tasks": max(1, level0_tasks),
+            "criterion_kind": K.LEVEL_COMPLETED,
+            "criterion_target": 0,
+            "is_active": True,
+        },
         _task_achievement(
             "first_commit",
             "Первый коммит",
-            "Завершена первая практическая задача.",
+            "Завершена первая задача основного курса (с уровня 1).",
             "img/achievements/first_commit.svg",
             1,
             3,
@@ -115,7 +135,7 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "tasks_5",
             "В деле",
-            "Завершено 5 практических задач.",
+            "Завершено 5 задач основного курса.",
             "img/achievements/tasks_5.svg",
             5,
             4,
@@ -123,7 +143,7 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "tasks_10",
             "Десятка",
-            "Завершено 10 практических задач.",
+            "Завершено 10 задач основного курса.",
             "img/achievements/tasks_10.svg",
             10,
             6,
@@ -131,7 +151,7 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "tasks_20",
             "Двадцатка",
-            "Завершено 20 практических задач.",
+            "Завершено 20 задач основного курса.",
             "img/achievements/tasks_20.svg",
             20,
             8,
@@ -139,7 +159,7 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "tasks_40",
             "На полпути",
-            "Завершено 40 практических задач.",
+            "Завершено 40 задач основного курса.",
             "img/achievements/tasks_40.svg",
             40,
             11,
@@ -147,7 +167,7 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "tasks_60",
             "Финишная прямая",
-            "Завершено 60 практических задач.",
+            "Завершено 60 задач основного курса.",
             "img/achievements/tasks_60.svg",
             60,
             14,
@@ -155,9 +175,9 @@ def bootstrap_default_achievements() -> None:
         _task_achievement(
             "git_master",
             "Мастер Git",
-            "Пройден весь курс практики.",
+            "Пройден весь основной курс практики (уровни 1+).",
             "img/achievements/git_master.svg",
-            total_tasks,
+            main_track_tasks,
             25,
         ),
         {
@@ -347,7 +367,18 @@ def quiz_streak_flawless_status(user: User) -> str:
 @transaction.atomic
 def evaluate_achievements_for_user(user: User) -> list[UserAchievement]:
     bootstrap_default_achievements()
-    completed_count = TaskCompletion.objects.filter(user=user).count()
+    main_completed = (
+        TaskCompletion.objects.filter(user=user)
+        .exclude(task__level__number__in=_NON_BLOCKING_LEVEL_NUMBERS)
+        .count()
+    )
+    completed_by_level: dict[int, tuple[int, int]] = {}
+    for level_number in Task.objects.values_list("level__number", flat=True).distinct():
+        total_on_level = Task.objects.filter(level__number=level_number).count()
+        done_on_level = TaskCompletion.objects.filter(
+            user=user, task__level__number=level_number
+        ).count()
+        completed_by_level[level_number] = (done_on_level, total_on_level)
     quiz_stats, _ = QuizUserStats.objects.get_or_create(user=user)
     solved_progress = QuizQuestionProgress.objects.filter(user=user, solved=True).select_related("question")
     solved_total = solved_progress.count()
@@ -361,16 +392,18 @@ def evaluate_achievements_for_user(user: User) -> list[UserAchievement]:
     has_any_quiz_fail = QuizQuestionProgress.objects.filter(user=user, failed_attempts__gt=0).exists()
     awarded: list[UserAchievement] = []
     profile = ensure_user_profile(user)
-    achievements = Achievement.objects.filter(is_active=True, criterion_target__gt=0).order_by(
-        "criterion_target", "slug"
-    )
-    K = Achievement.CriterionKind
+    achievements = Achievement.objects.filter(is_active=True).filter(
+        Q(criterion_target__gt=0) | Q(criterion_kind=K.LEVEL_COMPLETED)
+    ).order_by("criterion_target", "slug")
     for achievement in achievements:
         kind = achievement.criterion_kind
         target = achievement.criterion_target
         should_award = False
-        if kind == K.TASKS_COMPLETED:
-            should_award = completed_count >= target
+        if kind == K.LEVEL_COMPLETED:
+            done, total = completed_by_level.get(target, (0, 0))
+            should_award = total > 0 and done >= total
+        elif kind == K.TASKS_COMPLETED:
+            should_award = main_completed >= target
         elif kind == K.QUIZ_EASY_SOLVED:
             should_award = total_easy > 0 and solved_easy >= target
         elif kind == K.QUIZ_MEDIUM_SOLVED:

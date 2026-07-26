@@ -84,6 +84,7 @@ class PagesRegressionTests(TestCase):
             "/quiz/",
             "/quiz/play/?difficulty=easy",
             "/leaderboard/",
+            "/certificate/",
             "/playground/gh-1_1/",
         )
         for url in urls:

@@ -57,7 +57,7 @@
       </div>
     </dl>
 
-    {% if certificate_eligible %}
+    {% if certificate_eligible or completion_certificate %}
     <div class="profile-certificate">
       <h4>Сертификат о прохождении практики</h4>
       <p class="muted profile-certificate-disclaimer">
@@ -81,6 +81,15 @@
           <button class="btn btn-primary" type="submit">Получить сертификат</button>
         </form>
       {% endif %}
+      <p class="muted"><a href="{% url 'certificate-info' %}">Подробнее о сертификате и прогрессе</a></p>
+    </div>
+    {% else %}
+    <div class="profile-certificate">
+      <h4>Сертификат о прохождении практики</h4>
+      <p class="muted">
+        Пройдите все задачи основного курса и квиз — получите PDF на email.
+        <a href="{% url 'certificate-info' %}">Смотреть пример и прогресс</a>
+      </p>
     </div>
     {% endif %}
   </article>

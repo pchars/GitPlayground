@@ -94,6 +94,30 @@ class ProgressAndAchievementsTests(TestCase):
         self.assertTrue(UserAchievement.objects.filter(user=self.user, achievement=ach).exists())
         self.assertGreaterEqual(self.user.profile.total_points, before + ach.points_bonus)
 
+    def test_level_zero_task_does_not_award_first_commit(self):
+        level0 = Level.objects.create(number=0, title="L0", slug="l0", description="d")
+        task0 = Task.objects.create(
+            external_id="0.1",
+            slug="t0",
+            title="T0",
+            description="d",
+            level=level0,
+            order=1,
+            points=5,
+        )
+        bootstrap_default_achievements()
+        TaskCompletion.objects.create(user=self.user, task=task0, points_awarded=5)
+        self.assertFalse(
+            UserAchievement.objects.filter(
+                user=self.user, achievement__slug="first_commit"
+            ).exists()
+        )
+        self.assertTrue(
+            UserAchievement.objects.filter(
+                user=self.user, achievement__slug="terminal_ready"
+            ).exists()
+        )
+
     def test_evaluate_achievements_does_not_double_award(self):
         bootstrap_default_achievements()
         TaskCompletion.objects.create(user=self.user, task=self.task1, points_awarded=5)
@@ -147,6 +171,7 @@ class ProgressAndAchievementsTests(TestCase):
             key=achievement_gallery_sort_key,
         )
         slugs = [item.slug for item in achievements]
-        self.assertEqual(slugs[0], "first_commit")
+        self.assertEqual(slugs[0], "terminal_ready")
+        self.assertLess(slugs.index("terminal_ready"), slugs.index("first_commit"))
         self.assertLess(slugs.index("quiz_easy_complete"), slugs.index("streak_5"))
         self.assertLess(slugs.index("streak_5"), slugs.index("streak_flawless"))

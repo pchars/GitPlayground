@@ -6,6 +6,7 @@ class Achievement(models.Model):
     """Achievement; award criteria use criterion_* fields (threshold_tasks kept for UI compatibility)."""
 
     class CriterionKind(models.TextChoices):
+        LEVEL_COMPLETED = "level_completed", "Пройден уровень"
         TASKS_COMPLETED = "tasks_completed", "Завершённые задачи"
         QUIZ_EASY_SOLVED = "quiz_easy_solved", "Квиз: лёгкие"
         QUIZ_MEDIUM_SOLVED = "quiz_medium_solved", "Квиз: средние"

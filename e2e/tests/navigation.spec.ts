@@ -28,6 +28,9 @@ test("authenticated header links reach main sections", async ({ page }) => {
   await nav.getByRole("link", { name: "Квиз" }).click();
   await expect(page).toHaveURL(`${base}/quiz/`);
 
+  await nav.getByRole("link", { name: "Сертификат" }).click();
+  await expect(page).toHaveURL(`${base}/certificate/`);
+
   await nav.getByRole("link", { name: "Таблица лидеров" }).click();
   await expect(page).toHaveURL(`${base}/leaderboard/`);
 });

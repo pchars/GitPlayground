@@ -171,6 +171,13 @@ def profile_learning_stats(user: User) -> dict:
         key=achievement_gallery_sort_key,
     )
     completed_tasks_count = len(completed_task_ids)
+    main_completed_count = sum(
+        1
+        for level in levels
+        if level.number not in NON_BLOCKING_LEVEL_NUMBERS
+        for task in level.tasks.all()
+        if task.id in completed_task_ids
+    )
     theory_dropoff = max(0, total_tasks - total_completed)
     quiz_stats, _ = QuizUserStats.objects.get_or_create(user=user)
     solved_progress = QuizQuestionProgress.objects.filter(user=user, solved=True).select_related(
@@ -189,7 +196,15 @@ def profile_learning_stats(user: User) -> dict:
     available_achievements = []
     for ach in all_achievements:
         unlocked = ach.id in achievement_map
-        if ach.criterion_kind == K.QUIZ_EASY_SOLVED:
+        if ach.criterion_kind == K.LEVEL_COMPLETED:
+            level_row = next((row for row in level_progress if row["level"].number == ach.criterion_target), None)
+            if level_row:
+                progress_text = (
+                    f"{level_row['completed']}/{level_row['total']} задач уровня {ach.criterion_target}"
+                )
+            else:
+                progress_text = f"Уровень {ach.criterion_target}"
+        elif ach.criterion_kind == K.QUIZ_EASY_SOLVED:
             progress_text = f"{solved_easy}/{total_easy} вопросов легкого уровня"
         elif ach.criterion_kind == K.QUIZ_MEDIUM_SOLVED:
             progress_text = f"{solved_medium}/{total_medium} вопросов среднего уровня"
@@ -204,7 +219,7 @@ def profile_learning_stats(user: User) -> dict:
         elif ach.criterion_kind == K.STREAK_MIN:
             progress_text = f"Лучшая серия: {quiz_stats.best_streak}/{ach.criterion_target}"
         else:
-            progress_text = f"{completed_tasks_count}/{ach.criterion_target} задач"
+            progress_text = f"{main_completed_count}/{ach.criterion_target} задач основного курса"
         available_achievements.append(
             {
                 "achievement": ach,

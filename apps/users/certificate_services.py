@@ -85,6 +85,41 @@ def issue_completion_certificate(user: User, *, send_email: bool = True) -> Comp
     return cert
 
 
+def certificate_progress_for_user(user: User) -> dict:
+    """Progress toward the practice certificate (main-track tasks + full quiz)."""
+    from apps.progress.models import TaskCompletion
+    from apps.quiz.models import QuizQuestion, QuizQuestionProgress
+    from apps.tasks.models import Task
+
+    # Keep in sync with achievements main-track exclusion (level 0).
+    non_blocking = frozenset({0})
+    main_total = Task.objects.exclude(level__number__in=non_blocking).count()
+    main_done = (
+        TaskCompletion.objects.filter(user=user)
+        .exclude(task__level__number__in=non_blocking)
+        .count()
+    )
+    quiz_total = QuizQuestion.objects.count()
+    quiz_done = QuizQuestionProgress.objects.filter(user=user, solved=True).count()
+    tasks_pct = round((main_done / main_total) * 100) if main_total else 0
+    quiz_pct = round((quiz_done / quiz_total) * 100) if quiz_total else 0
+    eligible = user_eligible_for_certificate(user)
+    cert = CompletionCertificate.objects.filter(user=user).first()
+    return {
+        "main_tasks_done": main_done,
+        "main_tasks_total": main_total,
+        "main_tasks_pct": tasks_pct,
+        "quiz_done": quiz_done,
+        "quiz_total": quiz_total,
+        "quiz_pct": quiz_pct,
+        "eligible": eligible,
+        "issued": cert is not None,
+        "certificate": cert,
+        "tasks_complete": main_total > 0 and main_done >= main_total,
+        "quiz_complete": quiz_total > 0 and quiz_done >= quiz_total,
+    }
+
+
 def queue_certificate_email(cert: CompletionCertificate) -> None:
     from apps.users.tasks import send_certificate_email
 
