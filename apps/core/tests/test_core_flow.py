@@ -461,7 +461,7 @@ class ValidatorCommandLogTests(TestCase):
         (repo / "hello.txt").write_text("Hello, Git!\nchanged\n", encoding="utf-8")
 
     def test_check_status_validator_requires_git_status_command(self):
-        from apps.tasks.management.commands.seed_initial_data import TASK_VALIDATORS
+        from apps.tasks.task_validators import TASK_VALIDATORS
 
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -478,7 +478,7 @@ class ValidatorCommandLogTests(TestCase):
             self.assertEqual(self._run_validator(TASK_VALIDATORS["1.3"], repo), 0)
 
     def test_view_history_validator_requires_oneline_flag(self):
-        from apps.tasks.management.commands.seed_initial_data import TASK_VALIDATORS
+        from apps.tasks.task_validators import TASK_VALIDATORS
 
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

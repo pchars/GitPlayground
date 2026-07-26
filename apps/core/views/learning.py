@@ -3,20 +3,15 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
 
 import markdown
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
 from django.utils.text import slugify
 
-from apps.core.services import (
-    get_next_optional_track_task_for_user,
-    get_next_unlockable_task_for_user,
-)
+from apps.core.services import build_tasks_list_context
 from apps.core.theory_html import sanitize_theory_html
-from apps.progress.models import TaskCompletion
-from apps.tasks.models import Level, Task
+from apps.tasks.models import Level
 from apps.tasks.theory_extract import level_toc_sections, theory_for_task
 
 THEORY_MARKDOWN_EXTENSIONS = ["fenced_code", "tables", "sane_lists"]
@@ -75,81 +70,14 @@ def _chapter_payload(level: Level) -> dict:
 
 @login_required
 def tasks_list(request, level_number=None):
-    levels = Level.objects.prefetch_related("tasks").order_by("number")
-    completed_ids = set(
-        TaskCompletion.objects.filter(user=request.user).values_list("task_id", flat=True)
-    )
-
-    task_qs = (
-        Task.objects.select_related("level")
-        .filter(platform=Task.Platform.GITHUB)
-        .order_by("level__number", "order")
-    )
-    all_tasks = list(task_qs)
-    next_main_task = get_next_unlockable_task_for_user(request.user)
-    next_optional_task = get_next_optional_track_task_for_user(request.user)
-    active_task_ids = {
-        task.id
-        for task in (next_main_task, next_optional_task)
-        if task is not None
-    }
-
-    grouped = defaultdict(list)
-    for task in all_tasks:
-        if task.id in completed_ids:
-            status = "completed"
-        elif task.id in active_task_ids:
-            status = "active"
-        else:
-            status = "locked"
-        grouped[task.level.number].append(
-            {
-                "task": task,
-                "status": status,
-                "task_route_id": task.external_id.replace(".", "_"),
-            }
-        )
-
     selected_level = None
     if level_number is not None:
         selected_level = get_object_or_404(Level, number=level_number)
-    expanded_level_number = selected_level.number if selected_level else None
-
-    level_rows = []
-    for level in levels:
-        row_tasks = grouped[level.number]
-        row_total = len(row_tasks)
-        row_completed = sum(1 for item in row_tasks if item["status"] == "completed")
-        row_active = sum(1 for item in row_tasks if item["status"] == "active")
-        row_pct = round((row_completed / row_total) * 100) if row_total else 0
-        level_rows.append(
-            {
-                "level": level,
-                "tasks": row_tasks,
-                "total": row_total,
-                "completed": row_completed,
-                "active_count": row_active,
-                "progress_pct": row_pct,
-            }
-        )
-
-    total_tasks = len(all_tasks)
-    completed_tasks = len(completed_ids)
-    overall_pct = round((completed_tasks / total_tasks) * 100) if total_tasks else 0
-
     return render(
         request,
         "core/tasks.html",
-        {
-            "level_rows": level_rows,
-            "selected_level": selected_level,
-            "total_tasks": total_tasks,
-            "completed_tasks": completed_tasks,
-            "overall_pct": overall_pct,
-            "expanded_level_number": expanded_level_number,
-        },
+        build_tasks_list_context(request.user, selected_level=selected_level),
     )
-
 
 @login_required
 def theory_home(request):
