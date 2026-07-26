@@ -91,7 +91,7 @@ class CoreFlowTests(TestCase):
         self.assertEqual(hint_res.status_code, 200)
         hint_payload = hint_res.json()
         self.assertTrue(hint_payload["ok"])
-        self.assertEqual(hint_payload["points_spent"], 3)
+        self.assertEqual(hint_payload["points_spent"], 5)
         self.assertFalse(hint_payload.get("already_unlocked"))
 
         validate_res = self.client.post("/playground/1_1/validate/")
@@ -300,9 +300,9 @@ class CoreFlowTests(TestCase):
         self.client.force_login(self.user)
         res = self.client.post("/playground/1_1/hint/", {"hint_index": 1})
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()["points_spent"], 3)
+        self.assertEqual(res.json()["points_spent"], 5)
         self.user.profile.refresh_from_db()
-        self.assertEqual(self.user.profile.total_points, 17)
+        self.assertEqual(self.user.profile.total_points, 15)
 
     def test_playground_hint_repeat_unlock_does_not_charge_again(self):
         self.client.force_login(self.user)

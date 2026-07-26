@@ -31,9 +31,9 @@ flowchart LR
 
 | Механика | Где в коде |
 | --- | --- |
-| Баллы за задачу | `Task.points`, начисление при `validate_task` → PASSED |
-| Списание за подсказку | `HINT_UNLOCK_COSTS` в `learn_ops.py` |
-| Достижения | `apps/achievements/services.py` |
+| Баллы за задачу | `Task.points` (~½ прежней шкалы), начисление при `validate_task` → PASSED |
+| Списание за подсказку | `HINT_UNLOCK_COSTS` = 5 / 8 / 12 в `learn_ops.py` |
+| Достижения | `apps/achievements/services.py` (бонусы урезаны вместе с экономикой) |
 | Разблокировка задач | `can_open_task`, `get_next_unlockable_task_for_user` |
 | Ревизии задач | `TaskRevision` + `TaskRevisionProgress` |
 

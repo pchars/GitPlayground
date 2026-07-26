@@ -179,7 +179,8 @@ def validate_task(user: User, task: Task, session: SandboxSession) -> TaskAttemp
 
 
 # Hint cost by unlock order (1 = first hint asset, etc.).
-HINT_UNLOCK_COSTS: dict[int, int] = {1: 3, 2: 5, 3: 10}
+# Kept high vs task rewards so hints stay a deliberate spend.
+HINT_UNLOCK_COSTS: dict[int, int] = {1: 5, 2: 8, 3: 12}
 
 
 class NotEnoughPointsError(Exception):
@@ -242,7 +243,7 @@ def process_hint_request(user: User, task: Task, hint_index: int) -> HintUnlockR
 
 def unlock_hint(user: User, task: Task, hint_index: int) -> tuple[HintUsage, int, bool]:
     """Return (usage row, points spent in THIS request, already unlocked before)."""
-    cost = HINT_UNLOCK_COSTS.get(hint_index, 10)
+    cost = HINT_UNLOCK_COSTS.get(hint_index, 12)
     existing = HintUsage.objects.filter(user=user, task=task, hint_index=hint_index).first()
     if existing:
         return existing, 0, True

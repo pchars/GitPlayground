@@ -23,7 +23,7 @@ test("authenticated header links reach main sections", async ({ page }) => {
   await expect(page).toHaveURL(`${base}/tasks/`);
 
   await nav.getByRole("link", { name: "Теория" }).click();
-  await expect(page).toHaveURL(/\/theory\/\d+\//);
+  await expect(page).toHaveURL(`${base}/theory/`);
 
   await nav.getByRole("link", { name: "Квиз" }).click();
   await expect(page).toHaveURL(`${base}/quiz/`);
