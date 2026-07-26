@@ -15,8 +15,11 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from apps.core.forms import SignUpForm
+from apps.core.playground_limits import allow_auth_action, client_ip
 
 logger = logging.getLogger(__name__)
+
+_AUTH_RATE_LIMIT_MESSAGE = "Слишком много попыток. Подождите немного и попробуйте снова."
 
 
 def _send_activation_email(request: HttpRequest, user: User) -> None:
@@ -38,22 +41,26 @@ def signup_view(request):
         return redirect("profile-self")
 
     form = SignUpForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        require_confirmation = getattr(settings, "SIGNUP_REQUIRE_EMAIL_CONFIRMATION", True)
-        with transaction.atomic():
-            user = form.save(commit=False)
-            user.is_active = not require_confirmation
-            user.save()
-            form.save_profile(user)
-        if require_confirmation:
-            try:
-                _send_activation_email(request, user)
-            except Exception:  # noqa: BLE001
-                logger.exception("Failed to send activation email for user_id=%s", user.pk)
-            return render(request, "core/signup_done.html", {"email": user.email})
-        backend = settings.AUTHENTICATION_BACKENDS[0]
-        login(request, user, backend=backend)
-        return redirect("profile-self")
+    if request.method == "POST":
+        if not allow_auth_action(client_ip(request), "signup"):
+            form.add_error(None, _AUTH_RATE_LIMIT_MESSAGE)
+            return render(request, "core/signup.html", {"form": form}, status=429)
+        if form.is_valid():
+            require_confirmation = getattr(settings, "SIGNUP_REQUIRE_EMAIL_CONFIRMATION", True)
+            with transaction.atomic():
+                user = form.save(commit=False)
+                user.is_active = not require_confirmation
+                user.save()
+                form.save_profile(user)
+            if require_confirmation:
+                try:
+                    _send_activation_email(request, user)
+                except Exception:  # noqa: BLE001
+                    logger.exception("Failed to send activation email for user_id=%s", user.pk)
+                return render(request, "core/signup_done.html", {"email": user.email})
+            backend = settings.AUTHENTICATION_BACKENDS[0]
+            login(request, user, backend=backend)
+            return redirect("profile-self")
     return render(request, "core/signup.html", {"form": form})
 
 

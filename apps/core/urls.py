@@ -1,8 +1,6 @@
-from apps.core.forms import LoginForm
+from apps.core.views.auth_rate_limited import RateLimitedLoginView, RateLimitedPasswordResetView
 from django.contrib.auth.views import (
-    LoginView,
     LogoutView,
-    PasswordResetView,
     PasswordResetDoneView,
     PasswordResetConfirmView,
     PasswordResetCompleteView,
@@ -17,14 +15,10 @@ urlpatterns = [
     path("", views.landing, name="landing"),
     path("signup/", views.signup_view, name="signup"),
     path("activate/<uidb64>/<token>/", views.activate_account, name="activate-account"),
-    path("login/", LoginView.as_view(template_name="core/login.html", authentication_form=LoginForm), name="login"),
+    path("login/", RateLimitedLoginView.as_view(), name="login"),
     path(
         "password-reset/",
-        PasswordResetView.as_view(
-            template_name="core/password_reset_form.html",
-            email_template_name="core/emails/password_reset_email.txt",
-            subject_template_name="core/emails/password_reset_subject.txt",
-        ),
+        RateLimitedPasswordResetView.as_view(),
         name="password_reset",
     ),
     path("password-reset/done/", PasswordResetDoneView.as_view(template_name="core/password_reset_done.html"), name="password_reset_done"),

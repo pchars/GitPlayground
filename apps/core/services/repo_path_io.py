@@ -95,10 +95,12 @@ def read_repo_file_bytes(
 
 
 def write_repo_file_bytes(root_dir: str, relative_path: str, payload: bytes) -> tuple[str, bytes | None]:
-    """Write bytes. Status is ``ok``, ``blocked``, or ``io_error``."""
+    """Write bytes. Status is ``ok``, ``blocked``, ``git_protected``, or ``io_error``."""
     rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", None
+    if path_touches_git_metadata(rel):
+        return "git_protected", None
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
     fullpath = os.path.realpath(os.path.join(base_path, rel))
@@ -141,7 +143,7 @@ def restore_or_remove_repo_file(root_dir: str, relative_path: str, backup: bytes
 
 def touch_repo_file(root_dir: str, relative_path: str) -> bool:
     rel = normalize_repo_relative_path(relative_path)
-    if rel is None:
+    if rel is None or path_touches_git_metadata(rel):
         return False
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
@@ -159,7 +161,7 @@ def touch_repo_file(root_dir: str, relative_path: str) -> bool:
 
 def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
     rel = normalize_repo_relative_path(relative_path)
-    if rel is None:
+    if rel is None or path_touches_git_metadata(rel):
         return False
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
@@ -178,7 +180,7 @@ def write_empty_repo_file(root_dir: str, relative_path: str) -> bool:
 
 def append_repo_text_line(root_dir: str, relative_path: str, text: str, *, append: bool) -> bool:
     rel = normalize_repo_relative_path(relative_path)
-    if rel is None:
+    if rel is None or path_touches_git_metadata(rel):
         return False
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
@@ -225,10 +227,12 @@ def list_repo_path(root_dir: str, relative_path: str) -> tuple[str, str]:
 
 
 def mkdir_repo_path(root_dir: str, relative_path: str, *, parents: bool) -> tuple[str, str]:
-    """Return (status, message). Status: ``ok``, ``blocked``, ``exists``, ``io_error``."""
+    """Return (status, message). Status: ``ok``, ``blocked``, ``git_protected``, ``exists``, ``io_error``."""
     rel = normalize_repo_relative_path(relative_path)
     if rel is None:
         return "blocked", ""
+    if path_touches_git_metadata(rel):
+        return "git_protected", ""
     base_path = os.path.realpath(root_dir)
     root_prefix = _root_prefix(base_path)
     if rel == ".":

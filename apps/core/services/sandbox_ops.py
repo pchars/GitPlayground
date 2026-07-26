@@ -28,6 +28,7 @@ from .command_policy import SANDBOX_ALLOWED_COMMANDS_SUMMARY, parse_user_command
 from .repo_path_io import (
     append_repo_text_line,
     cp_repo_file,
+    path_touches_git_metadata,
     find_repo_paths,
     head_repo_file,
     list_repo_path,
@@ -356,6 +357,8 @@ def write_text_file_to_repo(session: SandboxSession, relative_path: str, content
     status, backup = write_repo_file_bytes(session.repo_path, relative_path, encoded)
     if status == "blocked":
         return False, "Path escapes sandbox and is blocked."
+    if status == "git_protected":
+        return False, "Нельзя изменять каталог `.git`."
     if status == "io_error":
         return False, FILE_WRITE_FAILED
     violation = _repo_quota_violation(session)
@@ -363,6 +366,12 @@ def write_text_file_to_repo(session: SandboxSession, relative_path: str, content
         restore_or_remove_repo_file(session.repo_path, relative_path, backup)
         return False, f"{violation} Write was reverted."
     return True, ""
+
+
+def _write_path_blocked_message(path: str) -> str:
+    if path_touches_git_metadata(path):
+        return "Нельзя изменять каталог `.git`."
+    return "Path escapes sandbox and is blocked."
 
 
 def get_active_session(user: User, task: Task) -> SandboxSession | None:
@@ -522,7 +531,7 @@ def run_command(
                     return CommandResult(
                         command=command,
                         return_code=1,
-                        output="Path escapes sandbox and is blocked.",
+                        output=_write_path_blocked_message(policy_data["path"]),
                         duration_ms=0,
                     )
             elif policy_data["mode"] == ">":
@@ -531,7 +540,7 @@ def run_command(
                     return CommandResult(
                         command=command,
                         return_code=1,
-                        output="Path escapes sandbox and is blocked.",
+                        output=_write_path_blocked_message(policy_data["path"]),
                         duration_ms=0,
                     )
         # Redirect commands are silent in the terminal (like shell).
@@ -545,7 +554,7 @@ def run_command(
             return CommandResult(
                 command=command,
                 return_code=1,
-                output="Path escapes sandbox and is blocked.",
+                output=_write_path_blocked_message(policy_data["path"]),
                 duration_ms=0,
             )
         proc = subprocess.CompletedProcess(["policy"], 0, "", "")
@@ -560,7 +569,7 @@ def run_command(
             return CommandResult(
                 command=command,
                 return_code=1,
-                output="Path escapes sandbox and is blocked.",
+                output=_write_path_blocked_message(policy_data["path"]),
                 duration_ms=0,
             )
         proc = subprocess.CompletedProcess(["policy"], 0, "", "")
@@ -592,7 +601,9 @@ def run_command(
                 output="Path escapes sandbox and is blocked.",
                 duration_ms=0,
             )
-        if status == "exists":
+        if status == "git_protected":
+            proc = _repo_io_status_proc("mkdir", status, "", policy_data["path"])
+        elif status == "exists":
             proc = subprocess.CompletedProcess(
                 ["policy"],
                 1,

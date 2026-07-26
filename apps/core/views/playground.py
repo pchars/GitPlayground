@@ -49,6 +49,7 @@ _RATE_LIMIT_MESSAGES = {
     "file_read": "Слишком много запросов чтения файлов. Подождите немного.",
     "file_write": "Слишком много запросов записи файлов. Подождите немного.",
     "hint": "Слишком много запросов подсказок. Подождите немного.",
+    "validate": "Слишком много проверок. Подождите немного.",
 }
 
 
@@ -246,7 +247,9 @@ def playground_write_file(request: HttpRequest, task_id: str) -> JsonResponse:
 @require_POST
 def playground_validate(request: HttpRequest, task_id: str) -> JsonResponse:
     started_at = time.perf_counter()
-    guard = _acquire_session(request, task_id, endpoint="validate", started_at=started_at)
+    guard = _acquire_session(
+        request, task_id, endpoint="validate", started_at=started_at, rate_action="validate"
+    )
     if guard.error:
         return guard.error
     task, session = guard.task, guard.session

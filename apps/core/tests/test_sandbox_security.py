@@ -129,6 +129,50 @@ class CommandPolicySecurityTests(SimpleTestCase):
         self.assertTrue(parse_user_command("whoami")[0])
         self.assertTrue(parse_user_command("clear")[0])
 
+    def test_blocks_git_workdir_escape_flags(self):
+        for cmd in (
+            "git -C /tmp status",
+            "git --git-dir=/evil status",
+            "git --work-tree=/tmp status",
+            "git --namespace=evil status",
+        ):
+            allowed, reason, _ = parse_user_command(cmd)
+            self.assertFalse(allowed, msg=cmd)
+            self.assertEqual(reason, "git_workdir_flag_blocked", msg=cmd)
+
+
+class GitMetadataWriteProtectionTests(SimpleTestCase):
+    def test_write_paths_reject_dot_git(self):
+        from apps.core.services.repo_path_io import (
+            append_repo_text_line,
+            mkdir_repo_path,
+            touch_repo_file,
+            write_empty_repo_file,
+            write_repo_file_bytes,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            status, _ = write_repo_file_bytes(tmp, ".git/hooks/pre-commit", b"evil")
+            self.assertEqual(status, "git_protected")
+            self.assertFalse(touch_repo_file(tmp, ".git/config"))
+            self.assertFalse(write_empty_repo_file(tmp, ".git/HEAD"))
+            self.assertFalse(append_repo_text_line(tmp, ".git/hooks/x", "x", append=False))
+            status, _ = mkdir_repo_path(tmp, ".git/hooks", parents=True)
+            self.assertEqual(status, "git_protected")
+            self.assertFalse((root / ".git" / "hooks" / "pre-commit").exists())
+
+    def test_git_env_disables_hooks(self):
+        from apps.core.services.sandbox_git import SANDBOX_NO_HOOKS_DIR, ensure_git_config, git_env
+
+        env = git_env()
+        config_path = Path(env["GIT_CONFIG_GLOBAL"])
+        text = config_path.read_text(encoding="utf-8")
+        hooks = str(SANDBOX_NO_HOOKS_DIR.resolve()).replace("\\", "/")
+        self.assertIn(f"hooksPath = {hooks}", text)
+        self.assertEqual(config_path, ensure_git_config())
+
 
 class SafeZipExtractTests(SimpleTestCase):
     def test_rejects_zip_slip_member(self):

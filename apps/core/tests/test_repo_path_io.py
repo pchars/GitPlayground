@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 from apps.core.services.command_policy import normalize_repo_relative_path
 from apps.core.services.repo_path_io import (
     list_repo_path,
+    path_touches_git_metadata,
     read_repo_file_bytes,
     resolve_trusted_path_under_root,
     write_repo_file_bytes,
@@ -71,3 +72,9 @@ class RepoPathIoTests(SimpleTestCase):
             self.assertEqual(status, "ok")
             self.assertIn("a.txt", listing)
             self.assertIn("sub/", listing)
+
+    def test_path_touches_git_metadata(self):
+        self.assertTrue(path_touches_git_metadata(".git/hooks/pre-commit"))
+        self.assertTrue(path_touches_git_metadata("foo/.git/config"))
+        self.assertFalse(path_touches_git_metadata("gitignore.txt"))
+        self.assertFalse(path_touches_git_metadata("docs/git-notes.md"))

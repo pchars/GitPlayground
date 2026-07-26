@@ -47,20 +47,33 @@ def normalize_repo_relative_path(relative_path: str) -> str | None:
     return normalized
 
 
+_BLOCKED_GIT_WORKDIR_FLAGS = frozenset(
+    {
+        "-C",
+        "--git-dir",
+        "--work-tree",
+        "--namespace",
+    }
+)
+
+
 def _git_tokens_allowed(tokens: list[str]) -> tuple[bool, str]:
-    """Validate a git invocation: no -c/--config and no blocked subcommands."""
+    """Validate a git invocation: no -c/--config, no workdir escape flags, no blocked subcommands."""
     idx = 1
     while idx < len(tokens):
         token = tokens[idx]
         if token in {"-c", "--config"}:
             return False, "git_config_injection"
+        if token in _BLOCKED_GIT_WORKDIR_FLAGS or token.startswith(
+            ("--git-dir=", "--work-tree=", "--namespace=")
+        ):
+            return False, "git_workdir_flag_blocked"
         if token.startswith("-") and not token.startswith("--"):
-            # short flags like -C are allowed only for directory-change teaching scenarios
-            if token == "-C" and idx + 1 < len(tokens):
-                idx += 2
-                continue
             if token.startswith("-c"):
                 return False, "git_config_injection"
+            # Combined short flags that include C (e.g. -Cpath) are not used; bare -C needs an arg.
+            if "C" in token[1:]:
+                return False, "git_workdir_flag_blocked"
             idx += 1
             continue
         if token.startswith("--"):

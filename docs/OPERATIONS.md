@@ -17,7 +17,9 @@
 
 - Рабочие каталоги: `.sandboxes/` (gitignored, вне `collectstatic`).
 - В продакшене: `SANDBOX_ENGINE=docker`, `SANDBOX_ALLOW_LOCAL_FALLBACK=false`.
+  Локальный engine выполняет `git` на хосте — в проде **только Docker** (см. `DJANGO_DEPLOY_CHECK` / [DEPLOY.md](DEPLOY.md)).
 - Политика команд — [AGENTS.md](../AGENTS.md) (раздел Sandbox command policy); блоклист в `apps/core/services/command_policy.py`.
+  Запись в `.git` через touch/echo/nano/API запрещена; `core.hooksPath` указывает на пустой каталог; флаги `git -C` / `--git-dir` / `--work-tree` запрещены.
 - Ручная очистка dev-окружения (см. AGENTS.md):
 
 ```powershell

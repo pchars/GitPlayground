@@ -14,6 +14,7 @@ from apps.core.services import (
     get_next_optional_track_task_for_user,
     get_next_unlockable_task_for_user,
 )
+from apps.core.theory_html import sanitize_theory_html
 from apps.progress.models import TaskCompletion
 from apps.tasks.models import Level, Task
 from apps.tasks.theory_extract import level_toc_sections, theory_for_task
@@ -27,7 +28,7 @@ def render_theory_markdown(content_md: str) -> str:
     rendered = markdown.markdown(content_md, extensions=THEORY_MARKDOWN_EXTENSIONS)
     rendered = rendered.replace("<table>", '<div class="theory-table-wrap"><table>')
     rendered = rendered.replace("</table>", "</table></div>")
-    return _ensure_heading_ids(rendered)
+    return sanitize_theory_html(_ensure_heading_ids(rendered))
 
 
 def _ensure_heading_ids(html: str) -> str:
