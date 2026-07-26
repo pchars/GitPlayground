@@ -91,6 +91,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000")
 # Serve CSS/JS when DEBUG=false (runserver and gunicorn). After collectstatic set to false.
 WHITENOISE_USE_FINDERS = os.getenv("WHITENOISE_USE_FINDERS", "true").lower() == "true"
 

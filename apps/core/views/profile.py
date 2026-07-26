@@ -11,13 +11,19 @@ from apps.users.services import ensure_user_profile
 
 
 def _render_profile(request: HttpRequest, user) -> HttpResponse:
+    from apps.users.certificate_services import user_eligible_for_certificate
+    from apps.users.models import CompletionCertificate
+
     stats = profile_learning_stats(user)
+    cert = CompletionCertificate.objects.filter(user=user).first()
     return render(
         request,
         "core/profile.html",
         {
             "profile_user": user,
             **stats,
+            "completion_certificate": cert,
+            "certificate_eligible": cert is not None or user_eligible_for_certificate(user),
         },
     )
 

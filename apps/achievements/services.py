@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import transaction
+import logging
 
 from apps.achievements.models import Achievement, UserAchievement
 from apps.progress.models import TaskCompletion
@@ -7,6 +8,8 @@ from apps.quiz.models import QuizQuestion, QuizQuestionProgress, QuizUserStats
 from apps.tasks.models import Task
 from apps.users.models import PointLedgerEntry
 from apps.users.services import ensure_user_profile
+
+logger = logging.getLogger(__name__)
 
 K = Achievement.CriterionKind
 
@@ -403,4 +406,10 @@ def evaluate_achievements_for_user(user: User) -> list[UserAchievement]:
             )
     if awarded:
         profile.save(update_fields=["total_points", "updated_at"])
+    try:
+        from apps.users.certificate_services import issue_completion_certificate
+
+        issue_completion_certificate(user, send_email=True)
+    except Exception:  # noqa: BLE001
+        logger.exception("Certificate issue after achievements failed for user_id=%s", user.pk)
     return awarded

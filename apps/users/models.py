@@ -52,6 +52,31 @@ class UserProfile(models.Model):
         return self.get_knowledge_level_display()
 
 
+def certificate_upload_to(instance, filename: str) -> str:
+    return f"certificates/{instance.user_id}/{filename}"
+
+
+class CompletionCertificate(models.Model):
+    """Practice-completion certificate (not a diploma)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="completion_certificate",
+    )
+    verification_code = models.CharField(max_length=32, unique=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    pdf = models.FileField(upload_to=certificate_upload_to, blank=True)
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+    display_name = models.CharField(max_length=120)
+
+    class Meta:
+        ordering = ["-issued_at"]
+
+    def __str__(self) -> str:
+        return f"certificate:{self.verification_code}"
+
+
 class PointLedgerEntry(models.Model):
     """Points change ledger (source of truth to reconcile UserProfile.total_points)."""
 

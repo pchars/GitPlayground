@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+{% block title %}GitPlayground | Проверка сертификата{% endblock %}
+{% block content %}
+<section class="card auth-card" style="max-width: 40rem; margin: 2rem auto;">
+  <h2>Сертификат о прохождении практики</h2>
+  <p>Имя: <strong>{{ certificate.display_name }}</strong></p>
+  <p>Дата выдачи: {{ certificate.issued_at|date:"d.m.Y" }}</p>
+  <p>Код: <code>{{ certificate.verification_code }}</code></p>
+  <p class="muted">
+    GitPlayground не является образовательной организацией. Этот документ не является дипломом,
+    свидетельством о профессии или государственным документом об образовании.
+  </p>
+</section>
+{% endblock %}

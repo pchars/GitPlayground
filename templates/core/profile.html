@@ -56,6 +56,33 @@
         </dd>
       </div>
     </dl>
+
+    {% if certificate_eligible %}
+    <div class="profile-certificate">
+      <h4>Сертификат о прохождении практики</h4>
+      <p class="muted profile-certificate-disclaimer">
+        Документ подтверждает прохождение задач и квиза на платформе. GitPlayground не является
+        образовательной организацией; это не диплом и не гос. документ об образовании.
+      </p>
+      {% if completion_certificate %}
+        <div class="profile-certificate-actions">
+          <a class="btn btn-primary" href="{% url 'certificate-download' %}">Скачать PDF</a>
+          <form method="post" action="{% url 'certificate-resend' %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn btn-secondary" type="submit">Отправить на email снова</button>
+          </form>
+        </div>
+        <p class="muted">Код проверки: {{ completion_certificate.verification_code }} ·
+          <a href="{% url 'certificate-verify' completion_certificate.verification_code %}">страница проверки</a>
+        </p>
+      {% else %}
+        <form method="post" action="{% url 'certificate-resend' %}">
+          {% csrf_token %}
+          <button class="btn btn-primary" type="submit">Получить сертификат</button>
+        </form>
+      {% endif %}
+    </div>
+    {% endif %}
   </article>
 
   <article class="card profile-card">

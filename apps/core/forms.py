@@ -24,7 +24,7 @@ class SignUpForm(UserCreationForm):
     certificate_name = forms.CharField(
         label="Имя и фамилия",
         max_length=120,
-        help_text="Будет указано на сертификате о прохождении курса. Укажите настоящие имя и фамилию.",
+        help_text="Будет указано на сертификате о прохождении практики на платформе. Укажите настоящие имя и фамилию.",
     )
     pseudonym = forms.CharField(
         label="Псевдоним",
